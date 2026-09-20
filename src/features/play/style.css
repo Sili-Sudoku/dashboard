@@ -1,0 +1,116 @@
+.play-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.play-header h1 {
+    margin: 0 0 0.2rem;
+}
+
+.play-header p {
+    margin: 0;
+    color: var(--ink-soft);
+    max-width: 60ch;
+}
+
+.play-author {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+}
+
+.play-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.play-btn:hover {
+    background: var(--surface-alt);
+}
+
+.play-btn[aria-pressed="true"] {
+    background: var(--brand-tint);
+    border-color: var(--brand);
+    color: var(--brand-hover);
+}
+
+.play-json {
+    margin-bottom: 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.pj-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+}
+
+.pj-tabs,
+.pj-bar-right {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.pj-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+    border: 1px solid var(--line);
+    border-radius: 0.4rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+
+.pj-tabs button.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
+.pj-note {
+    margin: 0;
+    padding: 0.5rem 0.8rem 0;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+}
+
+.play-json pre {
+    margin: 0;
+    padding: 0.8rem;
+    max-height: 420px;
+    overflow: auto;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    background: var(--ink);
+    color: #e9ecff;
+}
+
+.play-error {
+    padding: 1.5rem 0;
+}

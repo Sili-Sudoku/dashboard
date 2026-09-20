@@ -1,0 +1,46 @@
+.number-pad {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 260px;
+}
+
+.number-pad .pad-grid {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.number-pad .pad-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.pad-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.65rem 0.5rem;
+    font-size: 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.pad-key.wide {
+    flex: 1;
+    font-size: 0.85rem;
+}
+
+.pad-key:hover {
+    background: var(--surface-alt);
+}
+
+.pad-key.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}

@@ -1,0 +1,89 @@
+.constraint-panel {
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    background: var(--surface);
+    overflow: hidden;
+    font-size: 0.85rem;
+    width: 100%;
+    max-width: 340px;
+}
+
+.cp-status {
+    padding: 0.6rem 0.8rem;
+    font-weight: 600;
+}
+.cp-status.cp-valid {
+    background: var(--brand-tint);
+    color: var(--brand-hover);
+}
+.cp-status.cp-invalid {
+    background: var(--violated);
+    color: var(--violated-line);
+}
+
+.cp-groups,
+.cp-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cp-group {
+    border-top: 1px solid var(--line);
+    padding: 0.5rem 0.8rem;
+}
+
+.cp-group-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    text-transform: capitalize;
+    font-weight: 600;
+}
+
+.cp-counts {
+    display: flex;
+    gap: 0.5rem;
+    font-style: normal;
+    font-size: 0.75rem;
+}
+
+.cp-counts em {
+    font-style: normal;
+}
+
+.cp-items {
+    margin-top: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.cp-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--ink-soft);
+}
+
+.cp-item.cp-violated {
+    color: var(--violated-line);
+}
+.cp-item.cp-satisfied {
+    color: var(--ink);
+}
+
+.cp-error {
+    font-size: 0.72rem;
+    opacity: 0.8;
+}
+
+.ok {
+    color: var(--satisfied);
+}
+.bad {
+    color: var(--violated-line);
+}
+.pending {
+    color: var(--incomplete);
+}

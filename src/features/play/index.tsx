@@ -1,0 +1,136 @@
+import { useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Braces, Copy, Share2, X } from "lucide-react";
+
+import { compilePuzzle } from "@/runtime/compile.ts";
+import { decodePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
+import type { CompiledPuzzle, PuzzleDefinition } from "@/runtime/puzzle.ts";
+import { definitions } from "@/definitions/index.ts";
+import { getPuzzle } from "@/puzzles/index.ts";
+import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+
+import "./style.css";
+
+interface Resolved {
+    definition?: PuzzleDefinition;
+    compiled?: CompiledPuzzle;
+    error?: string;
+}
+
+const resolve = (ref: string | undefined): Resolved => {
+    if (!ref) return { error: "No puzzle reference in the URL." };
+
+    const fromRegistry = getPuzzle(ref);
+    const definition = fromRegistry ?? decodePuzzle(ref);
+    if (definition instanceof Error) return { error: definition.message };
+
+    const compiled = compilePuzzle(definition, definitions);
+    if (compiled instanceof Error) return { definition, error: compiled.message };
+
+    return { definition, compiled };
+};
+
+type JsonView = "off" | "artifact" | "compiled";
+
+export default function Play() {
+    const { ref } = useParams();
+    const { definition, compiled, error } = useMemo(() => resolve(ref), [ref]);
+    const [copied, setCopied] = useState(false);
+    const [jsonView, setJsonView] = useState<JsonView>("off");
+
+    const share = async () => {
+        if (!definition) return;
+        const url = `${window.location.origin}/p/${encodePuzzle(definition)}`;
+        await copyText(url, setCopied);
+    };
+
+    if (error && !compiled) {
+        return (
+            <div className="play-error">
+                <h2>Could not load this puzzle</h2>
+                <p>{error}</p>
+                <Link to="/">Back to puzzles</Link>
+            </div>
+        );
+    }
+
+    if (!compiled || !definition) return null;
+
+    const jsonText =
+        jsonView === "compiled"
+            ? JSON.stringify(compiled, null, 2)
+            : JSON.stringify(definition, null, 2);
+
+    return (
+        <div className="play">
+            <header className="play-header">
+                <div>
+                    <h1>{definition.metadata.title}</h1>
+                    {definition.metadata.description && <p>{definition.metadata.description}</p>}
+                    {definition.metadata.author && (
+                        <span className="play-author">by {definition.metadata.author}</span>
+                    )}
+                </div>
+                <div className="play-actions">
+                    <button
+                        className="play-btn"
+                        aria-pressed={jsonView !== "off"}
+                        onClick={() => setJsonView((v) => (v === "off" ? "artifact" : "off"))}
+                    >
+                        <Braces size={15} /> {jsonView === "off" ? "View JSON" : "Hide JSON"}
+                    </button>
+                    <button className="play-btn" onClick={share}>
+                        <Share2 size={15} /> {copied ? "Link copied" : "Share"}
+                    </button>
+                </div>
+            </header>
+
+            {jsonView !== "off" && (
+                <section className="play-json">
+                    <div className="pj-bar">
+                        <div className="pj-tabs">
+                            <button
+                                className={jsonView === "artifact" ? "active" : ""}
+                                onClick={() => setJsonView("artifact")}
+                            >
+                                Artifact (authored)
+                            </button>
+                            <button
+                                className={jsonView === "compiled" ? "active" : ""}
+                                onClick={() => setJsonView("compiled")}
+                            >
+                                Compiled (primitives the runtime sees)
+                            </button>
+                        </div>
+                        <div className="pj-bar-right">
+                            <button onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
+                                <Copy size={14} /> {copied ? "Copied" : "Copy"}
+                            </button>
+                            <button onClick={() => setJsonView("off")} title="Close" aria-label="Close">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    </div>
+                    <p className="pj-note">
+                        {jsonView === "artifact"
+                            ? "The serializable puzzle definition — this is what a URL, file, or database row holds."
+                            : "After compile: definition references are expanded, selectors resolved, and every constraint is a primitive expression tagged by its source."}
+                    </p>
+                    <pre>{jsonText}</pre>
+                </section>
+            )}
+
+            <PuzzlePlayer key={definition.metadata.id} puzzle={compiled} />
+        </div>
+    );
+}
+
+const copyText = async (text: string, setCopied: (v: boolean) => void): Promise<void> => {
+    try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+        window.prompt("Copy:", text);
+    }
+};

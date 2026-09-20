@@ -1,0 +1,42 @@
+.board {
+    max-width: 100%;
+    height: auto;
+    touch-action: none;
+    user-select: none;
+    border: 2px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--surface);
+}
+
+.board .cell-bg {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.board .cell-normal {
+    fill: transparent;
+}
+.board .cell-cursor {
+    fill: var(--cursor);
+}
+.board .cell-selected {
+    fill: var(--selected);
+}
+.board .cell-violated {
+    fill: var(--violated);
+}
+.board .cell-invalid {
+    fill: var(--invalid);
+}
+
+.board .digit.given {
+    fill: var(--given);
+    font-weight: 600;
+}
+.board .digit.entered {
+    fill: var(--entered);
+    font-weight: 500;
+}
+.board .note {
+    fill: var(--ink-soft);
+}

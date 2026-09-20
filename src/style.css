@@ -1,0 +1,99 @@
+:root[data-theme="light"] {
+    --bg: #f8f8fc;
+    --surface: #ffffff;
+    --surface-alt: #eef0f8;
+    --ink: #0a0b14;
+    --ink-soft: #565a76;
+    --line: #c7cadf;
+    --line-strong: #2a2c3f;
+
+    --brand: #5861bb;
+    --brand-hover: #4a53a8;
+    --brand-tint: #e6e8fb;
+    --accent: #c572b7;
+
+    --given: #0a0b14;
+    --entered: #3b45c9;
+    --selected: #d7dbff;
+    --cursor: #eceeff;
+    --violated: #fbe0e0;
+    --violated-line: #d33a3a;
+    --invalid: #f6c9c9;
+    --satisfied: #16a34a;
+    --incomplete: #b9803a;
+
+    /* Constraint-graphic palette referenced by definition-authored objects. */
+    --thermo: #9aa4c8;
+    --cage: #4a53a8;
+    --arrow: #333850;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+}
+
+a {
+    color: var(--brand);
+}
+
+h1, h2, h3 {
+    line-height: 1.2;
+}
+
+code, pre {
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+}
+
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.9rem 1.4rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.app-header .logo {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    color: var(--ink);
+}
+
+.app-header .tagline {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+}
+
+.app-header nav {
+    margin-left: auto;
+    display: flex;
+    gap: 1rem;
+}
+
+.app-main {
+    flex: 1;
+    padding: 1.4rem;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+button {
+    font: inherit;
+}

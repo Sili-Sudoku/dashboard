@@ -1,0 +1,135 @@
+/**
+ * Evaluate a compiled puzzle against a board state.
+ *
+ * Each constraint resolves to one of three statuses via Kleene logic:
+ *   - satisfied   the expression is definitely true
+ *   - violated    the expression is definitely false
+ *   - incomplete  not enough cells are filled to decide
+ *
+ * The puzzle is `valid` when nothing is violated, and `complete` when every cell
+ * is filled and every constraint is satisfied.
+ */
+
+import type { CellId } from "@/runtime/geometry.ts";
+import { createGeometry } from "@/runtime/geometry.ts";
+import type { EvalContext } from "@/runtime/expression.ts";
+import { evalExpr } from "@/runtime/operators.ts";
+import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
+
+export type ConstraintStatus = "satisfied" | "violated" | "incomplete";
+
+export interface ConstraintEvaluation {
+    id: string;
+    source: string;
+    label?: string;
+    status: ConstraintStatus;
+    cells: readonly CellId[];
+    error?: string;
+}
+
+export interface EvaluationResult {
+    status: "valid" | "invalid";
+    complete: boolean;
+    filledCount: number;
+    cellCount: number;
+    constraints: readonly ConstraintEvaluation[];
+    /** Cells belonging to at least one violated constraint. */
+    violatedCells: ReadonlySet<CellId>;
+    /** Cells whose entered value is outside the puzzle domain. */
+    invalidCells: ReadonlySet<CellId>;
+}
+
+/** How the evaluator reads the board: entered value of a cell, or null. */
+export type ValueLookup = (cell: CellId) => number | null;
+
+export const lookupFromRecord = (
+    values: Readonly<Record<CellId, number | null | undefined>>,
+): ValueLookup => {
+    return (cell) => {
+        const v = values[cell];
+        return v === undefined || v === null ? null : v;
+    };
+};
+
+export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): EvaluationResult => {
+    const geometry = createGeometry(puzzle.geometry);
+    const ctx: EvalContext = {
+        geometry,
+        regions: puzzle.regions,
+        domain: puzzle.domain,
+        valueOf: lookup,
+    };
+
+    const domainSet = new Set(puzzle.domain);
+    const invalidCells = new Set<CellId>();
+    let filledCount = 0;
+    for (const cell of geometry.cells) {
+        const v = lookup(cell);
+        if (v === null) continue;
+        filledCount++;
+        if (!domainSet.has(v)) invalidCells.add(cell);
+    }
+
+    const constraints: ConstraintEvaluation[] = [];
+    const violatedCells = new Set<CellId>();
+    let anyViolated = false;
+    let allSatisfied = true;
+
+    for (const constraint of puzzle.constraints) {
+        let status: ConstraintStatus;
+        let error: string | undefined;
+        try {
+            const value = evalExpr(constraint.expr, ctx);
+            if (value.t === "bool") status = value.v ? "satisfied" : "violated";
+            else if (value.t === "unknown") status = "incomplete";
+            else {
+                status = "violated";
+                error = `constraint did not evaluate to a boolean (got ${value.t})`;
+            }
+        } catch (err) {
+            status = "violated";
+            error = err instanceof Error ? err.message : String(err);
+        }
+
+        if (status === "violated") {
+            anyViolated = true;
+            allSatisfied = false;
+            for (const c of constraint.cells) violatedCells.add(c);
+        } else if (status === "incomplete") {
+            allSatisfied = false;
+        }
+
+        constraints.push({
+            id: constraint.id,
+            source: constraint.source,
+            label: constraint.label,
+            status,
+            cells: constraint.cells,
+            error,
+        });
+    }
+
+    return {
+        status: anyViolated || invalidCells.size > 0 ? "invalid" : "valid",
+        complete: filledCount === geometry.cells.length && allSatisfied && invalidCells.size === 0,
+        filledCount,
+        cellCount: geometry.cells.length,
+        constraints,
+        violatedCells,
+        invalidCells,
+    };
+};
+
+/**
+ * Constraints whose footprint includes any of the changed cells — the set that
+ * needs re-checking after an edit, for callers that want incremental updates.
+ */
+export const affectedConstraints = (
+    puzzle: CompiledPuzzle,
+    changed: Iterable<CellId>,
+): readonly string[] => {
+    const changedSet = new Set(changed);
+    return puzzle.constraints
+        .filter((c) => c.cells.some((cell) => changedSet.has(cell)))
+        .map((c) => c.id);
+};
