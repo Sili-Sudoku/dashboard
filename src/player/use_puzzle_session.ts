@@ -75,7 +75,17 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     useEffect(() => {
         const isInputTarget = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;
-            return target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+            return !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+        };
+
+        /**
+         * Tab/Shift+Tab jump to the next/previous empty cell, but only when
+         * nothing else on the page is focused — otherwise Tab keeps its normal
+         * job of moving focus between buttons/controls (accessibility).
+         */
+        const isInteractiveFocus = () => {
+            const active = document.activeElement;
+            return active instanceof HTMLElement && active !== document.body && active.tagName !== "svg";
         };
 
         const restoreMode = () => {
@@ -120,12 +130,14 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
                 session.setInputMode(e.key === "Shift" ? "corner" : "center");
                 return;
             }
+            // "0" is a plain digit here, same as any other — it only means "erase"
+            // in domains that don't include it, and input() already no-ops on a
+            // digit outside the domain, so there's nothing special to do for it.
             if (/^[0-9]$/.test(e.key)) {
-                const n = Number(e.key);
-                if (n >= 1) session.input(n);
+                session.input(Number(e.key));
                 return;
             }
-            if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") {
+            if (e.key === "Backspace" || e.key === "Delete") {
                 e.preventDefault();
                 session.erase();
                 return;
@@ -135,10 +147,25 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
                 session.setInputMode(session.inputMode === "digit" ? "corner" : "digit");
                 return;
             }
+            if (e.key === "Tab" && !isInteractiveFocus()) {
+                e.preventDefault();
+                session.jumpToEmptyCell(e.shiftKey ? -1 : 1);
+                return;
+            }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                session.selectSameValue();
+                return;
+            }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
                 e.preventDefault();
                 if (e.shiftKey) session.redo();
                 else session.undo();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+                e.preventDefault();
+                session.redo();
                 return;
             }
             if (e.key === "Escape") session.selectNone();

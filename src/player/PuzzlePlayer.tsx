@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { ListChecks, PartyPopper } from "lucide-react";
+import { Keyboard, ListChecks, PartyPopper } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -10,6 +10,7 @@ import { usePuzzleSession } from "@/player/use_puzzle_session.ts";
 import NumberPad from "@/player/components/number-pad";
 import Controls from "@/player/components/controls";
 import ConstraintPanel from "@/player/components/constraint-panel";
+import HotkeyLegend from "@/player/components/hotkey-legend";
 
 import "./player.css";
 
@@ -20,6 +21,7 @@ interface Props {
 export default function PuzzlePlayer({ puzzle }: Props) {
     const session = usePuzzleSession(puzzle);
     const [showConstraints, setShowConstraints] = useState(false);
+    const [showHotkeys, setShowHotkeys] = useState(false);
 
     const scene = useMemo(
         () =>
@@ -64,11 +66,7 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     onPaintEnd={() => undefined}
                     onClearSelection={() => session.selectNone()}
                 />
-                <p className="pp-hint">
-                    Click / drag to select · digits to enter · <kbd>Space</kbd> notes · arrows to move ·{" "}
-                    <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Shift</kbd>+digit corner note ·{" "}
-                    <kbd>Ctrl</kbd>+digit centre note
-                </p>
+                <p className="pp-hint">Click / drag to select · digits to enter · see keyboard shortcuts below</p>
             </div>
 
             <aside className="pp-side">
@@ -95,13 +93,22 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 />
 
                 <button
-                    className="pp-constraints-toggle"
+                    className="pp-toggle"
                     aria-expanded={showConstraints}
                     onClick={() => setShowConstraints((v) => !v)}
                 >
                     <ListChecks size={15} /> {showConstraints ? "Hide constraints" : "Show constraints"}
                 </button>
                 {showConstraints && <ConstraintPanel evaluation={evaluation} />}
+
+                <button
+                    className="pp-toggle"
+                    aria-expanded={showHotkeys}
+                    onClick={() => setShowHotkeys((v) => !v)}
+                >
+                    <Keyboard size={15} /> {showHotkeys ? "Hide shortcuts" : "Keyboard shortcuts"}
+                </button>
+                {showHotkeys && <HotkeyLegend />}
             </aside>
         </div>
     );

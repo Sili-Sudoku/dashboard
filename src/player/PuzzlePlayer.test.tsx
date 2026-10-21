@@ -13,6 +13,21 @@ const compiled = () => {
     return result;
 };
 
+const compiledWithZeroInDomain = () => {
+    const result = compilePuzzle(
+        {
+            version: 1,
+            metadata: { id: "zero-domain", title: "zero-domain" },
+            geometry: { type: "grid", width: 2, height: 2 },
+            domain: { values: [0, 1, 2, 3] },
+            constraints: [],
+        },
+        definitions,
+    );
+    if (result instanceof Error) throw result;
+    return result;
+};
+
 afterEach(() => {
     cleanup();
     localStorage.clear();
@@ -187,6 +202,95 @@ describe("<PuzzlePlayer />", () => {
             window.dispatchEvent(event);
             expect(event.defaultPrevented).toBe(true);
         }
+    });
+
+    it("'0' is a plain digit for domains that include it, separate from erase", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
+
+        fireEvent.keyDown(window, { key: "0" });
+        const entered = container.querySelectorAll(".digit.entered");
+        expect(entered).toHaveLength(1);
+        expect(entered[0].textContent).toBe("0");
+
+        fireEvent.keyDown(window, { key: "Backspace" });
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
+    });
+
+    it("Ctrl+Y redoes, same as Ctrl+Shift+Z", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(1);
+
+        fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
+
+        fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(1);
+    });
+
+    it("Enter selects every cell sharing the cursor cell's value", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]); // r1c2
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        fireEvent.pointerDown(cells[4]); // r2c1
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+
+        fireEvent.pointerDown(cells[1]); // cursor back on r1c2
+        fireEvent.keyDown(window, { key: "Enter" });
+
+        expect(container.querySelectorAll(".cell-ring-cursor, .cell-ring-selected")).toHaveLength(2);
+    });
+
+    it("Tab/Shift+Tab jump the cursor between empty cells, but not while a control is focused", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cursorRing = () => container.querySelector(".cell-ring-cursor") as SVGRectElement;
+        const ringPos = () => ({ x: cursorRing().getAttribute("x"), y: cursorRing().getAttribute("y") });
+
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]); // r1c1 (given)
+        const start = ringPos();
+
+        fireEvent.keyDown(window, { key: "Tab" });
+        const afterTab = ringPos();
+        expect(afterTab).not.toEqual(start);
+
+        fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+        expect(ringPos()).not.toEqual(afterTab);
+
+        // Tab's normal job (moving focus between controls) takes over once a
+        // control actually has focus, instead of jumping the puzzle cursor.
+        const eraseButton = screen.getByRole("button", { name: /erase/i });
+        eraseButton.focus();
+        const beforeFocusedTab = ringPos();
+        fireEvent.keyDown(window, { key: "Tab" });
+        expect(ringPos()).toEqual(beforeFocusedTab);
+    });
+
+    it("Escape visibly removes the cursor ring, not just an invisible internal selection", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
+        expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
+
+        fireEvent.keyDown(window, { key: "Escape" });
+        expect(container.querySelector(".cell-ring-cursor")).toBeNull();
+        expect(container.querySelector(".cell-ring-selected")).toBeNull();
+
+        // arrow keys still work afterwards, re-anchoring instead of staying dead
+        fireEvent.keyDown(window, { key: "ArrowRight" });
+        expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
+    });
+
+    it("hides the keyboard shortcut legend by default, revealed via a toggle", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".hotkey-legend")).toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: /keyboard shortcuts/i }));
+        expect(container.querySelector(".hotkey-legend")).not.toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: /hide shortcuts/i }));
+        expect(container.querySelector(".hotkey-legend")).toBeNull();
     });
 
     it("solving the puzzle surfaces the completion banner", () => {

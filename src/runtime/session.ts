@@ -148,19 +148,57 @@ export class PuzzleSession {
         this.emit();
     }
 
+    /** Clears the selection *and* the cursor ring — nothing stays highlighted. */
     selectNone(): void {
         this.selection.clear();
+        this.cursor = null;
         this.emit();
     }
 
     moveCursor(dir: Direction, extend = false): void {
-        if (!this.cursor) return;
+        if (!this.cursor) {
+            // No cursor (e.g. right after selectNone()) — an arrow key just
+            // re-anchors on the first cell rather than stepping from nowhere.
+            const first = this.geometry.cells[0];
+            if (!first) return;
+            this.cursor = first;
+            this.selection = new Set([first]);
+            this.emit();
+            return;
+        }
         const next = this.geometry.step(this.cursor, dir);
         if (!next) return;
         this.cursor = next;
         if (extend) this.selection.add(next);
         else this.selection = new Set([next]);
         this.emit();
+    }
+
+    /** Selects every cell sharing the cursor cell's value. No-op on an empty cell. */
+    selectSameValue(): void {
+        if (!this.cursor) return;
+        const value = this.valueOf(this.cursor);
+        if (value === null) return;
+        this.selection = new Set(this.geometry.cells.filter((c) => this.valueOf(c) === value));
+        this.emit();
+    }
+
+    /** Moves the cursor to the next (or, with `direction` -1, previous) empty cell, wrapping around. */
+    jumpToEmptyCell(direction: 1 | -1): void {
+        const cells = this.geometry.cells;
+        if (cells.length === 0) return;
+        const startIndex = this.cursor ? cells.indexOf(this.cursor) : -1;
+
+        for (let step = 1; step <= cells.length; step++) {
+            const index = (((startIndex + direction * step) % cells.length) + cells.length) % cells.length;
+            const cell = cells[index];
+            if (this.valueOf(cell) === null) {
+                this.cursor = cell;
+                this.selection = new Set([cell]);
+                this.emit();
+                return;
+            }
+        }
     }
 
     // --- mutation -------------------------------------------------------

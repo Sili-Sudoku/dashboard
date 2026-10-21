@@ -154,6 +154,67 @@ describe("PuzzleSession", () => {
         expect(session.getCursor()).toBe("r1c2");
     });
 
+    it("selectNone clears the cursor too, so nothing stays visibly highlighted", () => {
+        session.select("r1c2");
+        expect(session.getCursor()).toBe("r1c2");
+        expect(session.getSelection()).toEqual(new Set(["r1c2"]));
+
+        session.selectNone();
+        expect(session.getCursor()).toBeNull();
+        expect(session.getSelection()).toEqual(new Set());
+    });
+
+    it("moveCursor re-anchors on the first cell after selectNone, instead of no-op", () => {
+        session.select("r2c2");
+        session.selectNone();
+        session.moveCursor("right");
+        expect(session.getCursor()).toBe("r1c1");
+    });
+
+    it("selects every cell sharing the cursor cell's value", () => {
+        session.select("r1c2");
+        session.input(3);
+        session.select("r2c1");
+        session.input(3);
+        session.select("r3c3");
+        session.input(3);
+
+        session.select("r1c2"); // cursor back on one of the '3' cells
+        session.selectSameValue();
+        expect([...session.getSelection()].sort()).toEqual(["r1c2", "r2c1", "r3c3"].sort());
+    });
+
+    it("selectSameValue is a no-op when the cursor cell is empty", () => {
+        session.select("r1c2");
+        session.selectSameValue();
+        expect(session.getSelection()).toEqual(new Set(["r1c2"]));
+    });
+
+    it("jumps to the next/previous empty cell, wrapping around the board", () => {
+        session.select("r1c1"); // a given, but still a valid cursor position
+        session.jumpToEmptyCell(1);
+        expect(session.getCursor()).toBe("r1c2");
+
+        session.select("r1c1");
+        session.jumpToEmptyCell(-1);
+        expect(session.getCursor()).toBe("r4c4"); // wraps past the start to the last cell
+    });
+
+    it("jumpToEmptyCell skips over filled cells", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.select("r1c1");
+        session.jumpToEmptyCell(1);
+        expect(session.getCursor()).toBe("r1c3"); // r1c2 is now filled
+    });
+
+    it("jumpToEmptyCell searches from the start when there is no cursor", () => {
+        session.selectNone();
+        expect(session.getCursor()).toBeNull();
+        session.jumpToEmptyCell(1);
+        expect(session.getCursor()).toBe("r1c2"); // r1c1 is a given, so the first empty cell
+    });
+
     it("memoises evaluation and refreshes it after a change", () => {
         const first = session.evaluation;
         expect(session.evaluation).toBe(first);
