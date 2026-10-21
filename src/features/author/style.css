@@ -65,6 +65,15 @@
     color: var(--brand);
 }
 
+.author-actions button:hover {
+    background: var(--brand-hover);
+}
+
+.author-actions button:nth-child(2):hover {
+    background: var(--surface-alt);
+    color: var(--brand);
+}
+
 .author-error {
     margin-top: 0.6rem;
     padding: 0.6rem 0.8rem;

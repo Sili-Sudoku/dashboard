@@ -13,6 +13,7 @@
  */
 
 import { createGeometry, type CellId, type Geometry } from "@/runtime/geometry.ts";
+import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { collectCells, ExpressionError, type EvalContext, type Expr } from "@/runtime/expression.ts";
 import { staticCheckExpr } from "@/runtime/operators.ts";
 import {
@@ -127,7 +128,7 @@ export const compilePuzzle = (
         }
     }
 
-    return {
+    const compiled: CompiledPuzzle = {
         metadata: def.metadata,
         geometry: def.geometry,
         domain,
@@ -138,6 +139,17 @@ export const compilePuzzle = (
         solution: def.solution,
         presentation: def.presentation ?? {},
     };
+
+    if (def.solution) {
+        const result = evaluate(compiled, lookupFromRecord(def.solution));
+        const violated = result.constraints.filter((c) => c.status === "violated");
+        if (violated.length > 0) {
+            const ids = violated.map((c) => c.id).join(", ");
+            return new Error(`declared solution violates constraint(s): ${ids}`);
+        }
+    }
+
+    return compiled;
 };
 
 interface ExpandedSpec {

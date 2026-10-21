@@ -82,10 +82,12 @@ export default function Author() {
                         <button onClick={() => setSubmitted(text)}>Validate &amp; preview</button>
                         {shareLink && (
                             <button
-                                onClick={() => {
-                                    navigator.clipboard
-                                        ?.writeText(shareLink)
-                                        .catch(() => window.prompt("Share link:", shareLink));
+                                onClick={async () => {
+                                    try {
+                                        await navigator.clipboard.writeText(shareLink);
+                                    } catch {
+                                        window.prompt("Share link:", shareLink);
+                                    }
                                 }}
                             >
                                 Copy share link

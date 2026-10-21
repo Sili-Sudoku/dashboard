@@ -74,6 +74,25 @@ describe("compilePuzzle", () => {
         expect(result).toBeInstanceOf(Error);
     });
 
+    it("rejects a declared solution that violates a constraint", () => {
+        const result = compilePuzzle({
+            ...base,
+            constraints: [["allDifferent", ["cells", "row:0"]]],
+            solution: { r1c1: 1, r1c2: 1, r1c3: 3, r1c4: 4 },
+        });
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toMatch(/declared solution violates constraint/);
+    });
+
+    it("accepts a declared solution that satisfies every constraint", () => {
+        const result = compilePuzzle({
+            ...base,
+            constraints: [["allDifferent", ["cells", "row:0"]]],
+            solution: { r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 },
+        });
+        expect(result).not.toBeInstanceOf(Error);
+    });
+
     it("compiles with an empty registry when no definitions are referenced", () => {
         const result = compilePuzzle({ ...base, constraints: [["allDifferent", ["cells", "col:0"]]] }, {});
         expect(result).not.toBeInstanceOf(Error);
