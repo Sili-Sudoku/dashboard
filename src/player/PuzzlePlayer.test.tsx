@@ -56,6 +56,15 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".cell-violated").length).toBeGreaterThan(0);
     });
 
+    it("prevents the browser back-navigation gesture on Backspace/Delete", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        for (const key of ["Backspace", "Delete"]) {
+            const event = new KeyboardEvent("keydown", { key, cancelable: true });
+            window.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(true);
+        }
+    });
+
     it("solving the puzzle surfaces the completion banner", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const solution = miniSudoku.solution as Record<string, number>;

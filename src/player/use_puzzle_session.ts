@@ -73,6 +73,7 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
                 return;
             }
             if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") {
+                e.preventDefault();
                 session.erase();
                 return;
             }
