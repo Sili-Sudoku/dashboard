@@ -27,6 +27,7 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 puzzle,
                 valueOf: session.valueOf,
                 notesOf: (c) => session.cellState(c).notes,
+                centerNotesOf: (c) => session.cellState(c).centerNotes,
                 isGiven: (c) => session.isGiven(c),
                 selection: session.getSelection(),
                 cursor: session.getCursor(),
@@ -65,7 +66,8 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 />
                 <p className="pp-hint">
                     Click / drag to select · digits to enter · <kbd>Space</kbd> notes · arrows to move ·{" "}
-                    <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo
+                    <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Shift</kbd>+digit corner note ·{" "}
+                    <kbd>Ctrl</kbd>+digit centre note
                 </p>
             </div>
 
@@ -78,10 +80,10 @@ export default function PuzzlePlayer({ puzzle }: Props) {
 
                 <NumberPad
                     values={puzzle.domain}
-                    noteMode={session.noteMode}
+                    mode={session.inputMode}
                     onInput={(v) => session.input(v)}
                     onErase={() => session.erase()}
-                    onToggleNotes={() => session.setNoteMode(!session.noteMode)}
+                    onModeChange={(m) => session.setInputMode(m)}
                 />
 
                 <Controls

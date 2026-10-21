@@ -11,12 +11,14 @@
     gap: 0.4rem;
 }
 
+.number-pad .pad-modes,
 .number-pad .pad-actions {
     display: flex;
     gap: 0.4rem;
 }
 
 .pad-key {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -28,6 +30,28 @@
     background: var(--surface);
     color: var(--ink);
     cursor: pointer;
+}
+
+/* Fixed height so switching the preview content (full digit / shrunk centre
+   note / absolutely-positioned corner note) never changes the button's box. */
+.pad-grid .pad-key {
+    height: 2.7rem;
+}
+
+/* Center mode: preview the compact, smaller, centred note style the digit
+   will actually render as, instead of the full-size digit-entry glyph. */
+.pad-key-center {
+    font-size: 0.85rem;
+    color: var(--entered);
+}
+
+/* Corner mode: preview the exact 3x3 slot the note will land in, rather
+   than a centred digit, so the spatial mapping is visible before clicking. */
+.pad-key-preview {
+    position: absolute;
+    font-size: 0.65rem;
+    color: var(--ink-soft);
+    transform: translate(-50%, -50%);
 }
 
 .pad-key.wide {

@@ -48,6 +48,7 @@ describe("buildScene", () => {
             puzzle,
             valueOf: () => null,
             notesOf: () => [],
+            centerNotesOf: () => [],
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(),
             cursor: null,
@@ -64,6 +65,7 @@ describe("buildScene", () => {
             puzzle,
             valueOf: lookupFromRecord(broken),
             notesOf: () => [],
+            centerNotesOf: () => [],
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(),
             cursor: null,
@@ -78,6 +80,7 @@ describe("buildScene", () => {
             puzzle,
             valueOf: lookupFromRecord(broken),
             notesOf: () => [],
+            centerNotesOf: () => [],
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(["r1c8"]),
             cursor: "r1c8",
@@ -88,11 +91,28 @@ describe("buildScene", () => {
         expect(cell?.ring).toBe("cursor");
     });
 
+    it("carries per-cell centre notes into the scene, distinct from corner notes", () => {
+        const scene = buildScene({
+            puzzle,
+            valueOf: () => null,
+            notesOf: (c) => (c === "r1c1" ? [1, 2] : []),
+            centerNotesOf: (c) => (c === "r1c1" ? [3] : []),
+            isGiven: (c) => c in puzzle.givens,
+            selection: new Set(),
+            cursor: null,
+            evaluation: evaluate(puzzle, () => null),
+        });
+        const cell = scene.cells.find((c) => c.cell === "r1c1");
+        expect(cell?.notes).toEqual([1, 2]);
+        expect(cell?.centerNotes).toEqual([3]);
+    });
+
     it("orders shapes by z", () => {
         const scene = buildScene({
             puzzle,
             valueOf: () => null,
             notesOf: () => [],
+            centerNotesOf: () => [],
             isGiven: () => false,
             selection: new Set(),
             cursor: null,

@@ -48,15 +48,50 @@ describe("PuzzleSession", () => {
 
     it("toggles pencil marks in note mode and clears them when a value lands", () => {
         session.select("r1c2");
-        session.setNoteMode(true);
+        session.setInputMode("corner");
         session.input(2);
         session.input(4);
         expect(session.cellState("r1c2").notes).toEqual([2, 4]);
         session.input(2);
         expect(session.cellState("r1c2").notes).toEqual([4]);
-        session.setNoteMode(false);
+        session.setInputMode("digit");
         session.input(3);
-        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [] });
+    });
+
+    it("input() applies centre notes while in center mode", () => {
+        session.select("r1c2");
+        session.setInputMode("center");
+        session.input(2);
+        session.input(4);
+        expect(session.cellState("r1c2").centerNotes).toEqual([2, 4]);
+        expect(session.cellState("r1c2").notes).toEqual([]);
+    });
+
+    it("toggles corner and centre notes directly, independent of inputMode", () => {
+        session.select("r1c2");
+        expect(session.inputMode).toBe("digit");
+
+        session.toggleCornerNote(2);
+        session.toggleCornerNote(4);
+        session.toggleCenterNote(4);
+        expect(session.cellState("r1c2").notes).toEqual([2, 4]);
+        expect(session.cellState("r1c2").centerNotes).toEqual([4]);
+
+        session.toggleCornerNote(2);
+        expect(session.cellState("r1c2").notes).toEqual([4]);
+        expect(session.cellState("r1c2").centerNotes).toEqual([4]);
+    });
+
+    it("ignores direct note toggles on cells holding a value or on givens", () => {
+        session.select("r1c2");
+        session.input(3);
+        session.toggleCornerNote(5);
+        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [] });
+
+        session.select("r1c1"); // given
+        session.toggleCenterNote(2);
+        expect(session.cellState("r1c1").centerNotes).toEqual([]);
     });
 
     it("applies input to every selected non-given cell", () => {
@@ -83,6 +118,34 @@ describe("PuzzleSession", () => {
         expect(session.valueOf("r1c2")).toBe(2);
     });
 
+    it("erase only clears the layer matching the active input mode", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCenterNote(2);
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2] });
+
+        session.setInputMode("digit");
+        session.erase(); // nothing to erase on the value layer
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2] });
+
+        session.setInputMode("corner");
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [2] });
+
+        session.setInputMode("center");
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [] });
+    });
+
+    it("erase on the digit layer clears the value but leaves notes untouched", () => {
+        session.select("r1c3");
+        session.setInputMode("digit");
+        session.input(3);
+        session.toggleCornerNote(1); // value is set, so this note toggle is a no-op (cell holds a value)
+        session.erase();
+        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [], centerNotes: [] });
+    });
+
     it("moves a keyboard cursor and stops at edges", () => {
         session.select("r1c1");
         session.moveCursor("right");
@@ -105,13 +168,15 @@ describe("PuzzleSession", () => {
         session.select("r1c2");
         session.input(2);
         session.select("r1c3");
-        session.setNoteMode(true);
+        session.setInputMode("corner");
         session.input(4);
+        session.toggleCenterNote(1);
         const snapshot = session.toProgress();
 
         const restored = new PuzzleSession(compiled(), { initialProgress: snapshot });
         expect(restored.valueOf("r1c2")).toBe(2);
         expect(restored.cellState("r1c3").notes).toEqual([4]);
+        expect(restored.cellState("r1c3").centerNotes).toEqual([1]);
     });
 
     it("reset clears entered values but is undoable", () => {

@@ -48,3 +48,7 @@
 .board .note {
     fill: var(--ink-soft);
 }
+.board .note-center {
+    fill: var(--entered);
+    font-weight: 500;
+}

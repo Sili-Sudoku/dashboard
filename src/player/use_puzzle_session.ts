@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "r
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
-import { PuzzleSession, progressStorageKey, type ProgressSnapshot } from "@/runtime/session.ts";
+import { PuzzleSession, progressStorageKey, type InputMode, type ProgressSnapshot } from "@/runtime/session.ts";
 
 const readProgress = (id: string): ProgressSnapshot | undefined => {
     try {
@@ -34,6 +34,15 @@ const ARROW_KEYS: Record<string, Direction> = {
     ArrowRight: "right",
 };
 
+/**
+ * Digit from the physical key code rather than `e.key`, since on many layouts
+ * a held Shift changes `e.key` for the top-row digits (e.g. Shift+1 -> "!").
+ */
+const digitFromCode = (code: string): number | null => {
+    const match = /^(?:Digit|Numpad)([1-9])$/.exec(code);
+    return match ? Number(match[1]) : null;
+};
+
 export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     const session = useMemo(
         () => new PuzzleSession(puzzle, { initialProgress: readProgress(puzzle.metadata.id) }),
@@ -57,14 +66,58 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     }, [session, puzzle.metadata.id]);
 
     // Keyboard interaction.
+    // While Shift/Ctrl/Cmd is held on its own (no other key yet), the number
+    // pad previews the mode that key would apply — held state restores
+    // `baseMode` on release rather than leaving the pad stuck in that mode.
+    const baseMode = useRef<InputMode>(session.inputMode);
+    const modifierHeld = useRef(false);
+
     useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
+        const isInputTarget = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;
-            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+            return target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+        };
+
+        const restoreMode = () => {
+            session.setInputMode(baseMode.current);
+            modifierHeld.current = false;
+        };
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (isInputTarget(e)) return;
 
             if (e.key in ARROW_KEYS) {
                 e.preventDefault();
                 session.moveCursor(ARROW_KEYS[e.key], e.shiftKey);
+                return;
+            }
+            // Ctrl/Cmd+<digit> toggles a centre note; Shift+<digit> toggles a corner
+            // note — both directly, regardless of the current note-mode toggle.
+            // Note: some browsers reserve Ctrl+1-9 for tab switching.
+            if (e.ctrlKey || e.metaKey) {
+                const digit = digitFromCode(e.code);
+                if (digit !== null) {
+                    e.preventDefault();
+                    session.toggleCenterNote(digit);
+                    return;
+                }
+            } else if (e.shiftKey) {
+                const digit = digitFromCode(e.code);
+                if (digit !== null) {
+                    e.preventDefault();
+                    session.toggleCornerNote(digit);
+                    return;
+                }
+            }
+            // Bare modifier press (no digit yet): preview that mode on the pad —
+            // held held alone previews corner, Ctrl/Cmd previews centre — for as
+            // long as the key stays down.
+            if (e.key === "Shift" || e.key === "Control" || e.key === "Meta") {
+                if (!modifierHeld.current) {
+                    baseMode.current = session.inputMode;
+                    modifierHeld.current = true;
+                }
+                session.setInputMode(e.key === "Shift" ? "corner" : "center");
                 return;
             }
             if (/^[0-9]$/.test(e.key)) {
@@ -79,7 +132,7 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             }
             if (e.key === " ") {
                 e.preventDefault();
-                session.setNoteMode(!session.noteMode);
+                session.setInputMode(session.inputMode === "digit" ? "corner" : "digit");
                 return;
             }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -91,8 +144,27 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             if (e.key === "Escape") session.selectNone();
         };
 
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (!modifierHeld.current || isInputTarget(e)) return;
+            if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Meta") return;
+
+            if (e.ctrlKey || e.metaKey) session.setInputMode("center");
+            else if (e.shiftKey) session.setInputMode("corner");
+            else restoreMode();
+        };
+
+        const onBlur = () => {
+            if (modifierHeld.current) restoreMode();
+        };
+
         window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+        window.addEventListener("blur", onBlur);
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+            window.removeEventListener("blur", onBlur);
+        };
     }, [session]);
 
     return session;

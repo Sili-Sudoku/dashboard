@@ -128,23 +128,39 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                             </text>
                         );
                     }
-                    return c.notes.map((n) => {
-                        const col = (n - 1) % 3;
-                        const row = Math.floor((n - 1) / 3);
-                        return (
-                            <text
-                                key={`n-${c.cell}-${n}`}
-                                className="note"
-                                x={c.x + c.size * (0.22 + col * 0.28)}
-                                y={c.y + c.size * (0.24 + row * 0.28)}
-                                fontSize={c.size * 0.18}
-                                textAnchor="middle"
-                                dominantBaseline="central"
-                            >
-                                {n}
-                            </text>
-                        );
-                    });
+                    return (
+                        <g key={`notes-${c.cell}`}>
+                            {c.notes.map((n) => {
+                                const col = (n - 1) % 3;
+                                const row = Math.floor((n - 1) / 3);
+                                return (
+                                    <text
+                                        key={`n-${c.cell}-${n}`}
+                                        className="note"
+                                        x={c.x + c.size * (0.22 + col * 0.28)}
+                                        y={c.y + c.size * (0.24 + row * 0.28)}
+                                        fontSize={c.size * 0.18}
+                                        textAnchor="middle"
+                                        dominantBaseline="central"
+                                    >
+                                        {n}
+                                    </text>
+                                );
+                            })}
+                            {c.centerNotes.length > 0 && (
+                                <text
+                                    className="note-center"
+                                    x={cx}
+                                    y={cy}
+                                    fontSize={c.size * (c.centerNotes.length > 5 ? 0.14 : 0.19)}
+                                    textAnchor="middle"
+                                    dominantBaseline="central"
+                                >
+                                    {c.centerNotes.join("")}
+                                </text>
+                            )}
+                        </g>
+                    );
                 })}
             </g>
         </svg>

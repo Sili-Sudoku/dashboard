@@ -16,6 +16,7 @@ export interface SceneInput {
     puzzle: CompiledPuzzle;
     valueOf: (cell: CellId) => number | null;
     notesOf: (cell: CellId) => readonly number[];
+    centerNotesOf: (cell: CellId) => readonly number[];
     isGiven: (cell: CellId) => boolean;
     selection: ReadonlySet<CellId>;
     cursor: CellId | null;
@@ -37,6 +38,7 @@ export interface CellShape {
     value: number | null;
     given: boolean;
     notes: readonly number[];
+    centerNotes: readonly number[];
 }
 
 export type Shape =
@@ -94,6 +96,7 @@ export const buildScene = (input: SceneInput): Scene => {
             value: input.valueOf(cell),
             given: input.isGiven(cell),
             notes: input.notesOf(cell),
+            centerNotes: input.centerNotesOf(cell),
         };
     });
 

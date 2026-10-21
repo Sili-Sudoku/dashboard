@@ -17,13 +17,25 @@ import { evaluate, lookupFromRecord, type EvaluationResult } from "@/runtime/eva
 
 export interface CellState {
     value: number | null;
+    /** Corner notes: rendered as a fixed per-digit grid. */
     notes: readonly number[];
+    /** Centre (candidate) notes: rendered as a compact growing list. */
+    centerNotes: readonly number[];
 }
 
-const EMPTY_CELL: CellState = { value: null, notes: [] };
+const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [] };
+
+const toggleSet = (notes: readonly number[], digit: number): number[] => {
+    const set = new Set(notes);
+    if (set.has(digit)) set.delete(digit);
+    else set.add(digit);
+    return [...set].sort((a, b) => a - b);
+};
 
 /** Compact, serialisable player progress (entered cells only). */
-export type ProgressSnapshot = Readonly<Record<CellId, { value?: number; notes?: readonly number[] }>>;
+export type ProgressSnapshot = Readonly<
+    Record<CellId, { value?: number; notes?: readonly number[]; centerNotes?: readonly number[] }>
+>;
 
 export type SelectMode = "replace" | "add" | "toggle";
 
@@ -32,10 +44,17 @@ export interface SessionOptions {
     initialProgress?: ProgressSnapshot;
 }
 
+/**
+ * What a plain digit press (number pad click or keyboard digit) does.
+ * "color" is not implemented yet (#35) but is listed here so pad/session
+ * consumers have one seam to extend rather than two.
+ */
+export type InputMode = "digit" | "corner" | "center";
+
 export class PuzzleSession {
     readonly puzzle: CompiledPuzzle;
     readonly geometry: Geometry;
-    noteMode = false;
+    inputMode: InputMode = "digit";
 
     private board = new Map<CellId, CellState>();
     private past: string[] = [];
@@ -80,7 +99,7 @@ export class PuzzleSession {
 
     cellState(cell: CellId): CellState {
         const given = this.puzzle.givens[cell];
-        if (given !== undefined) return { value: given, notes: [] };
+        if (given !== undefined) return { value: given, notes: [], centerNotes: [] };
         return this.board.get(cell) ?? EMPTY_CELL;
     }
 
@@ -146,8 +165,8 @@ export class PuzzleSession {
 
     // --- mutation -------------------------------------------------------
 
-    setNoteMode(on: boolean): void {
-        this.noteMode = on;
+    setInputMode(mode: InputMode): void {
+        this.inputMode = mode;
         this.emit();
     }
 
@@ -156,38 +175,70 @@ export class PuzzleSession {
         return cells.filter((c) => !this.isGiven(c));
     }
 
+    /** Applies a plain digit press according to the active `inputMode`. */
     input(digit: number): void {
+        if (this.inputMode === "corner") return this.toggleCornerNote(digit);
+        if (this.inputMode === "center") return this.toggleCenterNote(digit);
+
+        const cells = this.targets();
+        if (cells.length === 0) return;
+        if (!this.puzzle.domain.includes(digit)) return;
+
+        this.pushHistory();
+        for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+        this.emit();
+    }
+
+    /** Toggles a corner note directly, independent of `inputMode`. */
+    toggleCornerNote(digit: number): void {
+        this.toggleNote(digit, "notes");
+    }
+
+    /** Toggles a centre (candidate) note directly, independent of `inputMode`. */
+    toggleCenterNote(digit: number): void {
+        this.toggleNote(digit, "centerNotes");
+    }
+
+    private toggleNote(digit: number, field: "notes" | "centerNotes"): void {
         const cells = this.targets();
         if (cells.length === 0) return;
         if (!this.puzzle.domain.includes(digit)) return;
 
         this.pushHistory();
         for (const cell of cells) {
-            if (this.noteMode) {
-                const current = this.board.get(cell) ?? EMPTY_CELL;
-                if (current.value !== null) continue;
-                const notes = new Set(current.notes);
-                if (notes.has(digit)) notes.delete(digit);
-                else notes.add(digit);
-                this.board.set(cell, { value: null, notes: [...notes].sort((a, b) => a - b) });
-            } else {
-                this.board.set(cell, { value: digit, notes: [] });
-            }
+            const current = this.board.get(cell) ?? EMPTY_CELL;
+            if (current.value !== null) continue;
+            this.board.set(cell, { ...current, [field]: toggleSet(current[field], digit) });
         }
         this.emit();
     }
 
+    /** Clears only the layer matching the active `inputMode` (value / corner / center). */
     erase(): void {
         const cells = this.targets();
         if (cells.length === 0) return;
+
+        const field: "value" | "notes" | "centerNotes" =
+            this.inputMode === "corner" ? "notes" : this.inputMode === "center" ? "centerNotes" : "value";
+
         const hasContent = cells.some((c) => {
             const s = this.board.get(c);
-            return s && (s.value !== null || s.notes.length > 0);
+            if (!s) return false;
+            return field === "value" ? s.value !== null : s[field].length > 0;
         });
         if (!hasContent) return;
 
         this.pushHistory();
-        for (const cell of cells) this.board.delete(cell);
+        for (const cell of cells) {
+            const current = this.board.get(cell);
+            if (!current) continue;
+            const next = field === "value" ? { ...current, value: null } : { ...current, [field]: [] };
+            if (next.value === null && next.notes.length === 0 && next.centerNotes.length === 0) {
+                this.board.delete(cell);
+            } else {
+                this.board.set(cell, next);
+            }
+        }
         this.emit();
     }
 
@@ -217,10 +268,16 @@ export class PuzzleSession {
     // --- persistence ---------------------------------------------------
 
     toProgress(): ProgressSnapshot {
-        const out: Record<CellId, { value?: number; notes?: readonly number[] }> = {};
+        const out: Record<CellId, { value?: number; notes?: readonly number[]; centerNotes?: readonly number[] }> = {};
         for (const [cell, state] of this.board) {
-            if (state.value !== null) out[cell] = { value: state.value };
-            else if (state.notes.length > 0) out[cell] = { notes: state.notes };
+            if (state.value !== null) {
+                out[cell] = { value: state.value };
+            } else if (state.notes.length > 0 || state.centerNotes.length > 0) {
+                const entry: { notes?: readonly number[]; centerNotes?: readonly number[] } = {};
+                if (state.notes.length > 0) entry.notes = state.notes;
+                if (state.centerNotes.length > 0) entry.centerNotes = state.centerNotes;
+                out[cell] = entry;
+            }
         }
         return out;
     }
@@ -236,9 +293,13 @@ export class PuzzleSession {
         for (const [cell, entry] of Object.entries(snapshot)) {
             if (!this.geometry.has(cell) || this.isGiven(cell)) continue;
             if (entry.value !== undefined && this.puzzle.domain.includes(entry.value)) {
-                this.board.set(cell, { value: entry.value, notes: [] });
-            } else if (entry.notes && entry.notes.length > 0) {
-                this.board.set(cell, { value: null, notes: [...entry.notes].sort((a, b) => a - b) });
+                this.board.set(cell, { value: entry.value, notes: [], centerNotes: [] });
+                continue;
+            }
+            const notes = entry.notes ? [...entry.notes].sort((a, b) => a - b) : [];
+            const centerNotes = entry.centerNotes ? [...entry.centerNotes].sort((a, b) => a - b) : [];
+            if (notes.length > 0 || centerNotes.length > 0) {
+                this.board.set(cell, { value: null, notes, centerNotes });
             }
         }
     }

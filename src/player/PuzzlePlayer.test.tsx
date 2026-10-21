@@ -74,6 +74,112 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
     });
 
+    it("toggles corner and centre notes via Shift/Ctrl+digit, independent of note mode", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]); // empty cell, not in note mode
+
+        fireEvent.keyDown(window, { code: "Digit2", shiftKey: true });
+        fireEvent.keyDown(window, { code: "Digit4", shiftKey: true });
+        expect(container.querySelectorAll(".note")).toHaveLength(2);
+
+        fireEvent.keyDown(window, { code: "Digit3", ctrlKey: true });
+        const center = container.querySelector(".note-center");
+        expect(center?.textContent).toBe("3");
+
+        // toggling again removes it
+        fireEvent.keyDown(window, { code: "Digit3", ctrlKey: true });
+        expect(container.querySelector(".note-center")).toBeNull();
+    });
+
+    it("previews the Corner/Center pad mode while Shift/Ctrl is held, and restores it on release", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        const digitMode = screen.getByRole("button", { name: /^Digit$/ });
+        const cornerMode = screen.getByRole("button", { name: /^Corner$/ });
+        const centerMode = screen.getByRole("button", { name: /^Center$/ });
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyDown(window, { key: "Shift" });
+        expect(cornerMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyUp(window, { key: "Shift" });
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyDown(window, { key: "Control" });
+        expect(centerMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyUp(window, { key: "Control" });
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("restores the pad's own mode (not always digit) after a held-modifier preview", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
+
+        fireEvent.keyDown(window, { key: "Control" });
+        expect(screen.getByRole("button", { name: /^Center$/ }).getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyUp(window, { key: "Control" });
+        expect(screen.getByRole("button", { name: /^Corner$/ }).getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("switches the number pad's input mode via its mode buttons and reflects clicks accordingly", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]); // empty cell
+
+        const digitMode = screen.getByRole("button", { name: /^Digit$/ });
+        const cornerMode = screen.getByRole("button", { name: /^Corner$/ });
+        const centerMode = screen.getByRole("button", { name: /^Center$/ });
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.click(cornerMode);
+        expect(cornerMode.getAttribute("aria-pressed")).toBe("true");
+        fireEvent.click(screen.getByRole("button", { name: "2" }));
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
+        expect(container.querySelectorAll(".note")).toHaveLength(1);
+
+        fireEvent.click(centerMode);
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        expect(container.querySelector(".note-center")?.textContent).toBe("3");
+
+        fireEvent.click(digitMode);
+        fireEvent.click(screen.getByRole("button", { name: "4" }));
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(1);
+        expect(container.querySelector(".note-center")).toBeNull();
+        expect(container.querySelectorAll(".note")).toHaveLength(0);
+    });
+
+    it("Erase clears only the layer matching the active pad mode", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]); // empty cell
+
+        fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
+        fireEvent.click(screen.getByRole("button", { name: "1" }));
+        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
+        fireEvent.click(screen.getByRole("button", { name: "2" }));
+
+        const erase = screen.getByRole("button", { name: /erase/i });
+
+        // digit mode: nothing to erase, both notes survive
+        fireEvent.click(screen.getByRole("button", { name: /^Digit$/ }));
+        fireEvent.click(erase);
+        expect(container.querySelectorAll(".note")).toHaveLength(1);
+        expect(container.querySelector(".note-center")?.textContent).toBe("2");
+
+        // center mode: only the centre note goes
+        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
+        fireEvent.click(erase);
+        expect(container.querySelectorAll(".note")).toHaveLength(1);
+        expect(container.querySelector(".note-center")).toBeNull();
+
+        // corner mode: the surviving corner note goes too
+        fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
+        fireEvent.click(erase);
+        expect(container.querySelectorAll(".note")).toHaveLength(0);
+    });
+
     it("prevents the browser back-navigation gesture on Backspace/Delete", () => {
         render(<PuzzlePlayer puzzle={compiled()} />);
         for (const key of ["Backspace", "Delete"]) {
