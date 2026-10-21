@@ -72,6 +72,22 @@ describe("buildScene", () => {
         expect(scene.cells.some((c) => c.tone === "violated")).toBe(true);
     });
 
+    it("keeps a selection ring on a violated cell instead of masking it with the tone fill", () => {
+        const broken = { ...(demoMixed.solution ?? {}), r1c8: 9, r2c8: 8 };
+        const scene = buildScene({
+            puzzle,
+            valueOf: lookupFromRecord(broken),
+            notesOf: () => [],
+            isGiven: (c) => c in puzzle.givens,
+            selection: new Set(["r1c8"]),
+            cursor: "r1c8",
+            evaluation: evaluate(puzzle, lookupFromRecord(broken)),
+        });
+        const cell = scene.cells.find((c) => c.cell === "r1c8");
+        expect(cell?.tone).toBe("violated");
+        expect(cell?.ring).toBe("cursor");
+    });
+
     it("orders shapes by z", () => {
         const scene = buildScene({
             puzzle,

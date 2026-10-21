@@ -16,17 +16,25 @@
 .board .cell-normal {
     fill: transparent;
 }
-.board .cell-cursor {
-    fill: var(--cursor);
-}
-.board .cell-selected {
-    fill: var(--selected);
-}
 .board .cell-violated {
     fill: var(--violated);
 }
 .board .cell-invalid {
     fill: var(--invalid);
+}
+
+.board .cell-ring {
+    fill: none;
+    pointer-events: none;
+}
+.board .cell-ring-selected {
+    stroke: var(--brand);
+    stroke-width: 2;
+    opacity: 0.55;
+}
+.board .cell-ring-cursor {
+    stroke: var(--brand);
+    stroke-width: 3;
 }
 
 .board .digit.given {

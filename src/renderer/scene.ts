@@ -22,7 +22,10 @@ export interface SceneInput {
     evaluation: EvaluationResult;
 }
 
-export type CellTone = "normal" | "selected" | "cursor" | "violated" | "invalid";
+export type CellTone = "normal" | "violated" | "invalid";
+
+/** Which selection ring (if any) to draw on top of the tone fill. */
+export type SelectionRing = "selected" | "cursor" | null;
 
 export interface CellShape {
     cell: CellId;
@@ -30,6 +33,7 @@ export interface CellShape {
     y: number;
     size: number;
     tone: CellTone;
+    ring: SelectionRing;
     value: number | null;
     given: boolean;
     notes: readonly number[];
@@ -85,7 +89,8 @@ export const buildScene = (input: SceneInput): Scene => {
             x: p.x * cellSize,
             y: p.y * cellSize,
             size: cellSize,
-            tone: tone(cell, input.cursor, selected, violated, invalid),
+            tone: tone(cell, violated, invalid),
+            ring: ring(cell, input.cursor, selected),
             value: input.valueOf(cell),
             given: input.isGiven(cell),
             notes: input.notesOf(cell),
@@ -107,18 +112,21 @@ export const buildScene = (input: SceneInput): Scene => {
     };
 };
 
-const tone = (
-    cell: CellId,
-    cursor: CellId | null,
-    selected: ReadonlySet<CellId>,
-    violated: ReadonlySet<CellId>,
-    invalid: ReadonlySet<CellId>,
-): CellTone => {
+const tone = (cell: CellId, violated: ReadonlySet<CellId>, invalid: ReadonlySet<CellId>): CellTone => {
     if (invalid.has(cell)) return "invalid";
     if (violated.has(cell)) return "violated";
-    if (selected.has(cell)) return "selected";
-    if (cell === cursor) return "cursor";
     return "normal";
+};
+
+/**
+ * Selection/cursor is drawn as a ring layered on top of the tone fill (see
+ * Board.tsx) rather than competing with it for the same fill color — so a
+ * violated/invalid cell still visibly reacts to being selected or cursored.
+ */
+const ring = (cell: CellId, cursor: CellId | null, selected: ReadonlySet<CellId>): SelectionRing => {
+    if (cell === cursor) return "cursor";
+    if (selected.has(cell)) return "selected";
+    return null;
 };
 
 export const resolveStyle = (style: VisualStyle | undefined, fallback: Partial<ResolvedStyle> = {}): ResolvedStyle => ({

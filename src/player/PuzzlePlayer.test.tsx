@@ -57,6 +57,9 @@ describe("<PuzzlePlayer />", () => {
         // the specific duplicate cells (r1c1+r1c2, and r1c2+r3c2) should be flagged,
         // not every cell those three groups span (which would be 8+ cells).
         expect(container.querySelectorAll(".cell-violated").length).toBe(3);
+        // the clicked cell is both violated and the cursor — the cursor ring must
+        // still render, so a click on a broken cell still visibly registers.
+        expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
     });
 
     it("prevents the browser back-navigation gesture on Backspace/Delete", () => {

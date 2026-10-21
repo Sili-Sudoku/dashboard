@@ -88,6 +88,26 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 ))}
             </g>
 
+            {/* selection/cursor ring — layered above the tone fill so a click still
+                shows feedback even on a violated/invalid cell */}
+            <g className="rings" pointerEvents="none">
+                {scene.cells
+                    .filter((c) => c.ring)
+                    .map((c) => {
+                        const inset = c.size * 0.05;
+                        return (
+                            <rect
+                                key={`ring-${c.cell}`}
+                                className={`cell-ring cell-ring-${c.ring}`}
+                                x={c.x + inset}
+                                y={c.y + inset}
+                                width={c.size - inset * 2}
+                                height={c.size - inset * 2}
+                            />
+                        );
+                    })}
+            </g>
+
             {/* digits + notes */}
             <g className="values" pointerEvents="none">
                 {scene.cells.map((c) => {
