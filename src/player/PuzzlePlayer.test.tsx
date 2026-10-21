@@ -44,6 +44,17 @@ describe("<PuzzlePlayer />", () => {
         expect(entered[0].textContent).toBe("3");
     });
 
+    it("hides the constraint panel by default, revealed via a toggle", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".constraint-panel")).toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
+        expect(container.querySelector(".constraint-panel")).not.toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: /hide constraints/i }));
+        expect(container.querySelector(".constraint-panel")).toBeNull();
+    });
+
     it("reflects a broken constraint in the panel", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
@@ -51,6 +62,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: "1" }));
 
+        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
         const panel = container.querySelector(".constraint-panel") as HTMLElement;
         expect(within(panel).getByText("Some constraints are broken")).toBeTruthy();
         // row:0, the top-left box, and col:1 each break on a duplicate '1' — but only

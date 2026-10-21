@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from "react";
-import { PartyPopper } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { ListChecks, PartyPopper } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -19,6 +19,7 @@ interface Props {
 
 export default function PuzzlePlayer({ puzzle }: Props) {
     const session = usePuzzleSession(puzzle);
+    const [showConstraints, setShowConstraints] = useState(false);
 
     const scene = useMemo(
         () =>
@@ -91,7 +92,14 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     onReset={() => session.reset()}
                 />
 
-                <ConstraintPanel evaluation={evaluation} />
+                <button
+                    className="pp-constraints-toggle"
+                    aria-expanded={showConstraints}
+                    onClick={() => setShowConstraints((v) => !v)}
+                >
+                    <ListChecks size={15} /> {showConstraints ? "Hide constraints" : "Show constraints"}
+                </button>
+                {showConstraints && <ConstraintPanel evaluation={evaluation} />}
             </aside>
         </div>
     );
