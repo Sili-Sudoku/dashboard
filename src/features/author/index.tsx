@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 
 import { compilePuzzle } from "@/runtime/compile.ts";
+import { GridGeometry } from "@/runtime/geometry.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
+import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
@@ -26,6 +28,32 @@ const artifact = PuzzleBuilder.create("thermo-demo", "Thermo Demo")
 // "publish" = serialize
 localStorage.setItem(artifact.metadata.id, JSON.stringify(artifact));`;
 
+interface GridDims {
+    width: number;
+    height: number;
+    boxWidth: number;
+    boxHeight: number;
+}
+
+/** The actual box size a grid resolves to, including the sqrt-based default — so the
+ *  dimension inputs always show the real applied value, never a silent guess. */
+const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
+    if (!def) return undefined;
+    try {
+        const geometry = new GridGeometry(def.geometry);
+        return {
+            width: geometry.width,
+            height: geometry.height,
+            boxWidth: geometry.boxWidth,
+            boxHeight: geometry.boxHeight,
+        };
+    } catch {
+        return undefined;
+    }
+};
+
+const DEFAULT_DIMS: GridDims = { width: 9, height: 9, boxWidth: 3, boxHeight: 3 };
+
 export default function Author() {
     const [text, setText] = useState(() => JSON.stringify(demoMixed, null, 2));
     const [submitted, setSubmitted] = useState(text);
@@ -34,6 +62,33 @@ export default function Author() {
         const example = listPuzzles().find((p) => p.metadata.id === id);
         if (!example) return;
         const json = JSON.stringify(example, null, 2);
+        setText(json);
+        setSubmitted(json);
+    };
+
+    const liveDef = useMemo(() => {
+        const parsed = parsePuzzle(text);
+        return parsed instanceof Error ? undefined : parsed;
+    }, [text]);
+
+    const dims = readDims(liveDef) ?? DEFAULT_DIMS;
+
+    const setDims = (patch: Partial<GridDims>) => {
+        if (!liveDef) return;
+        const next = { ...dims, ...patch };
+        if (Object.values(next).some((n) => !Number.isFinite(n))) return;
+
+        // Changing the box shape regroups which cells must be mutually different —
+        // any existing solution was only ever solved for the old shape, so it's
+        // not just stale, it's almost certainly wrong. Drop it rather than leave
+        // the JSON holding a "rule" the buttons no longer agree with.
+        const boxChanged = next.boxWidth !== dims.boxWidth || next.boxHeight !== dims.boxHeight;
+        const updated: PuzzleDefinition = {
+            ...liveDef,
+            geometry: { type: "grid", ...next },
+        };
+        if (boxChanged) delete updated.solution;
+        const json = JSON.stringify(updated, null, 2);
         setText(json);
         setSubmitted(json);
     };
@@ -77,6 +132,44 @@ export default function Author() {
                             ))}
                         </select>
                     </label>
+                    <div className="author-dims">
+                        <label>
+                            Width
+                            <input
+                                type="number"
+                                min={1}
+                                value={dims.width}
+                                onChange={(e) => setDims({ width: e.target.valueAsNumber })}
+                            />
+                        </label>
+                        <label>
+                            Height
+                            <input
+                                type="number"
+                                min={1}
+                                value={dims.height}
+                                onChange={(e) => setDims({ height: e.target.valueAsNumber })}
+                            />
+                        </label>
+                        <label>
+                            Box width
+                            <input
+                                type="number"
+                                min={1}
+                                value={dims.boxWidth}
+                                onChange={(e) => setDims({ boxWidth: e.target.valueAsNumber })}
+                            />
+                        </label>
+                        <label>
+                            Box height
+                            <input
+                                type="number"
+                                min={1}
+                                value={dims.boxHeight}
+                                onChange={(e) => setDims({ boxHeight: e.target.valueAsNumber })}
+                            />
+                        </label>
+                    </div>
                     <textarea value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
                     <div className="author-actions">
                         <button onClick={() => setSubmitted(text)}>Validate &amp; preview</button>
