@@ -65,6 +65,17 @@ describe("compilePuzzle", () => {
         expect(compilePuzzle({ ...base, domain: { values: [] } })).toBeInstanceOf(Error);
     });
 
+    it("rejects a custom region name that collides with a built-in selector", () => {
+        const result = compilePuzzle({ ...base, regions: { "row:0": ["r1c1"] } });
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toMatch(/collides with a built-in selector/);
+    });
+
+    it("rejects a custom region named \"all\"", () => {
+        const result = compilePuzzle({ ...base, regions: { all: ["r1c1"] } });
+        expect(result).toBeInstanceOf(Error);
+    });
+
     it("validates visual object cell references", () => {
         const result = compilePuzzle({
             ...base,

@@ -48,8 +48,12 @@ export const compilePuzzle = (
     if (domain.length === 0) return new Error("puzzle domain.values must be non-empty");
     if (new Set(domain).size !== domain.length) return new Error("puzzle domain.values has duplicates");
 
+    const builtinSelectors = new Set(geometry.regionSelectors);
     const regions: Record<string, readonly CellId[]> = {};
     for (const [name, cells] of Object.entries(def.regions ?? {})) {
+        if (builtinSelectors.has(name)) {
+            return new Error(`region "${name}" collides with a built-in selector of the same name`);
+        }
         for (const c of cells) {
             if (!geometry.has(c)) return new Error(`region "${name}" references unknown cell "${c}"`);
         }
