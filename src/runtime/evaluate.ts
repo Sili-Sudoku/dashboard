@@ -12,7 +12,7 @@
 
 import type { CellId } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
-import type { EvalContext } from "@/runtime/expression.ts";
+import { isCall, type EvalContext } from "@/runtime/expression.ts";
 import { evalExpr } from "@/runtime/operators.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 
@@ -94,7 +94,12 @@ export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): Evaluatio
         if (status === "violated") {
             anyViolated = true;
             allSatisfied = false;
-            for (const c of constraint.cells) violatedCells.add(c);
+            const head = isCall(constraint.expr) ? constraint.expr[0] : undefined;
+            const cells =
+                head === "allDifferent" || head === "distinct"
+                    ? duplicateValueCells(constraint.cells, lookup)
+                    : constraint.cells;
+            for (const c of cells) violatedCells.add(c);
         } else if (status === "incomplete") {
             allSatisfied = false;
         }
@@ -118,6 +123,23 @@ export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): Evaluatio
         violatedCells,
         invalidCells,
     };
+};
+
+/**
+ * Narrows an `allDifferent`/`distinct` violation down to the cells actually
+ * sharing a duplicate value, instead of every cell the group spans — a 9-cell
+ * row with one repeated digit should highlight the 2 offending cells, not all 9.
+ */
+const duplicateValueCells = (cells: readonly CellId[], lookup: ValueLookup): readonly CellId[] => {
+    const byValue = new Map<number, CellId[]>();
+    for (const cell of cells) {
+        const v = lookup(cell);
+        if (v === null) continue;
+        const group = byValue.get(v);
+        if (group) group.push(cell);
+        else byValue.set(v, [cell]);
+    }
+    return [...byValue.values()].filter((group) => group.length > 1).flat();
 };
 
 /**

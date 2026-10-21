@@ -46,6 +46,13 @@ describe("evaluate", () => {
         expect([...result.violatedCells].sort()).toContain("r1c1");
     });
 
+    it("narrows an allDifferent violation to the duplicate cells, not the whole group", () => {
+        // r1c1/r1c3 share 3; r1c2/r1c4 are each unique and shouldn't be flagged.
+        const result = evaluate(puzzle, lookupFromRecord({ r1c1: 3, r1c2: 1, r1c3: 3, r1c4: 2 }));
+        expect(result.constraints[0].status).toBe("violated");
+        expect([...result.violatedCells].sort()).toEqual(["r1c1", "r1c3"]);
+    });
+
     it("flags values outside the domain", () => {
         const result = evaluate(puzzle, lookupFromRecord({ r1c1: 7 }));
         expect(result.invalidCells.has("r1c1")).toBe(true);

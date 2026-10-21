@@ -53,7 +53,10 @@ describe("<PuzzlePlayer />", () => {
 
         const panel = container.querySelector(".constraint-panel") as HTMLElement;
         expect(within(panel).getByText("Some constraints are broken")).toBeTruthy();
-        expect(container.querySelectorAll(".cell-violated").length).toBeGreaterThan(0);
+        // row:0, the top-left box, and col:1 each break on a duplicate '1' — but only
+        // the specific duplicate cells (r1c1+r1c2, and r1c2+r3c2) should be flagged,
+        // not every cell those three groups span (which would be 8+ cells).
+        expect(container.querySelectorAll(".cell-violated").length).toBe(3);
     });
 
     it("prevents the browser back-navigation gesture on Backspace/Delete", () => {
