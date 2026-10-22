@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compilePuzzle } from "@/runtime/compile.ts";
-import { evaluate, lookupFromRecord, affectedConstraints } from "@/runtime/evaluate.ts";
+import { evaluate, evaluateIncremental, lookupFromRecord, affectedConstraints } from "@/runtime/evaluate.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 
@@ -161,5 +161,52 @@ describe("evaluate — early infeasibility detection", () => {
 
         const result = evaluate(puzzle, () => null);
         expect(result.constraints[0].status).toBe("incomplete");
+    });
+});
+
+describe("evaluateIncremental", () => {
+    // row:0 and row:1 are disjoint cell sets, so an edit to row 0 should never
+    // need to re-run row 1's constraint.
+    const puzzle = compile();
+
+    it("reuses the untouched constraint's exact result object, not just an equal one", () => {
+        const before = evaluate(puzzle, lookupFromRecord({}));
+        const after = evaluateIncremental(puzzle, lookupFromRecord({ r1c1: 1 }), before, ["r1c1"]);
+
+        expect(after.constraints[1]).toBe(before.constraints[1]); // row:1 sum — untouched, same reference
+        expect(after.constraints[0]).not.toBe(before.constraints[0]); // row:0 allDifferent — recomputed
+    });
+
+    it("produces the exact same result as a full evaluate() from scratch", () => {
+        const values = { r1c1: 1, r1c2: 2, r2c1: 4, r2c2: 3 };
+        const full = evaluate(puzzle, lookupFromRecord(values));
+
+        const step1 = evaluate(puzzle, lookupFromRecord({ r1c1: 1 }));
+        const step2 = evaluateIncremental(puzzle, lookupFromRecord({ r1c1: 1, r1c2: 2 }), step1, ["r1c2"]);
+        const step3 = evaluateIncremental(puzzle, lookupFromRecord(values), step2, ["r2c1"]);
+        const incremental = evaluateIncremental(puzzle, lookupFromRecord(values), step3, ["r2c2"]);
+
+        expect(incremental.constraints.map((c) => c.status)).toEqual(full.constraints.map((c) => c.status));
+        expect(incremental.status).toBe(full.status);
+        expect(incremental.filledCount).toBe(full.filledCount);
+        expect([...incremental.violatedCells].sort()).toEqual([...full.violatedCells].sort());
+    });
+
+    it("still updates filledCount/invalidCells for a change that touches no constraint at all", () => {
+        // r4c4 isn't covered by either of this fixture's two constraints (row:0, row:1).
+        const before = evaluate(puzzle, lookupFromRecord({}));
+        expect(before.filledCount).toBe(0);
+
+        const after = evaluateIncremental(puzzle, lookupFromRecord({ r4c4: 1 }), before, ["r4c4"]);
+        expect(after.filledCount).toBe(1);
+        // and the untouched constraints are reused, since nothing affected them
+        expect(after.constraints[0]).toBe(before.constraints[0]);
+        expect(after.constraints[1]).toBe(before.constraints[1]);
+    });
+
+    it("an edit with no affected constraints and no bookkeeping change returns an equivalent result", () => {
+        const before = evaluate(puzzle, lookupFromRecord({ r4c4: 1 }));
+        const after = evaluateIncremental(puzzle, lookupFromRecord({ r4c4: 1 }), before, ["r4c4"]);
+        expect(after).toEqual(before);
     });
 });

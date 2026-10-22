@@ -13,7 +13,7 @@
 import type { CellId, Direction, Geometry } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
-import { evaluate, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
+import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
 
 export interface CellState {
     value: number | null;
@@ -66,6 +66,8 @@ export class PuzzleSession {
     private flaggedCells = new Set<CellId>();
     private readonly listeners = new Set<() => void>();
     private cachedEvaluation: EvaluationResult | null = null;
+    /** Cells whose value changed since `cachedEvaluation` was last computed. */
+    private dirtyCells = new Set<CellId>();
     private revisionCount = 0;
 
     constructor(puzzle: CompiledPuzzle, options: SessionOptions = {}) {
@@ -84,9 +86,19 @@ export class PuzzleSession {
     };
 
     private emit(): void {
-        this.cachedEvaluation = null;
         this.revisionCount++;
         for (const listener of this.listeners) listener();
+    }
+
+    /** Marks cells as needing re-evaluation; evaluated lazily, incrementally, next read. */
+    private markDirty(cells: Iterable<CellId>): void {
+        for (const cell of cells) this.dirtyCells.add(cell);
+    }
+
+    /** Forces a full re-evaluation on the next read — for edits too wholesale to diff cheaply. */
+    private invalidateEvaluation(): void {
+        this.cachedEvaluation = null;
+        this.dirtyCells.clear();
     }
 
     /** Monotonic change counter — a stable snapshot for `useSyncExternalStore`. */
@@ -128,7 +140,10 @@ export class PuzzleSession {
     get evaluation(): EvaluationResult {
         if (!this.cachedEvaluation) {
             this.cachedEvaluation = evaluate(this.puzzle, this.valueOf);
+        } else if (this.dirtyCells.size > 0) {
+            this.cachedEvaluation = evaluateIncremental(this.puzzle, this.valueOf, this.cachedEvaluation, this.dirtyCells);
         }
+        this.dirtyCells.clear();
         return this.cachedEvaluation;
     }
 
@@ -266,6 +281,7 @@ export class PuzzleSession {
 
         this.pushHistory();
         for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+        this.markDirty(cells);
         this.emit();
     }
 
@@ -319,6 +335,7 @@ export class PuzzleSession {
                 this.board.set(cell, next);
             }
         }
+        if (field === "value") this.markDirty(cells);
         this.emit();
     }
 
@@ -328,6 +345,7 @@ export class PuzzleSession {
         this.futureStack.push(this.serializeBoard());
         this.restoreBoard(previous);
         this.flaggedCells.clear();
+        this.invalidateEvaluation();
         this.emit();
     }
 
@@ -337,6 +355,7 @@ export class PuzzleSession {
         this.past.push(this.serializeBoard());
         this.restoreBoard(next);
         this.flaggedCells.clear();
+        this.invalidateEvaluation();
         this.emit();
     }
 
@@ -345,6 +364,7 @@ export class PuzzleSession {
         this.pushHistory();
         this.board.clear();
         this.flaggedCells.clear();
+        this.invalidateEvaluation();
         this.emit();
     }
 
@@ -369,6 +389,7 @@ export class PuzzleSession {
         this.pushHistory();
         this.applyProgress(snapshot);
         this.flaggedCells.clear();
+        this.invalidateEvaluation();
         this.emit();
     }
 

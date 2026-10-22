@@ -10,7 +10,7 @@
  * is filled and every constraint is satisfied.
  */
 
-import type { CellId } from "@/runtime/geometry.ts";
+import type { CellId, Geometry } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import { isCall, type EvalContext } from "@/runtime/expression.ts";
 import { evalExpr } from "@/runtime/operators.ts";
@@ -107,15 +107,49 @@ export const lookupFromRecord = (
     };
 };
 
-export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): EvaluationResult => {
-    const geometry = createGeometry(puzzle.geometry);
-    const ctx: EvalContext = {
-        geometry,
-        regions: puzzle.regions,
-        domain: puzzle.domain,
-        valueOf: lookup,
-    };
+/** The expensive part: run one constraint's expression (plus the infeasibility search) against the board. */
+const evaluateOneConstraint = (
+    constraint: CompiledPuzzle["constraints"][number],
+    ctx: EvalContext,
+    lookup: ValueLookup,
+): ConstraintEvaluation => {
+    let status: ConstraintStatus;
+    let error: string | undefined;
+    try {
+        const value = evalExpr(constraint.expr, ctx);
+        if (value.t === "bool") status = value.v ? "satisfied" : "violated";
+        else if (value.t === "unknown") status = "incomplete";
+        else {
+            status = "violated";
+            error = `constraint did not evaluate to a boolean (got ${value.t})`;
+        }
+    } catch (err) {
+        status = "violated";
+        error = err instanceof Error ? err.message : String(err);
+    }
 
+    if (status === "incomplete" && isProvablyInfeasible(constraint.expr, constraint.cells, ctx, lookup)) {
+        status = "violated";
+        error = "no assignment of the remaining empty cells can satisfy this constraint";
+    }
+
+    return {
+        id: constraint.id,
+        source: constraint.source,
+        label: constraint.label,
+        status,
+        cells: constraint.cells,
+        error,
+    };
+};
+
+/** The cheap part: board-wide bookkeeping (fill/domain/violated-cell sets) given already-decided per-constraint statuses. */
+const finalize = (
+    puzzle: CompiledPuzzle,
+    geometry: Geometry,
+    lookup: ValueLookup,
+    constraints: readonly ConstraintEvaluation[],
+): EvaluationResult => {
     const domainSet = new Set(puzzle.domain);
     const invalidCells = new Set<CellId>();
     let filledCount = 0;
@@ -126,52 +160,24 @@ export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): Evaluatio
         if (!domainSet.has(v)) invalidCells.add(cell);
     }
 
-    const constraints: ConstraintEvaluation[] = [];
     const violatedCells = new Set<CellId>();
     let anyViolated = false;
     let allSatisfied = true;
 
-    for (const constraint of puzzle.constraints) {
-        let status: ConstraintStatus;
-        let error: string | undefined;
-        try {
-            const value = evalExpr(constraint.expr, ctx);
-            if (value.t === "bool") status = value.v ? "satisfied" : "violated";
-            else if (value.t === "unknown") status = "incomplete";
-            else {
-                status = "violated";
-                error = `constraint did not evaluate to a boolean (got ${value.t})`;
-            }
-        } catch (err) {
-            status = "violated";
-            error = err instanceof Error ? err.message : String(err);
-        }
-
-        if (status === "incomplete" && isProvablyInfeasible(constraint.expr, constraint.cells, ctx, lookup)) {
-            status = "violated";
-            error = "no assignment of the remaining empty cells can satisfy this constraint";
-        }
-
-        if (status === "violated") {
+    for (let i = 0; i < puzzle.constraints.length; i++) {
+        const compiled = puzzle.constraints[i];
+        const result = constraints[i];
+        if (result.status === "violated") {
             anyViolated = true;
             allSatisfied = false;
-            const head = isCall(constraint.expr) ? constraint.expr[0] : undefined;
+            const head = isCall(compiled.expr) ? compiled.expr[0] : undefined;
             const narrowed =
-                head === "allDifferent" || head === "distinct" ? duplicateValueCells(constraint.cells, lookup) : [];
-            const cells = narrowed.length > 0 ? narrowed : constraint.cells;
+                head === "allDifferent" || head === "distinct" ? duplicateValueCells(compiled.cells, lookup) : [];
+            const cells = narrowed.length > 0 ? narrowed : compiled.cells;
             for (const c of cells) violatedCells.add(c);
-        } else if (status === "incomplete") {
+        } else if (result.status === "incomplete") {
             allSatisfied = false;
         }
-
-        constraints.push({
-            id: constraint.id,
-            source: constraint.source,
-            label: constraint.label,
-            status,
-            cells: constraint.cells,
-            error,
-        });
     }
 
     return {
@@ -183,6 +189,43 @@ export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): Evaluatio
         violatedCells,
         invalidCells,
     };
+};
+
+export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): EvaluationResult => {
+    const geometry = createGeometry(puzzle.geometry);
+    const ctx: EvalContext = { geometry, regions: puzzle.regions, domain: puzzle.domain, valueOf: lookup };
+    const constraints = puzzle.constraints.map((c) => evaluateOneConstraint(c, ctx, lookup));
+    return finalize(puzzle, geometry, lookup, constraints);
+};
+
+/**
+ * Re-evaluates only the constraints touching `changedCells`, reusing every other
+ * constraint's status from `previous` — the fix for the per-keystroke cost of
+ * re-running every constraint's expression (and infeasibility search) on every
+ * edit, which `evaluate()` alone pays regardless of how localized the edit was.
+ * Board-wide bookkeeping (fill/invalid/violated-cell sets) is still recomputed —
+ * that part is a cheap linear pass, not the bottleneck — only the per-constraint
+ * expression evaluation is skipped for unaffected constraints.
+ */
+export const evaluateIncremental = (
+    puzzle: CompiledPuzzle,
+    lookup: ValueLookup,
+    previous: EvaluationResult,
+    changedCells: Iterable<CellId>,
+): EvaluationResult => {
+    const geometry = createGeometry(puzzle.geometry);
+    const affected = new Set(affectedConstraints(puzzle, changedCells));
+
+    // Board-wide bookkeeping (filledCount/invalidCells) can change even for a cell
+    // that belongs to no constraint at all, so it's always recomputed below; only
+    // the expensive per-constraint expression evaluation is conditionally skipped.
+    if (affected.size === 0) return finalize(puzzle, geometry, lookup, previous.constraints);
+
+    const ctx: EvalContext = { geometry, regions: puzzle.regions, domain: puzzle.domain, valueOf: lookup };
+    const constraints = puzzle.constraints.map((c, i) =>
+        affected.has(c.id) ? evaluateOneConstraint(c, ctx, lookup) : previous.constraints[i],
+    );
+    return finalize(puzzle, geometry, lookup, constraints);
 };
 
 /**

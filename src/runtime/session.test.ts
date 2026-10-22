@@ -256,6 +256,16 @@ describe("PuzzleSession", () => {
         expect(second.constraints[0].status).toBe("violated"); // r1c1 given is also 1
     });
 
+    it("does not recompute evaluation for selection/cursor moves or note toggles — only value edits", () => {
+        const first = session.evaluation;
+        session.select("r1c3");
+        session.moveCursor("right");
+        session.setInputMode("corner");
+        session.toggleCornerNote(2); // a note, not a value — doesn't affect any constraint
+        session.setInputMode("digit");
+        expect(session.evaluation).toBe(first);
+    });
+
     it("round-trips progress snapshots", () => {
         session.select("r1c2");
         session.input(2);
@@ -278,6 +288,49 @@ describe("PuzzleSession", () => {
         expect(session.valueOf("r1c2")).toBeNull();
         session.undo();
         expect(session.valueOf("r1c2")).toBe(2);
+    });
+});
+
+describe("PuzzleSession — incremental evaluation", () => {
+    // Two disjoint constraints (row:0, row:1) so an edit to row 0 should never
+    // disturb row 1's cached result.
+    const twoRows = (): CompiledPuzzle => {
+        const result = compilePuzzle({
+            version: 1,
+            metadata: { id: "tr", title: "tr" },
+            geometry: { type: "grid", width: 4, height: 4, boxWidth: 2, boxHeight: 2 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [
+                ["allDifferent", ["cells", "row:0"]],
+                ["allDifferent", ["cells", "row:1"]],
+            ],
+        });
+        if (result instanceof Error) throw result;
+        return result;
+    };
+
+    it("reuses the other constraint's cached result object when only one row is edited", () => {
+        const session = new PuzzleSession(twoRows());
+        const before = session.evaluation;
+
+        session.select("r1c1");
+        session.input(1);
+        const after = session.evaluation;
+
+        expect(after.constraints[0]).not.toBe(before.constraints[0]); // row:0 — edited, recomputed
+        expect(after.constraints[1]).toBe(before.constraints[1]); // row:1 — untouched, same reference
+    });
+
+    it("undo forces a full recompute that's still correct, not stale from the pre-undo board", () => {
+        const session = new PuzzleSession(twoRows());
+        session.select("r1c1");
+        session.input(1);
+        session.select("r1c2");
+        session.input(1); // duplicate within row:0 -> violated
+        expect(session.evaluation.constraints[0].status).toBe("violated");
+
+        session.undo(); // back to just r1c1=1 -> no duplicate anymore
+        expect(session.evaluation.constraints[0].status).toBe("incomplete");
     });
 });
 
