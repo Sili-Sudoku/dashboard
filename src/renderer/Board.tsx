@@ -1,7 +1,15 @@
-import { useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene, Shape } from "@/renderer/scene.ts";
+import {
+    cellInViewport,
+    expandViewport,
+    lineInViewport,
+    shapeInViewport,
+    VIRTUALIZE_CELL_THRESHOLD,
+    type ViewportRect,
+} from "@/renderer/virtualize.ts";
 
 import "./board.css";
 
@@ -13,8 +21,44 @@ interface Props {
     onClearSelection: () => void;
 }
 
+/** Culls scene.cells/gridLines/shapes to a margin around `viewport` — or returns `scene` as-is when `viewport` is null. */
+const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
+    if (!viewport) return scene;
+    const v = expandViewport(viewport, scene.cellSize * 2);
+    return {
+        ...scene,
+        cells: scene.cells.filter((c) => cellInViewport(c, v)),
+        gridLines: scene.gridLines.filter((l) => lineInViewport(l.points, v)),
+        shapes: scene.shapes.filter((s) => shapeInViewport(s, v)),
+    };
+};
+
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
     const painting = useRef(false);
+    const isLarge = scene.cells.length > VIRTUALIZE_CELL_THRESHOLD;
+
+    const viewportRef = useRef<HTMLDivElement>(null);
+    const [viewport, setViewport] = useState<ViewportRect | null>(null);
+
+    useLayoutEffect(() => {
+        if (!isLarge) return;
+        const el = viewportRef.current;
+        if (!el) return;
+
+        const measure = () => setViewport({ left: el.scrollLeft, top: el.scrollTop, width: el.clientWidth, height: el.clientHeight });
+        measure();
+
+        el.addEventListener("scroll", measure);
+        // Guarded: not every test/runtime environment implements ResizeObserver.
+        const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : undefined;
+        resizeObserver?.observe(el);
+        return () => {
+            el.removeEventListener("scroll", measure);
+            resizeObserver?.disconnect();
+        };
+    }, [isLarge]);
+
+    const visibleScene = useMemo(() => cullToViewport(scene, isLarge ? viewport : null), [scene, isLarge, viewport]);
 
     const handleCellDown = (cell: CellId) => (e: ReactPointerEvent) => {
         e.preventDefault();
@@ -33,7 +77,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         onPaintEnd();
     };
 
-    return (
+    const svg = (
         <svg
             className="board"
             viewBox={scene.viewBox}
@@ -53,7 +97,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             />
 
             {/* cell tones */}
-            {scene.cells.map((c) => (
+            {visibleScene.cells.map((c) => (
                 <rect
                     key={`bg-${c.cell}`}
                     className={`cell-bg cell-${c.tone}`}
@@ -68,14 +112,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
             {/* constraint graphics below digits */}
             <g className="shapes" pointerEvents="none">
-                {scene.shapes.map((s, i) => (
+                {visibleScene.shapes.map((s, i) => (
                     <ShapeNode key={i} shape={s} />
                 ))}
             </g>
 
             {/* grid + box lines */}
             <g className="grid" pointerEvents="none">
-                {scene.gridLines.map((l, i) => (
+                {visibleScene.gridLines.map((l, i) => (
                     <line
                         key={i}
                         x1={l.points[0].x}
@@ -91,7 +135,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             {/* selection/cursor ring — layered above the tone fill so a click still
                 shows feedback even on a violated/invalid cell */}
             <g className="rings" pointerEvents="none">
-                {scene.cells
+                {visibleScene.cells
                     .filter((c) => c.ring)
                     .map((c) => {
                         const inset = c.size * 0.05;
@@ -110,7 +154,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
             {/* digits + notes */}
             <g className="values" pointerEvents="none">
-                {scene.cells.map((c) => {
+                {visibleScene.cells.map((c) => {
                     const cx = c.x + c.size / 2;
                     const cy = c.y + c.size / 2;
                     if (c.value !== null) {
@@ -164,6 +208,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 })}
             </g>
         </svg>
+    );
+
+    if (!isLarge) return svg;
+
+    return (
+        <div className="board-viewport" ref={viewportRef}>
+            {svg}
+        </div>
     );
 }
 
