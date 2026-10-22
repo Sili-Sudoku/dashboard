@@ -55,12 +55,15 @@ export class PuzzleSession {
     readonly puzzle: CompiledPuzzle;
     readonly geometry: Geometry;
     inputMode: InputMode = "digit";
+    /** Opt-in: when leaving a cell, flag it if its remaining notes no longer include the solution digit. */
+    checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
     private past: string[] = [];
     private futureStack: string[] = [];
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
+    private flaggedCells = new Set<CellId>();
     private readonly listeners = new Set<() => void>();
     private cachedEvaluation: EvaluationResult | null = null;
     private revisionCount = 0;
@@ -117,6 +120,11 @@ export class PuzzleSession {
         return this.cursor;
     }
 
+    /** Cells currently flagged by `checkNotesOnLeave` (remaining notes missing the solution digit). */
+    getFlaggedCells(): ReadonlySet<CellId> {
+        return this.flaggedCells;
+    }
+
     get evaluation(): EvaluationResult {
         if (!this.cachedEvaluation) {
             this.cachedEvaluation = evaluate(this.puzzle, this.valueOf);
@@ -136,6 +144,7 @@ export class PuzzleSession {
 
     select(cell: CellId, mode: SelectMode = "replace"): void {
         if (!this.geometry.has(cell)) return;
+        this.leaveCursorCell(cell);
         if (mode === "replace") {
             this.selection = new Set([cell]);
         } else if (mode === "add") {
@@ -150,6 +159,7 @@ export class PuzzleSession {
 
     /** Clears the selection *and* the cursor ring — nothing stays highlighted. */
     selectNone(): void {
+        this.leaveCursorCell(null);
         this.selection.clear();
         this.cursor = null;
         this.emit();
@@ -168,6 +178,7 @@ export class PuzzleSession {
         }
         const next = this.geometry.step(this.cursor, dir);
         if (!next) return;
+        this.leaveCursorCell(next);
         this.cursor = next;
         if (extend) this.selection.add(next);
         else this.selection = new Set([next]);
@@ -193,6 +204,7 @@ export class PuzzleSession {
             const index = (((startIndex + direction * step) % cells.length) + cells.length) % cells.length;
             const cell = cells[index];
             if (this.valueOf(cell) === null) {
+                this.leaveCursorCell(cell);
                 this.cursor = cell;
                 this.selection = new Set([cell]);
                 this.emit();
@@ -201,10 +213,40 @@ export class PuzzleSession {
         }
     }
 
+    /**
+     * Re-checks `cell` (the cell the cursor is about to leave, if any) against
+     * `checkNotesOnLeave`, flagging it if its remaining notes no longer include
+     * the declared solution digit — i.e. the player eliminated the right answer.
+     * A no-op if the cell is a given/filled, has no solution on record, or has
+     * no notes at all (nothing was eliminated).
+     */
+    private leaveCursorCell(nextCursor: CellId | null): void {
+        if (!this.checkNotesOnLeave || !this.cursor || this.cursor === nextCursor) return;
+        const cell = this.cursor;
+
+        const answer = this.puzzle.solution?.[cell];
+        const state = this.board.get(cell);
+        if (answer === undefined || !state || state.value !== null) {
+            this.flaggedCells.delete(cell);
+            return;
+        }
+
+        const hasNotes = state.notes.length > 0 || state.centerNotes.length > 0;
+        const stillCandidate = state.notes.includes(answer) || state.centerNotes.includes(answer);
+        if (hasNotes && !stillCandidate) this.flaggedCells.add(cell);
+        else this.flaggedCells.delete(cell);
+    }
+
     // --- mutation -------------------------------------------------------
 
     setInputMode(mode: InputMode): void {
         this.inputMode = mode;
+        this.emit();
+    }
+
+    setCheckNotesOnLeave(on: boolean): void {
+        this.checkNotesOnLeave = on;
+        if (!on) this.flaggedCells.clear();
         this.emit();
     }
 
@@ -285,6 +327,7 @@ export class PuzzleSession {
         if (previous === undefined) return;
         this.futureStack.push(this.serializeBoard());
         this.restoreBoard(previous);
+        this.flaggedCells.clear();
         this.emit();
     }
 
@@ -293,6 +336,7 @@ export class PuzzleSession {
         if (next === undefined) return;
         this.past.push(this.serializeBoard());
         this.restoreBoard(next);
+        this.flaggedCells.clear();
         this.emit();
     }
 
@@ -300,6 +344,7 @@ export class PuzzleSession {
         if (this.board.size === 0) return;
         this.pushHistory();
         this.board.clear();
+        this.flaggedCells.clear();
         this.emit();
     }
 
@@ -323,6 +368,7 @@ export class PuzzleSession {
     loadProgress(snapshot: ProgressSnapshot): void {
         this.pushHistory();
         this.applyProgress(snapshot);
+        this.flaggedCells.clear();
         this.emit();
     }
 

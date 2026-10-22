@@ -16,6 +16,37 @@ const compiled = (): CompiledPuzzle => {
     return result;
 };
 
+const compiledWithSolution = (): CompiledPuzzle => {
+    const result = compilePuzzle({
+        version: 1,
+        metadata: { id: "s2", title: "s2" },
+        geometry: { type: "grid", width: 4, height: 4, boxWidth: 2, boxHeight: 2 },
+        domain: { values: [1, 2, 3, 4] },
+        givens: { r1c1: 1 },
+        solution: {
+            r1c1: 1,
+            r1c2: 2,
+            r1c3: 3,
+            r1c4: 4,
+            r2c1: 3,
+            r2c2: 4,
+            r2c3: 1,
+            r2c4: 2,
+            r3c1: 2,
+            r3c2: 1,
+            r3c3: 4,
+            r3c4: 3,
+            r4c1: 4,
+            r4c2: 3,
+            r4c3: 2,
+            r4c4: 1,
+        },
+        constraints: [["allDifferent", ["cells", "row:0"]]],
+    });
+    if (result instanceof Error) throw result;
+    return result;
+};
+
 describe("PuzzleSession", () => {
     let session: PuzzleSession;
 
@@ -247,5 +278,77 @@ describe("PuzzleSession", () => {
         expect(session.valueOf("r1c2")).toBeNull();
         session.undo();
         expect(session.valueOf("r1c2")).toBe(2);
+    });
+});
+
+describe("PuzzleSession — checkNotesOnLeave", () => {
+    let session: PuzzleSession;
+
+    beforeEach(() => {
+        session = new PuzzleSession(compiledWithSolution());
+        session.setCheckNotesOnLeave(true);
+    });
+
+    it("flags a cell on leave if its remaining notes dropped the solution digit", () => {
+        session.select("r1c2"); // solution digit here is 2
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(3); // candidates {1,3} — missing the correct '2'
+        session.select("r1c3"); // leaving r1c2
+        expect(session.getFlaggedCells()).toEqual(new Set(["r1c2"]));
+    });
+
+    it("does not flag a cell whose notes still include the solution digit", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(2); // correct digit still present
+        session.select("r1c3");
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    it("does not flag an untouched cell with no notes at all", () => {
+        session.select("r1c2");
+        session.select("r1c3"); // leave without ever adding a note
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    it("re-checks on every leave, clearing a flag once the digit is restored", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(3);
+        session.select("r1c3");
+        expect(session.getFlaggedCells()).toEqual(new Set(["r1c2"]));
+
+        session.select("r1c2");
+        session.toggleCornerNote(2); // add the correct digit back
+        session.select("r1c3");
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    it("never flags a cell once it holds a value", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1); // wrong candidate only
+        session.input(2); // now fill in the (correct) value — clears notes
+        session.select("r1c3");
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    it("is off by default and checks nothing until enabled", () => {
+        const fresh = new PuzzleSession(compiledWithSolution());
+        fresh.select("r1c2");
+        fresh.toggleCornerNote(1);
+        fresh.toggleCornerNote(3);
+        fresh.select("r1c3");
+        expect(fresh.getFlaggedCells().size).toBe(0);
+    });
+
+    it("clears all flags immediately when disabled", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(3);
+        session.select("r1c3");
+        expect(session.getFlaggedCells().size).toBe(1);
+
+        session.setCheckNotesOnLeave(false);
+        expect(session.getFlaggedCells().size).toBe(0);
     });
 });

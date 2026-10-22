@@ -48,6 +48,11 @@
 .pp-toggle:hover {
     background: var(--surface-alt);
 }
+.pp-toggle.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
 
 .pp-complete {
     display: flex;

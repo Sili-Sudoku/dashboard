@@ -52,3 +52,7 @@
     fill: var(--entered);
     font-weight: 500;
 }
+.board .note-flagged {
+    fill: var(--violated-line);
+    font-weight: 700;
+}

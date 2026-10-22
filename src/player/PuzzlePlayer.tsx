@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Keyboard, ListChecks, PartyPopper } from "lucide-react";
+import { Keyboard, ListChecks, PartyPopper, ShieldAlert } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -30,6 +30,7 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 valueOf: session.valueOf,
                 notesOf: (c) => session.cellState(c).notes,
                 centerNotesOf: (c) => session.cellState(c).centerNotes,
+                flaggedCells: session.getFlaggedCells(),
                 isGiven: (c) => session.isGiven(c),
                 selection: session.getSelection(),
                 cursor: session.getCursor(),
@@ -91,6 +92,17 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     onRedo={() => session.redo()}
                     onReset={() => session.reset()}
                 />
+
+                {puzzle.solution && (
+                    <button
+                        className={`pp-toggle ${session.checkNotesOnLeave ? "active" : ""}`}
+                        aria-pressed={session.checkNotesOnLeave}
+                        onClick={() => session.setCheckNotesOnLeave(!session.checkNotesOnLeave)}
+                        title="When you move off a cell, flag it in red if its remaining notes no longer include the correct digit"
+                    >
+                        <ShieldAlert size={15} /> Check notes on leave
+                    </button>
+                )}
 
                 <button
                     className="pp-toggle"

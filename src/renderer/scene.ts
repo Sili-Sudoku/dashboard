@@ -17,6 +17,8 @@ export interface SceneInput {
     valueOf: (cell: CellId) => number | null;
     notesOf: (cell: CellId) => readonly number[];
     centerNotesOf: (cell: CellId) => readonly number[];
+    /** Cells flagged by PuzzleSession.checkNotesOnLeave (a bad note elimination). */
+    flaggedCells: ReadonlySet<CellId>;
     isGiven: (cell: CellId) => boolean;
     selection: ReadonlySet<CellId>;
     cursor: CellId | null;
@@ -39,6 +41,8 @@ export interface CellShape {
     given: boolean;
     notes: readonly number[];
     centerNotes: readonly number[];
+    /** Flagged by checkNotesOnLeave — remaining notes no longer include the solution digit. */
+    flagged: boolean;
 }
 
 export type Shape =
@@ -97,6 +101,7 @@ export const buildScene = (input: SceneInput): Scene => {
             given: input.isGiven(cell),
             notes: input.notesOf(cell),
             centerNotes: input.centerNotesOf(cell),
+            flagged: input.flaggedCells.has(cell),
         };
     });
 

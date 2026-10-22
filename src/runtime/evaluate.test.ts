@@ -78,3 +78,88 @@ describe("evaluate", () => {
         expect(affectedConstraints(puzzle, ["r3c3"])).toEqual([]);
     });
 });
+
+describe("evaluate — early infeasibility detection", () => {
+    it("flags a thermometer-style run as violated once the head leaves no room for the rest", () => {
+        // 3-cell strictly increasing run, domain 1-4: a '4' in the head leaves no
+        // room for two more strictly-larger values, even though no descending
+        // pair exists yet (the other two cells are still empty).
+        const puzzle = compilePuzzle({
+            version: 1,
+            metadata: { id: "therm", title: "therm" },
+            geometry: { type: "grid", width: 3, height: 1, boxWidth: 3, boxHeight: 1 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [["strictIncreasing", ["cells", ["r1c1", "r1c2", "r1c3"]]]],
+        });
+        if (puzzle instanceof Error) throw puzzle;
+
+        const result = evaluate(puzzle, lookupFromRecord({ r1c1: 4 }));
+        expect(result.constraints[0].status).toBe("violated");
+        expect([...result.violatedCells]).toEqual(["r1c1", "r1c2", "r1c3"]);
+    });
+
+    it("flags an allDifferent group as violated by pigeonhole, before any cell is even filled", () => {
+        // 3 cells, only 2 domain values to go around: no assignment can make
+        // them all different, true from the very first evaluation.
+        const puzzle = compilePuzzle({
+            version: 1,
+            metadata: { id: "pigeon", title: "pigeon" },
+            geometry: { type: "grid", width: 3, height: 1, boxWidth: 3, boxHeight: 1 },
+            domain: { values: [1, 2] },
+            constraints: [["allDifferent", ["cells", ["r1c1", "r1c2", "r1c3"]]]],
+        });
+        if (puzzle instanceof Error) throw puzzle;
+
+        const result = evaluate(puzzle, () => null);
+        expect(result.constraints[0].status).toBe("violated");
+        expect(result.status).toBe("invalid");
+    });
+
+    it("flags an unreachable cage sum", () => {
+        // 2 empty cells, domain 1-4: the minimum possible sum is 1+1=2, so a
+        // target of 1 can never be reached.
+        const puzzle = compilePuzzle({
+            version: 1,
+            metadata: { id: "cage", title: "cage" },
+            geometry: { type: "grid", width: 2, height: 1, boxWidth: 2, boxHeight: 1 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [["==", ["sum", ["cells", ["r1c1", "r1c2"]]], 1]],
+        });
+        if (puzzle instanceof Error) throw puzzle;
+
+        const result = evaluate(puzzle, () => null);
+        expect(result.constraints[0].status).toBe("violated");
+    });
+
+    it("stays incomplete, making no claim, once the search space exceeds the cap", () => {
+        // 5 empty cells over a 9-value domain (9^5 = 59049) is obviously
+        // unreachable by a sum of 1000 to a human, but it's over the exhaustive
+        // search cap — so this must NOT be reported as violated, matching the
+        // "never guess a violation we can't prove" rule.
+        const puzzle = compilePuzzle({
+            version: 1,
+            metadata: { id: "toobig", title: "toobig" },
+            geometry: { type: "grid", width: 5, height: 1, boxWidth: 5, boxHeight: 1 },
+            domain: { values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+            constraints: [["==", ["sum", ["cells", ["r1c1", "r1c2", "r1c3", "r1c4", "r1c5"]]], 1000]],
+        });
+        if (puzzle instanceof Error) throw puzzle;
+
+        const result = evaluate(puzzle, () => null);
+        expect(result.constraints[0].status).toBe("incomplete");
+    });
+
+    it("does not flag a reachable target, even with several empty cells", () => {
+        const puzzle = compilePuzzle({
+            version: 1,
+            metadata: { id: "reachable", title: "reachable" },
+            geometry: { type: "grid", width: 3, height: 1, boxWidth: 3, boxHeight: 1 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [["==", ["sum", ["cells", ["r1c1", "r1c2", "r1c3"]]], 9]],
+        });
+        if (puzzle instanceof Error) throw puzzle;
+
+        const result = evaluate(puzzle, () => null);
+        expect(result.constraints[0].status).toBe("incomplete");
+    });
+});

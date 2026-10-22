@@ -16,6 +16,62 @@ import { isCall, type EvalContext } from "@/runtime/expression.ts";
 import { evalExpr } from "@/runtime/operators.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 
+/**
+ * A constraint is "incomplete" rather than "violated" while any cell in its
+ * footprint is still empty. But some incomplete constraints are already dead:
+ * no assignment of the remaining empty cells can ever satisfy them (e.g. a
+ * thermometer head too high to leave room for the rest of the climb, or a
+ * cage target unreachable given the domain). Catching that early — before a
+ * literal rule break exists — generalizes to every operator for free: this
+ * just re-runs the existing evaluator over every possible completion of the
+ * constraint's own empty cells and asks whether any of them avoid `false`.
+ * No per-operator bounds logic; it falls out of the operators already being
+ * pure functions over `valueOf`.
+ *
+ * Exhaustive, so it's capped — above the cap we make no claim (stay
+ * "incomplete") rather than guess, consistent with never reporting a
+ * violation we can't prove.
+ */
+const INFEASIBILITY_SEARCH_CAP = 20_000;
+
+const isProvablyInfeasible = (
+    expr: CompiledPuzzle["constraints"][number]["expr"],
+    scope: readonly CellId[],
+    ctx: EvalContext,
+    lookup: ValueLookup,
+): boolean => {
+    const emptyCells = scope.filter((c) => lookup(c) === null);
+    if (emptyCells.length === 0) return false;
+
+    const domain = ctx.domain;
+    const searchSpace = domain.length ** emptyCells.length;
+    if (domain.length === 0 || searchSpace > INFEASIBILITY_SEARCH_CAP) return false;
+
+    const overrides = new Map<CellId, number>();
+    const trialLookup: ValueLookup = (cell) => (overrides.has(cell) ? overrides.get(cell)! : lookup(cell));
+    const trialCtx: EvalContext = { ...ctx, valueOf: trialLookup };
+
+    const anySatisfiesFrom = (index: number): boolean => {
+        if (index === emptyCells.length) {
+            try {
+                const value = evalExpr(expr, trialCtx);
+                return value.t !== "bool" || value.v !== false;
+            } catch {
+                return true; // malformed expressions are reported elsewhere, not here
+            }
+        }
+        const cell = emptyCells[index];
+        for (const v of domain) {
+            overrides.set(cell, v);
+            if (anySatisfiesFrom(index + 1)) return true;
+        }
+        overrides.delete(cell);
+        return false;
+    };
+
+    return !anySatisfiesFrom(0);
+};
+
 export type ConstraintStatus = "satisfied" | "violated" | "incomplete";
 
 export interface ConstraintEvaluation {
@@ -91,14 +147,18 @@ export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): Evaluatio
             error = err instanceof Error ? err.message : String(err);
         }
 
+        if (status === "incomplete" && isProvablyInfeasible(constraint.expr, constraint.cells, ctx, lookup)) {
+            status = "violated";
+            error = "no assignment of the remaining empty cells can satisfy this constraint";
+        }
+
         if (status === "violated") {
             anyViolated = true;
             allSatisfied = false;
             const head = isCall(constraint.expr) ? constraint.expr[0] : undefined;
-            const cells =
-                head === "allDifferent" || head === "distinct"
-                    ? duplicateValueCells(constraint.cells, lookup)
-                    : constraint.cells;
+            const narrowed =
+                head === "allDifferent" || head === "distinct" ? duplicateValueCells(constraint.cells, lookup) : [];
+            const cells = narrowed.length > 0 ? narrowed : constraint.cells;
             for (const c of cells) violatedCells.add(c);
         } else if (status === "incomplete") {
             allSatisfied = false;

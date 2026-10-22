@@ -136,7 +136,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                                 return (
                                     <text
                                         key={`n-${c.cell}-${n}`}
-                                        className="note"
+                                        className={`note ${c.flagged ? "note-flagged" : ""}`}
                                         x={c.x + c.size * (0.22 + col * 0.28)}
                                         y={c.y + c.size * (0.24 + row * 0.28)}
                                         fontSize={c.size * 0.18}
@@ -149,7 +149,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                             })}
                             {c.centerNotes.length > 0 && (
                                 <text
-                                    className="note-center"
+                                    className={`note-center ${c.flagged ? "note-flagged" : ""}`}
                                     x={cx}
                                     y={cy}
                                     fontSize={c.size * (c.centerNotes.length > 5 ? 0.14 : 0.19)}
