@@ -118,8 +118,8 @@
 }
 
 .author-sdk pre {
-    background: var(--ink);
-    color: #e9ecff;
+    background: var(--code-bg);
+    color: var(--code-ink);
     padding: 1rem;
     border-radius: 0.6rem;
     overflow-x: auto;

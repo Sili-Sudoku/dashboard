@@ -98,9 +98,9 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.55rem 0.8rem;
-    background: #e7f7ec;
+    background: var(--satisfied-tint);
     color: var(--satisfied);
-    border: 1px solid #b9e4c6;
+    border: 1px solid var(--satisfied-border);
     border-radius: 0.5rem;
     font-weight: 700;
 }

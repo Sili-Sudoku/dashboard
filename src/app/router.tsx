@@ -1,10 +1,14 @@
+import { Moon, Sun } from "lucide-react";
 import { Link, Route, Routes } from "react-router-dom";
 
 import Home from "@/features/home";
 import Play from "@/features/play";
 import Author from "@/features/author";
+import { useTheme } from "@/app/use_theme.ts";
 
 export default function AppRouter() {
+    const { theme, toggleTheme } = useTheme();
+
     return (
         <div className="app">
             <header className="app-header">
@@ -15,6 +19,14 @@ export default function AppRouter() {
                 <nav>
                     <Link to="/">Puzzles</Link>
                     <Link to="/new">Author</Link>
+                    <button
+                        type="button"
+                        className="theme-toggle"
+                        onClick={toggleTheme}
+                        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    >
+                        {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                    </button>
                 </nav>
             </header>
 

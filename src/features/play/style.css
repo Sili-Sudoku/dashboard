@@ -107,8 +107,8 @@
     overflow: auto;
     font-size: 0.74rem;
     line-height: 1.45;
-    background: var(--ink);
-    color: #e9ecff;
+    background: var(--code-bg);
+    color: var(--code-ink);
 }
 
 .play-error {

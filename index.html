@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Constraint Puzzle Runtime</title>
+    <!-- Sets data-theme before first paint, so there's no flash of the wrong
+         theme while React mounts (see src/app/use_theme.ts for the React side). -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("cpr:theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          // storage/matchMedia unavailable — the "light" attribute below stands.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

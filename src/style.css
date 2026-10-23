@@ -18,12 +18,57 @@
     --violated-line: #d33a3a;
     --invalid: #f6c9c9;
     --satisfied: #16a34a;
+    --satisfied-tint: #e7f7ec;
+    --satisfied-border: #b9e4c6;
     --incomplete: #b9803a;
 
     /* Constraint-graphic palette referenced by definition-authored objects. */
     --thermo: #9aa4c8;
     --cage: #4a53a8;
     --arrow: #333850;
+
+    /* Code/JSON preview blocks (author SDK panel, play-page JSON view) stay a
+       fixed dark "terminal" look in both themes — deliberately not riding on
+       --ink, which flips to near-white in dark mode and would otherwise turn
+       these into unreadable white-on-light-lavender blocks. */
+    --code-bg: #0a0b14;
+    --code-ink: #e9ecff;
+}
+
+:root[data-theme="dark"] {
+    --bg: #11121c;
+    --surface: #1a1c2b;
+    --surface-alt: #242637;
+    --ink: #e8e9f2;
+    --ink-soft: #9b9fc0;
+    --line: #343754;
+    --line-strong: #7276a8;
+
+    --brand: #8b93ef;
+    --brand-hover: #a3aaf5;
+    --brand-tint: #272a4a;
+    --accent: #d98fcb;
+
+    --given: #f5f6fb;
+    --entered: #9aa3ff;
+    /* Flagged/invalid tones: a glaring light-mode-style pink would read as a
+       harsh glow against a dark surface, so these stay dark, desaturated
+       tints distinguished mainly by hue (toward red) rather than by being
+       bright — the stroke/line colors carry the actual contrast instead. */
+    --violated: #3a2430;
+    --violated-line: #ef6b7a;
+    --invalid: #4a2230;
+    --satisfied: #3ddc84;
+    --satisfied-tint: #1d3327;
+    --satisfied-border: #2f5c3f;
+    --incomplete: #e0a858;
+
+    --thermo: #6c74a8;
+    --cage: #a3aaf5;
+    --arrow: #c7cadf;
+
+    --code-bg: #0a0b14;
+    --code-ink: #e9ecff;
 }
 
 * {
@@ -123,4 +168,23 @@ button {
 button:focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 0.4rem;
+    background: var(--surface-alt);
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
 }
