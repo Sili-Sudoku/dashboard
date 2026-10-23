@@ -8,21 +8,87 @@
     background: var(--surface);
 }
 
-/* Large boards (#48): a fixed-size scrollable viewport instead of shrinking the
-   whole board to fit — individual cells stay a legible size, and Board.tsx culls
-   offscreen cells/shapes to keep the DOM small regardless of total board size. */
+/* Large boards (#48/#49): a SudokuPad-style pan/zoom canvas instead of shrinking
+   the whole board to fit. .board-large-wrap/.board-viewport flex-fill whatever
+   space the page actually gives them (the chain is completed by :has() rules in
+   player.css and the app shell's style.css) — the window, not some fixed vh/px
+   box, is the bounding box. The SVG inside is sized via width/height="100%"
+   attributes, which need a *definite* ancestor height to resolve against —
+   flexbox gives every ancestor in the chain a definite computed height after
+   layout, even without a literal `height` value. Board.tsx then drives pan/zoom
+   entirely by rewriting the SVG's viewBox (scroll wheel = zoom at cursor, middle/
+   right-drag = pan), and culls offscreen cells/shapes to keep the DOM small
+   regardless of total board size or zoom level. */
+/* .board-viewport is still a distinct bordered region that the toolbar sits
+   above and the sidebar sits beside — a current implementation detail, not
+   the end state. SudokuPad has no such region at all: the puzzle canvas is
+   borderless and fills the whole page, with the controls floating on top of
+   it rather than reserving space around it. Collapsing to that (no border/
+   box, controls as overlays) is a later redesign, not implied by anything
+   here — flagged so it isn't mistaken for the final shape of this. */
 .board-viewport {
-    max-width: 100%;
-    max-height: 70vh;
-    overflow: auto;
+    width: 100%;
+    flex: 1;
+    /* Just a floor against total collapse, not a target size — small enough that
+       the normal case (plenty of window height) never has to fall back to the
+       app shell's overflow-y:auto scroll in style.css. */
+    min-height: 140px;
+    overflow: hidden;
     border: 2px solid var(--line-strong);
     border-radius: 4px;
 }
 .board-viewport .board {
+    width: 100%;
+    height: 100%;
     max-width: none;
-    height: auto;
     border: none;
     display: block;
+}
+
+.board-large-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-height: 0;
+}
+.board-zoom-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    /* Safety net for the rare short-window case where the app shell's
+       overflow-y:auto scroll actually kicks in — the controls stay put instead
+       of scrolling away with the board. */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    padding: 0.2rem 0;
+}
+.board-zoom-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 0.4rem;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+}
+.board-zoom-toolbar button:hover {
+    background: var(--surface-alt);
+}
+.board-zoom-level {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    min-width: 3.2rem;
+    text-align: center;
+}
+.board-zoom-slider {
+    width: 140px;
+    accent-color: var(--brand);
 }
 
 .board .cell-bg {

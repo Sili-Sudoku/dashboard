@@ -10,6 +10,45 @@
     min-width: 300px;
     max-width: 620px;
 }
+/* Large boards (#48/#49) get the full available window, not the small-puzzle
+   cap — the point of zoom/fit-to-screen is to actually use the screen. This
+   also switches the row to stretch its items full-height (instead of the
+   default flex-start-sized-to-content) and makes the column itself a flex
+   container, so the fill-the-remaining-space chain continuing down into
+   board.css's .board-large-wrap/.board-viewport has a definite height to grow
+   into at every level. */
+.puzzle-player:has(.board-large-wrap) {
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+}
+.pp-board-col:has(.board-large-wrap) {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* The sidebar is position:fixed (see .pp-side below) and so no longer
+       takes up space in the row's normal flow — reserve the same width +
+       gap by hand so the board doesn't render underneath it. */
+    margin-right: calc(340px + 1.6rem);
+}
+/* Sticky still has to "catch up" past whatever's above it (header, title)
+   before it locks — on a short window where .app itself scrolls, that reads
+   as the sidebar moving. position:fixed never moves at all, at the cost of
+   needing a concrete top offset, which --pp-side-top supplies (set in
+   PuzzlePlayer.tsx from the board column's actual on-screen position, so it
+   isn't a guess that breaks whenever the header/title's height changes). Its
+   own content still scrolls internally (max-height + overflow-y) so a tall
+   constraint panel/hotkey legend can't push the box itself past the bottom
+   of the screen. */
+.puzzle-player:has(.board-large-wrap) .pp-side {
+    position: fixed;
+    top: var(--pp-side-top, 0px);
+    right: 1.2rem;
+    width: 340px;
+    max-height: calc(100vh - var(--pp-side-top, 0px) - 1.6rem);
+    overflow-y: auto;
+}
 
 .pp-hint {
     margin-top: 0.6rem;

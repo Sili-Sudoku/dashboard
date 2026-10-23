@@ -56,6 +56,17 @@ code, pre {
     display: flex;
     flex-direction: column;
 }
+/* Large boards (#48/#49): clamp the whole shell to the window's actual height
+   instead of letting content push it taller — on a normal window there's
+   enough room and this never kicks in; overflow-y:auto (not hidden) is a
+   safety valve for a pathologically short window, so content can still be
+   reached by scrolling rather than silently clipped off-screen. The sticky
+   toolbar in board.css covers that edge case so the controls don't scroll
+   away with it. */
+.app:has(.board-large-wrap) {
+    height: 100vh;
+    overflow-y: auto;
+}
 
 .app-header {
     display: flex;
@@ -90,6 +101,19 @@ code, pre {
     max-width: 1100px;
     width: 100%;
     margin: 0 auto;
+}
+/* Large boards (#48/#49): the window is the bounding box, not a centered
+   1100px column — drop the cap/margin and complete the flex-fill chain
+   (continued in play/style.css, player.css, board.css) so the board gets
+   every pixel of height below the header too, not just a fixed vh slice. */
+.app-main:has(.board-large-wrap) {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 button {

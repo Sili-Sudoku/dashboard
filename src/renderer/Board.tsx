@@ -1,13 +1,21 @@
-import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
 
 import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene, Shape } from "@/renderer/scene.ts";
 import {
     cellInViewport,
+    clampView,
     expandViewport,
+    fitView,
     lineInViewport,
+    MAX_ZOOM,
+    MIN_ZOOM,
+    panView,
     shapeInViewport,
     VIRTUALIZE_CELL_THRESHOLD,
+    ZOOM_STEP,
+    zoomViewAt,
     type ViewportRect,
 } from "@/renderer/virtualize.ts";
 
@@ -35,32 +43,124 @@ const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
 
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
     const painting = useRef(false);
+    const panningFrom = useRef<{ x: number; y: number } | null>(null);
     const isLarge = scene.cells.length > VIRTUALIZE_CELL_THRESHOLD;
 
-    const viewportRef = useRef<HTMLDivElement>(null);
-    const [viewport, setViewport] = useState<ViewportRect | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    // The visible rect, in board units — this *is* the SVG's viewBox. No scrolling:
+    // panning/zooming just change this rect, like SudokuPad's canvas.
+    const [view, setView] = useState<ViewportRect | null>(null);
+    const [zoomPct, setZoomPct] = useState(100);
 
     useLayoutEffect(() => {
+        if (!isLarge || view) return;
+        const el = containerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const initial = fitView(scene.width, scene.height, rect.width, rect.height);
+        setView(initial);
+        setZoomPct(Math.round((rect.width / initial.width) * 100));
+        // Only runs once, to establish the starting "whole board" view — re-fitting
+        // on every scene/container change would fight the user's own pan/zoom.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLarge, view]);
+
+    const visibleScene = useMemo(() => cullToViewport(scene, isLarge ? view : null), [scene, isLarge, view]);
+
+    const applyZoom = useCallback(
+        (fracX: number, fracY: number, factor: number) => {
+            const el = containerRef.current;
+            if (!el || !view) return;
+            const rect = el.getBoundingClientRect();
+            const next = zoomViewAt(view, scene.width, scene.height, rect.width, fracX, fracY, factor);
+            setView(next);
+            setZoomPct(Math.round((rect.width / next.width) * 100));
+        },
+        [view, scene.width, scene.height],
+    );
+
+    const handleZoomSlider = (pct: number) => {
+        const el = containerRef.current;
+        if (!el || !view) return;
+        const rect = el.getBoundingClientRect();
+        const currentScale = rect.width / view.width;
+        applyZoom(0.5, 0.5, pct / 100 / currentScale);
+    };
+
+    const handleFitToScreen = () => {
+        const el = containerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const next = fitView(scene.width, scene.height, rect.width, rect.height);
+        setView(next);
+        setZoomPct(Math.round((rect.width / next.width) * 100));
+    };
+
+    const handleResetZoom = () => {
+        const el = containerRef.current;
+        if (!el || !view) return;
+        const rect = el.getBoundingClientRect();
+        const cx = view.left + view.width / 2;
+        const cy = view.top + view.height / 2;
+        // "100%" = 1 board unit per screen pixel, recentered on wherever you currently are.
+        const next = clampView(
+            { left: cx - rect.width / 2, top: cy - rect.height / 2, width: rect.width, height: rect.height },
+            scene.width,
+            scene.height,
+        );
+        setView(next);
+        setZoomPct(100);
+    };
+
+    // React's onWheel prop is attached passively at the root (for scroll-perf reasons
+    // shared with every other wheel listener on the page), so preventDefault() inside
+    // it can't actually stop the page from scrolling underneath — only a real native
+    // listener, explicitly registered non-passive, can zoom without the page scrolling
+    // along with it at the same time.
+    useLayoutEffect(() => {
         if (!isLarge) return;
-        const el = viewportRef.current;
+        const el = containerRef.current;
         if (!el) return;
 
-        const measure = () => setViewport({ left: el.scrollLeft, top: el.scrollTop, width: el.clientWidth, height: el.clientHeight });
-        measure();
-
-        el.addEventListener("scroll", measure);
-        // Guarded: not every test/runtime environment implements ResizeObserver.
-        const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : undefined;
-        resizeObserver?.observe(el);
-        return () => {
-            el.removeEventListener("scroll", measure);
-            resizeObserver?.disconnect();
+        const onNativeWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const rect = el.getBoundingClientRect();
+            const fracX = (e.clientX - rect.left) / rect.width;
+            const fracY = (e.clientY - rect.top) / rect.height;
+            const factor = Math.pow(ZOOM_STEP, -e.deltaY / 100);
+            applyZoom(fracX, fracY, factor);
         };
-    }, [isLarge]);
 
-    const visibleScene = useMemo(() => cullToViewport(scene, isLarge ? viewport : null), [scene, isLarge, viewport]);
+        el.addEventListener("wheel", onNativeWheel, { passive: false });
+        return () => el.removeEventListener("wheel", onNativeWheel);
+    }, [isLarge, applyZoom]);
+
+    // Panning (#49): middle- or right-button drag, so it never competes with the
+    // existing left-button cell-selection drag below.
+    const handleContainerPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (e.button !== 1 && e.button !== 2) return;
+        e.preventDefault();
+        panningFrom.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleContainerPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (!panningFrom.current || !view) return;
+        const el = containerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const dx = ((e.clientX - panningFrom.current.x) / rect.width) * view.width;
+        const dy = ((e.clientY - panningFrom.current.y) / rect.height) * view.height;
+        panningFrom.current = { x: e.clientX, y: e.clientY };
+        setView((v) => (v ? panView(v, scene.width, scene.height, -dx, -dy) : v));
+    };
+
+    const stopPanning = () => {
+        panningFrom.current = null;
+    };
 
     const handleCellDown = (cell: CellId) => (e: ReactPointerEvent) => {
+        if (e.button === 1 || e.button === 2) return; // middle/right-click pans instead (see the container handlers below)
         e.preventDefault();
         painting.current = true;
         (e.target as Element).releasePointerCapture?.(e.pointerId);
@@ -77,12 +177,15 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         onPaintEnd();
     };
 
+    const viewBox =
+        isLarge && view ? `${view.left} ${view.top} ${view.width} ${view.height}` : scene.viewBox;
+
     const svg = (
         <svg
             className="board"
-            viewBox={scene.viewBox}
-            width={scene.width}
-            height={scene.height}
+            viewBox={viewBox}
+            width={isLarge ? "100%" : scene.width}
+            height={isLarge ? "100%" : scene.height}
             role="grid"
             onPointerUp={stopPainting}
             onPointerLeave={stopPainting}
@@ -213,8 +316,43 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     if (!isLarge) return svg;
 
     return (
-        <div className="board-viewport" ref={viewportRef}>
-            {svg}
+        <div className="board-large-wrap">
+            <div className="board-zoom-toolbar">
+                <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out">
+                    <ZoomOut size={16} />
+                </button>
+                <input
+                    type="range"
+                    className="board-zoom-slider"
+                    min={Math.round(MIN_ZOOM * 100)}
+                    max={Math.round(MAX_ZOOM * 100)}
+                    step={1}
+                    value={zoomPct}
+                    onChange={(e) => handleZoomSlider(Number(e.target.value))}
+                    aria-label="Zoom level"
+                />
+                <span className="board-zoom-level">{zoomPct}%</span>
+                <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in">
+                    <ZoomIn size={16} />
+                </button>
+                <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen">
+                    <Maximize size={16} /> Fit
+                </button>
+                <button type="button" onClick={handleResetZoom} aria-label="Reset zoom to 100%">
+                    100%
+                </button>
+            </div>
+            <div
+                className="board-viewport"
+                ref={containerRef}
+                onPointerDown={handleContainerPointerDown}
+                onPointerMove={handleContainerPointerMove}
+                onPointerUp={stopPanning}
+                onPointerLeave={stopPanning}
+                onContextMenu={(e) => e.preventDefault()}
+            >
+                {svg}
+            </div>
         </div>
     );
 }

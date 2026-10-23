@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, ListChecks, PartyPopper, ShieldAlert } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
@@ -22,6 +22,24 @@ export default function PuzzlePlayer({ puzzle }: Props) {
     const session = usePuzzleSession(puzzle);
     const [showConstraints, setShowConstraints] = useState(false);
     const [showHotkeys, setShowHotkeys] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+    const boardColRef = useRef<HTMLDivElement>(null);
+
+    // Large boards (#49 follow-up): the sidebar is pinned with position:fixed so it
+    // truly never moves once the page scrolls — sticky still has to "catch up" past
+    // whatever header/title sits above it first, which reads as the panel moving.
+    // Fixed needs a concrete top offset, though; rather than hardcode (and get wrong
+    // whenever the header/title changes height), measure where the board column
+    // naturally starts and pin the sidebar there instead.
+    useLayoutEffect(() => {
+        const root = rootRef.current;
+        const boardCol = boardColRef.current;
+        if (!root || !boardCol) return;
+        const sync = () => root.style.setProperty("--pp-side-top", `${boardCol.getBoundingClientRect().top}px`);
+        sync();
+        window.addEventListener("resize", sync);
+        return () => window.removeEventListener("resize", sync);
+    }, []);
 
     const scene = useMemo(
         () =>
@@ -58,8 +76,8 @@ export default function PuzzlePlayer({ puzzle }: Props) {
     const evaluation = session.evaluation;
 
     return (
-        <div className="puzzle-player">
-            <div className="pp-board-col">
+        <div className="puzzle-player" ref={rootRef}>
+            <div className="pp-board-col" ref={boardColRef}>
                 <Board
                     scene={scene}
                     onPaintStart={onPaintStart}

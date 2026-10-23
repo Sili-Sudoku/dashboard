@@ -21,6 +21,80 @@ export interface ViewportRect {
 /** Only switch to a scrollable, culled viewport above this many cells. */
 export const VIRTUALIZE_CELL_THRESHOLD = 400;
 
+export const MIN_ZOOM = 0.02;
+export const MAX_ZOOM = 3;
+export const ZOOM_STEP = 1.25;
+
+export const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
+
+/**
+ * Pans/zooms a SudokuPad-style board: the visible rect (in board units) *is*
+ * the SVG's viewBox, directly. No scrolling, no scaling the SVG's own pixel
+ * size — the container is whatever size CSS gives it, and this rect decides
+ * what portion of the board fills that container.
+ */
+
+/** A view rect centered on the whole scene, scaled (and letterboxed) to fit `containerWidth` x `containerHeight`. */
+export const fitView = (
+    sceneWidth: number,
+    sceneHeight: number,
+    containerWidth: number,
+    containerHeight: number,
+): ViewportRect => {
+    const scale = clamp(Math.min(containerWidth / sceneWidth, containerHeight / sceneHeight), MIN_ZOOM, MAX_ZOOM);
+    const width = containerWidth / scale;
+    const height = containerHeight / scale;
+    return { left: (sceneWidth - width) / 2, top: (sceneHeight - height) / 2, width, height };
+};
+
+/** Keeps a view rect from drifting so far that it no longer overlaps the scene at all. */
+export const clampView = (view: ViewportRect, sceneWidth: number, sceneHeight: number): ViewportRect => ({
+    left: clamp(view.left, Math.min(0, sceneWidth - view.width), Math.max(0, sceneWidth - view.width)),
+    top: clamp(view.top, Math.min(0, sceneHeight - view.height), Math.max(0, sceneHeight - view.height)),
+    width: view.width,
+    height: view.height,
+});
+
+/** Shifts a view rect by a board-unit delta (e.g. from a pan drag), clamped to stay over the scene. */
+export const panView = (
+    view: ViewportRect,
+    sceneWidth: number,
+    sceneHeight: number,
+    dx: number,
+    dy: number,
+): ViewportRect => clampView({ ...view, left: view.left + dx, top: view.top + dy }, sceneWidth, sceneHeight);
+
+/**
+ * Zooms a view rect by `factor` (>1 zooms in) while keeping the board-unit point
+ * under the fractional container position (`fracX`/`fracY`, each 0..1) stationary
+ * on screen — the "zoom toward the cursor" feel of a map/graphics app. The zoom
+ * bound is in terms of `containerWidth` (actual on-screen pixels per board unit),
+ * not scene size — so it zooms just as deep into a tiny board as a huge one.
+ */
+export const zoomViewAt = (
+    view: ViewportRect,
+    sceneWidth: number,
+    sceneHeight: number,
+    containerWidth: number,
+    fracX: number,
+    fracY: number,
+    factor: number,
+): ViewportRect => {
+    const minWidth = containerWidth / MAX_ZOOM;
+    const maxWidth = containerWidth / MIN_ZOOM;
+    const newWidth = clamp(view.width / factor, minWidth, maxWidth);
+    const newHeight = newWidth * (view.height / view.width);
+
+    const anchorX = view.left + fracX * view.width;
+    const anchorY = view.top + fracY * view.height;
+
+    return clampView(
+        { left: anchorX - fracX * newWidth, top: anchorY - fracY * newHeight, width: newWidth, height: newHeight },
+        sceneWidth,
+        sceneHeight,
+    );
+};
+
 /** Grows a viewport by `margin` on every side — cull *slightly* outside what's visible, not exactly at the edge. */
 export const expandViewport = (v: ViewportRect, margin: number): ViewportRect => ({
     left: v.left - margin,
