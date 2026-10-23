@@ -43,6 +43,15 @@ const digitFromCode = (code: string): number | null => {
     return match ? Number(match[1]) : null;
 };
 
+/** Does some *other*, longer domain value start with `prefix`'s digits? i.e. could
+ *  one more keypress extend `prefix` into a different, still-valid value. */
+const hasLongerMatch = (domain: readonly number[], prefix: string): boolean =>
+    domain.some((v) => v !== Number(prefix) && String(v).startsWith(prefix));
+
+/** Multi-digit-aware commit delay (#large-domain follow-up): long enough for a
+ * deliberate second keystroke, short enough not to feel like a stuck key. */
+const DIGIT_COMMIT_DELAY_MS = 500;
+
 export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     const session = useMemo(
         () => new PuzzleSession(puzzle, { initialProgress: readProgress(puzzle.metadata.id) }),
@@ -72,7 +81,103 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     const baseMode = useRef<InputMode>(session.inputMode);
     const modifierHeld = useRef(false);
 
+    // Multi-digit entry (#large-domain follow-up): domains past 1-9 (e.g. a
+    // 25x25 puzzle's 1-25) need more than one keypress per value. In "digit"
+    // mode, each keystroke is applied live — the first via input() (one undo
+    // step, instant feedback instead of a wait to see anything happen) and
+    // any further digit that extends it via replaceValue() (same undo step,
+    // just correcting the preview) — so entering "20" never looks like
+    // nothing happened while waiting to see if a second digit follows. In the
+    // note modes, toggling is a flip rather than an overwrite, so there's no
+    // equivalent live preview — notes resolve once, same as before.
+    const digitBuffer = useRef("");
+    const digitTimer = useRef<number | undefined>(undefined);
+    const applyingOwnChange = useRef(false);
+
     useEffect(() => {
+        const resetBuffer = () => {
+            digitBuffer.current = "";
+            window.clearTimeout(digitTimer.current);
+        };
+
+        const applyOwnChange = (fn: () => void) => {
+            applyingOwnChange.current = true;
+            fn();
+            applyingOwnChange.current = false;
+        };
+
+        const resolveNoteBuffer = () => {
+            const raw = digitBuffer.current;
+            resetBuffer();
+            if (raw === "") return;
+            const n = Number(raw);
+            if (puzzle.domain.includes(n)) applyOwnChange(() => session.input(n));
+        };
+
+        const pushDigit = (digitChar: string) => {
+            // Domains that are entirely single digits behave exactly as before —
+            // instant commit, no waiting around for a second keystroke.
+            if (!puzzle.domain.some((v) => v >= 10)) {
+                session.input(Number(digitChar));
+                return;
+            }
+
+            const isNoteMode = session.inputMode !== "digit";
+            let continuing = digitBuffer.current !== "";
+            let next = digitBuffer.current + digitChar;
+
+            if (!puzzle.domain.includes(Number(next)) && !hasLongerMatch(puzzle.domain, next)) {
+                // Dead end for whatever was buffered. In digit mode it's already
+                // showing (applied live as it was typed) — nothing to flush, just
+                // start over. In note mode nothing's been toggled yet, so resolve
+                // it now before starting over with this digit.
+                if (isNoteMode) resolveNoteBuffer();
+                else resetBuffer();
+                next = digitChar;
+                continuing = false;
+                if (!puzzle.domain.includes(Number(next)) && !hasLongerMatch(puzzle.domain, next)) return;
+            }
+
+            digitBuffer.current = next;
+            const resolved = !hasLongerMatch(puzzle.domain, next);
+            const isValid = puzzle.domain.includes(Number(next));
+
+            if (!isNoteMode && isValid) {
+                const n = Number(next);
+                applyOwnChange(() => (continuing ? session.replaceValue(n) : session.input(n)));
+            }
+
+            window.clearTimeout(digitTimer.current);
+            if (resolved) {
+                if (isNoteMode && isValid) applyOwnChange(() => session.input(Number(next)));
+                digitBuffer.current = "";
+            } else {
+                digitTimer.current = window.setTimeout(() => {
+                    if (isNoteMode) resolveNoteBuffer();
+                    else resetBuffer();
+                }, DIGIT_COMMIT_DELAY_MS);
+            }
+        };
+
+        // Finishes whatever's still buffered when the player does something
+        // else entirely (moves the cursor, erases, switches mode...) rather
+        // than leaving it to resolve on its own timer. Digit mode has already
+        // applied it live, so there's nothing left to do but drop the buffer;
+        // note mode hasn't toggled anything yet, so it needs resolving now.
+        const flushBuffer = () => {
+            if (session.inputMode === "digit") resetBuffer();
+            else resolveNoteBuffer();
+        };
+
+        // Anything that changes the board other than our own live-applied
+        // digit — a NumberPad click, undo/redo — invalidates whatever's still
+        // pending, so a stale buffer doesn't extend into a later keystroke and
+        // overwrite that other change.
+        const unsubscribe = session.subscribe(() => {
+            if (applyingOwnChange.current) return;
+            resetBuffer();
+        });
+
         const isInputTarget = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;
             return !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
@@ -95,6 +200,11 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
 
         const onKeyDown = (e: KeyboardEvent) => {
             if (isInputTarget(e)) return;
+
+            const isPlainDigit = /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+            // Doing anything else commits whatever's still buffered from a
+            // part-typed multi-digit value rather than leaving it to land later.
+            if (!isPlainDigit) flushBuffer();
 
             if (e.key in ARROW_KEYS) {
                 e.preventDefault();
@@ -131,10 +241,11 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
                 return;
             }
             // "0" is a plain digit here, same as any other — it only means "erase"
-            // in domains that don't include it, and input() already no-ops on a
-            // digit outside the domain, so there's nothing special to do for it.
-            if (/^[0-9]$/.test(e.key)) {
-                session.input(Number(e.key));
+            // in domains that don't include it, and input()/pushDigit() already
+            // no-op on a digit outside the domain, so there's nothing special to
+            // do for it.
+            if (isPlainDigit) {
+                pushDigit(e.key);
                 return;
             }
             if (e.key === "Backspace" || e.key === "Delete") {
@@ -181,6 +292,7 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         };
 
         const onBlur = () => {
+            flushBuffer();
             if (modifierHeld.current) restoreMode();
         };
 
@@ -188,11 +300,14 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         window.addEventListener("keyup", onKeyUp);
         window.addEventListener("blur", onBlur);
         return () => {
+            unsubscribe();
+            window.clearTimeout(digitTimer.current);
+            digitBuffer.current = "";
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
         };
-    }, [session]);
+    }, [session, puzzle.domain]);
 
     return session;
 };

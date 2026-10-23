@@ -285,6 +285,26 @@ export class PuzzleSession {
         this.emit();
     }
 
+    /**
+     * Corrects a value that's still being typed, without pushing a new undo
+     * step — for multi-digit domains (#large-domain follow-up), where the
+     * first keystroke of a number is entered live via `input()` (so there's
+     * instant feedback instead of a wait for the whole number to resolve) and
+     * a second keystroke then needs to fix it up to the full value. One
+     * logical "type a value" action should be one undo step, not one per
+     * keystroke.
+     */
+    replaceValue(digit: number): void {
+        if (this.inputMode !== "digit") return;
+        const cells = this.targets();
+        if (cells.length === 0) return;
+        if (!this.puzzle.domain.includes(digit)) return;
+
+        for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+        this.markDirty(cells);
+        this.emit();
+    }
+
     /** Toggles a corner note directly, independent of `inputMode`. */
     toggleCornerNote(digit: number): void {
         this.toggleNote(digit, "notes");

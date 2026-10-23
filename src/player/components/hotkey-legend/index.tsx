@@ -4,6 +4,7 @@ const SHORTCUTS: { keys: string; action: string }[] = [
     { keys: "Click / drag", action: "select cells" },
     { keys: "Arrows", action: "move cursor (Shift+Arrow extends selection)" },
     { keys: "1–9", action: "enter value / toggle note, per the active pad mode" },
+    { keys: "(type consecutive digits)", action: "for domains past 1-9, e.g. 1 then 0 enters 10" },
     { keys: "Shift+digit", action: "toggle a corner note directly" },
     { keys: "Ctrl/Cmd+digit", action: "toggle a centre note directly" },
     { keys: "Space", action: "switch between Digit and Corner mode" },

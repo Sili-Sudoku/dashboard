@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { act } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 import { compilePuzzle } from "@/runtime/compile.ts";
@@ -20,6 +21,23 @@ const compiledWithZeroInDomain = () => {
             metadata: { id: "zero-domain", title: "zero-domain" },
             geometry: { type: "grid", width: 2, height: 2 },
             domain: { values: [0, 1, 2, 3] },
+            constraints: [],
+        },
+        definitions,
+    );
+    if (result instanceof Error) throw result;
+    return result;
+};
+
+/** A tiny geometry with a 1-25 domain — enough to exercise multi-digit keyboard
+ * entry without pulling in the 625-cell large-demo puzzle and its virtualization. */
+const compiledWithLargeDomain = () => {
+    const result = compilePuzzle(
+        {
+            version: 1,
+            metadata: { id: "large-domain", title: "large-domain" },
+            geometry: { type: "grid", width: 2, height: 2 },
+            domain: { values: Array.from({ length: 25 }, (_, i) => i + 1) },
             constraints: [],
         },
         definitions,
@@ -323,6 +341,79 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.click(screen.getByRole("button", { name: /hide shortcuts/i }));
         expect(container.querySelector(".hotkey-legend")).toBeNull();
+    });
+
+    it("types a multi-digit value for domains past 1-9, each keystroke showing immediately", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
+
+        // "1" alone is ambiguous (could become 1, or 10-19) — but it's shown right
+        // away rather than waiting to see if a second digit follows.
+        fireEvent.keyDown(window, { key: "1" });
+        let entered = container.querySelectorAll(".digit.entered");
+        expect(entered).toHaveLength(1);
+        expect(entered[0].textContent).toBe("1");
+
+        // "10" can't be extended any further within a 1-25 domain — the second
+        // keystroke corrects the preview immediately.
+        fireEvent.keyDown(window, { key: "0" });
+        entered = container.querySelectorAll(".digit.entered");
+        expect(entered).toHaveLength(1);
+        expect(entered[0].textContent).toBe("10");
+    });
+
+    it("a lone ambiguous digit is shown immediately and stays put once the pause elapses", () => {
+        vi.useFakeTimers();
+        try {
+            const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
+            fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
+
+            fireEvent.keyDown(window, { key: "2" }); // could still become 2, or 20-25
+            let entered = container.querySelectorAll(".digit.entered");
+            expect(entered).toHaveLength(1);
+            expect(entered[0].textContent).toBe("2");
+
+            act(() => {
+                vi.advanceTimersByTime(600);
+            });
+            entered = container.querySelectorAll(".digit.entered");
+            expect(entered).toHaveLength(1);
+            expect(entered[0].textContent).toBe("2");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("typing a multi-digit value is a single undo step, not one per keystroke", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
+
+        fireEvent.keyDown(window, { key: "1" });
+        fireEvent.keyDown(window, { key: "0" });
+        expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("10");
+
+        fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+        expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
+    });
+
+    it("a NumberPad click cancels a still-pending typed digit, instead of it landing later and overwriting the click", () => {
+        vi.useFakeTimers();
+        try {
+            const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
+            fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
+
+            fireEvent.keyDown(window, { key: "2" }); // pending, awaiting a possible second digit
+            fireEvent.click(screen.getByRole("button", { name: "15" }));
+            expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("15");
+
+            // if the stale "2" buffer were still live, this would stomp the click.
+            act(() => {
+                vi.advanceTimersByTime(600);
+            });
+            expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("15");
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("solving the puzzle surfaces the completion banner", () => {
