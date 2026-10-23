@@ -109,6 +109,10 @@ filled and every constraint is satisfied.
 { "use": "killer", "cells": ["r1c1","r1c2","r1c3"], "sum": 12 }
 { "use": "thermometer", "cells": ["r1c8","r2c8","r3c8"] }
 { "use": "arrow", "bulb": "r4c9", "cells": ["r4c8","r5c9"] }
+{ "use": "kropkiDifference", "cells": ["r1c1","r1c2"], "value": 1 }
+{ "use": "kropkiRatio", "cells": ["r1c1","r1c2"], "value": 2 }
+{ "use": "odd", "cell": "r1c1" }
+{ "use": "even", "cells": ["r1c2","r1c3"] }
 ```
 
 `compilePuzzle(def, registry)` expands these against the injected registry. Each
@@ -117,8 +121,36 @@ what you could have written by hand. The compiled puzzle contains only
 primitives; `source` on each compiled constraint records which definition (or
 `"primitive"`) produced it.
 
-Built-in definitions: `sudoku`, `thermometer`, `killer`, `arrow`
-(`src/definitions/`).
+Built-in definitions: `sudoku`, `thermometer`, `killer`, `arrow`,
+`kropkiDifference`, `kropkiRatio`, `odd`, `even` (`src/definitions/`).
+
+## Interop
+
+`src/interop/fpuzzles.ts` imports and exports the
+[f-puzzles](https://www.f-puzzles.com/) JSON format used across the
+SudokuPad/Logic Mines/Crack The Cuber ecosystem — `importFPuzzles`/
+`exportFPuzzles`, both returning `{ ..., warnings }` or an `Error`. Coverage is
+intentionally partial (classic sudoku including jigsaw regions, givens, killer
+cages, thermometers, arrows, kropki dots, odd/even); anything else in the
+source, or any puzzle constraint it can't represent on export, is reported as a
+warning rather than silently dropped. Reachable from the Author page's
+"Import from f-puzzles…" / "Export to f-puzzles" buttons.
+
+When no cell declares a `region` at all, `importFPuzzles` falls back to the
+grid's default (√-based) box size if the grid size is a perfect square — a
+real exported puzzle had no region data yet still used standard boxes — and
+otherwise (box size would degenerate to the whole grid) drops the box
+constraint outright. Either way it's reported as a warning, since it's a
+guess: the source may genuinely have no boxes, or genuinely custom ones, with
+no way to tell from absent data alone.
+
+`importFPuzzles` also accepts an f-puzzles.com share link directly (the
+`?load=<payload>` URL, or just the payload on its own) — that's the artifact a
+real user actually has, not raw JSON. The payload is lz-string-compressed and
+base64-encoded; it is deliberately extracted with a plain regex rather than
+`URLSearchParams`, because the payload's literal `+` characters are valid
+unencoded base64 and would otherwise be corrupted into spaces by
+form-urlencoded decoding.
 
 ## Visual objects
 

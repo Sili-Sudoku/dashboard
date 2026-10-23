@@ -7,6 +7,7 @@ import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+import { exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
 
 import "./style.css";
 
@@ -57,6 +58,7 @@ const DEFAULT_DIMS: GridDims = { width: 9, height: 9, boxWidth: 3, boxHeight: 3 
 export default function Author() {
     const [text, setText] = useState(() => JSON.stringify(demoMixed, null, 2));
     const [submitted, setSubmitted] = useState(text);
+    const [interopNotice, setInteropNotice] = useState<string | undefined>();
 
     const loadExample = (id: string) => {
         const example = listPuzzles().find((p) => p.metadata.id === id);
@@ -105,6 +107,54 @@ export default function Author() {
         "parsed" in result && result.parsed
             ? `${window.location.origin}/p/${encodePuzzle(result.parsed)}`
             : undefined;
+
+    const pasteText = async (): Promise<string | null> => {
+        try {
+            const clip = await navigator.clipboard.readText();
+            if (clip) return clip;
+        } catch {
+            // fall through to the prompt fallback below
+        }
+        return window.prompt("Paste f-puzzles JSON or an f-puzzles.com share link:");
+    };
+
+    const handleImportFPuzzles = async () => {
+        const pasted = await pasteText();
+        if (!pasted) return;
+        const imported = importFPuzzles(pasted);
+        if (imported instanceof Error) {
+            setInteropNotice(`Import failed: ${imported.message}`);
+            return;
+        }
+        const json = JSON.stringify(imported.puzzle, null, 2);
+        setText(json);
+        setSubmitted(json);
+        setInteropNotice(
+            imported.warnings.length > 0
+                ? `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`
+                : "Imported f-puzzles JSON.",
+        );
+    };
+
+    const handleExportFPuzzles = async () => {
+        if (!("parsed" in result) || !result.parsed) return;
+        const exported = exportFPuzzles(result.parsed);
+        if (exported instanceof Error) {
+            setInteropNotice(`Export failed: ${exported.message}`);
+            return;
+        }
+        const json = JSON.stringify(exported.data, null, 2);
+        try {
+            await navigator.clipboard.writeText(json);
+        } catch {
+            window.prompt("f-puzzles JSON:", json);
+        }
+        setInteropNotice(
+            exported.warnings.length > 0
+                ? `Copied, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
+                : "Copied f-puzzles JSON to clipboard.",
+        );
+    };
 
     return (
         <div className="author">
@@ -186,8 +236,17 @@ export default function Author() {
                                 Copy share link
                             </button>
                         )}
+                        <button className="secondary" onClick={handleImportFPuzzles}>
+                            Import from f-puzzles…
+                        </button>
+                        {"parsed" in result && result.parsed && (
+                            <button className="secondary" onClick={handleExportFPuzzles}>
+                                Export to f-puzzles
+                            </button>
+                        )}
                     </div>
                     {"error" in result && result.error && <pre className="author-error">{result.error}</pre>}
+                    {interopNotice && <pre className="author-notice">{interopNotice}</pre>}
                 </div>
 
                 <div className="author-preview">

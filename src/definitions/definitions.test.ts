@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { createGeometry } from "@/runtime/geometry.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
+import { evalPredicate } from "@/runtime/operators.ts";
 import type { CompileContext } from "@/definitions/types.ts";
 import { sudoku } from "@/definitions/sudoku.ts";
 import { thermometer } from "@/definitions/thermometer.ts";
 import { killer } from "@/definitions/killer.ts";
 import { arrow } from "@/definitions/arrow.ts";
+import { kropkiDifference, kropkiRatio } from "@/definitions/kropki.ts";
+import { odd, even } from "@/definitions/parity.ts";
 import { definitions } from "@/definitions/index.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 
@@ -85,6 +88,69 @@ describe("arrow definition", () => {
             ["sum", ["cells", ["r2c1", "r2c2"]]],
             ["+", ["*", 10, ["value", "r1c1"]], ["value", "r1c2"]],
         ]);
+    });
+});
+
+describe("kropki dot definitions", () => {
+    it("difference dot: default value 1, either order", () => {
+        const out = kropkiDifference({ cells: ["r1c1", "r1c2"] }, ctx());
+        if (out instanceof Error) throw out;
+        expect(out.constraints[0].expr).toEqual([
+            "or",
+            ["==", ["-", ["value", "r1c1"], ["value", "r1c2"]], 1],
+            ["==", ["-", ["value", "r1c2"], ["value", "r1c1"]], 1],
+        ]);
+    });
+
+    it("ratio dot: explicit value, either order", () => {
+        const out = kropkiRatio({ cells: ["r1c1", "r1c2"], value: 3 }, ctx());
+        if (out instanceof Error) throw out;
+        expect(out.constraints[0].expr).toEqual([
+            "or",
+            ["==", ["value", "r1c1"], ["*", 3, ["value", "r1c2"]]],
+            ["==", ["value", "r1c2"], ["*", 3, ["value", "r1c1"]]],
+        ]);
+    });
+
+    it("rejects anything other than exactly 2 cells", () => {
+        expect(kropkiDifference({ cells: ["r1c1", "r1c2", "r1c3"] }, ctx())).toBeInstanceOf(Error);
+    });
+});
+
+describe("odd/even definitions", () => {
+    it("odd compiles to a disjunction over the domain's odd values", () => {
+        const out = odd({ cell: "r1c1" }, ctx());
+        if (out instanceof Error) throw out;
+        expect(out.constraints[0].expr).toEqual([
+            "or",
+            ["==", ["value", "r1c1"], 1],
+            ["==", ["value", "r1c1"], 3],
+            ["==", ["value", "r1c1"], 5],
+            ["==", ["value", "r1c1"], 7],
+            ["==", ["value", "r1c1"], 9],
+        ]);
+    });
+
+    it("even supports multiple cells via the 'cells' parameter", () => {
+        const out = even({ cells: ["r1c1", "r1c2"] }, ctx());
+        if (out instanceof Error) throw out;
+        expect(out.constraints).toHaveLength(2);
+        expect(out.constraints[1].expr).toEqual([
+            "or",
+            ["==", ["value", "r1c2"], 2],
+            ["==", ["value", "r1c2"], 4],
+            ["==", ["value", "r1c2"], 6],
+            ["==", ["value", "r1c2"], 8],
+        ]);
+    });
+
+    it("evaluates correctly on a board", () => {
+        const geometry = createGeometry({ type: "grid", width: 4, height: 4 });
+        const compileCtx: CompileContext = { geometry, regions: {}, domain: [1, 2, 3, 4] };
+        const out = odd({ cell: "r1c1" }, compileCtx);
+        if (out instanceof Error) throw out;
+        const evalCtx = { geometry, regions: {}, domain: [1, 2, 3, 4], valueOf: lookupFromRecord({ r1c1: 2 }) };
+        expect(evalPredicate(out.constraints[0].expr, evalCtx)).toBe(false);
     });
 });
 

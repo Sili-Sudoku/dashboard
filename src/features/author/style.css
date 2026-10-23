@@ -99,11 +99,31 @@
     color: var(--brand);
 }
 
+.author-actions button.secondary {
+    background: var(--surface);
+    color: var(--brand);
+}
+
+.author-actions button.secondary:hover {
+    background: var(--surface-alt);
+    color: var(--brand);
+}
+
 .author-error {
     margin-top: 0.6rem;
     padding: 0.6rem 0.8rem;
     background: var(--violated);
     color: var(--violated-line);
+    border-radius: 0.5rem;
+    font-size: 0.78rem;
+    white-space: pre-wrap;
+}
+
+.author-notice {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--surface-alt);
+    color: var(--ink-soft);
     border-radius: 0.5rem;
     font-size: 0.78rem;
     white-space: pre-wrap;
