@@ -52,6 +52,20 @@ const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
     };
 };
 
+/** Center notes share one text run, so more candidates means less room each. A flat
+ * per-character shrink rate doesn't actually track how wide the rendered text gets
+ * (short runs looked tiny/wasted the space, longer runs still crept toward the cell's
+ * edge) — this instead targets a roughly constant *rendered width* (~82% of the cell,
+ * leaving a clean margin on each side) for as long as that's achievable, using a
+ * typical digit's width-to-font-size ratio. MAX caps a 1-2 candidate run from blowing
+ * up to fill most of the cell (it'd otherwise read as a huge, oddly-centered digit);
+ * MIN floors out a long run (a large-domain puzzle's candidate list) before it'd
+ * shrink past legible, letting it modestly overflow the target width instead. */
+const CENTER_NOTE_TARGET_WIDTH = 0.82;
+const CENTER_NOTE_GLYPH_WIDTH_EM = 0.6;
+const centerNoteFontFactor = (charCount: number): number =>
+    clamp(CENTER_NOTE_TARGET_WIDTH / (charCount * CENTER_NOTE_GLYPH_WIDTH_EM), 0.11, 0.3);
+
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
@@ -348,6 +362,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                             </text>
                         );
                     }
+                    const centerText = c.centerNotes.join("");
                     return (
                         <g key={`notes-${c.cell}`}>
                             {c.notes.map((n) => {
@@ -359,7 +374,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                                         className={`note ${c.flagged ? "note-flagged" : ""}`}
                                         x={c.x + c.size * (0.22 + col * 0.28)}
                                         y={c.y + c.size * (0.24 + row * 0.28)}
-                                        fontSize={c.size * 0.18}
+                                        fontSize={c.size * 0.2}
                                         textAnchor="middle"
                                         dominantBaseline="central"
                                     >
@@ -367,16 +382,16 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                                     </text>
                                 );
                             })}
-                            {c.centerNotes.length > 0 && (
+                            {centerText.length > 0 && (
                                 <text
                                     className={`note-center ${c.flagged ? "note-flagged" : ""}`}
                                     x={cx}
                                     y={cy}
-                                    fontSize={c.size * (c.centerNotes.length > 5 ? 0.14 : 0.19)}
+                                    fontSize={c.size * centerNoteFontFactor(centerText.length)}
                                     textAnchor="middle"
                                     dominantBaseline="central"
                                 >
-                                    {c.centerNotes.join("")}
+                                    {centerText}
                                 </text>
                             )}
                         </g>
