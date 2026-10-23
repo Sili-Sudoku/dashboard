@@ -149,7 +149,7 @@ describe("Author", () => {
         expect(container.querySelector(".author-notice")?.textContent).toMatch(/import failed/i);
     });
 
-    it("exports to f-puzzles, copying JSON (or falling back to prompt)", async () => {
+    it("exports to f-puzzles, copying a share link (or falling back to prompt)", async () => {
         const promptSpy = vi.spyOn(window, "prompt").mockImplementation(() => null);
         const { container } = render(
             <MemoryRouter>
@@ -159,7 +159,93 @@ describe("Author", () => {
         await act(async () => {
             fireEvent.click(screen.getByRole("button", { name: /export to f-puzzles/i }));
         });
-        expect(promptSpy).toHaveBeenCalled();
+        expect(promptSpy).toHaveBeenCalledWith(
+            "f-puzzles share link:",
+            expect.stringMatching(/^https:\/\/f-puzzles\.com\/\?load=/),
+        );
+        expect(container.querySelector(".author-notice")?.textContent).toMatch(/copied/i);
+    });
+
+    it("imports SudokuMaker JSON pasted via the prompt fallback", async () => {
+        const sudokumaker = JSON.stringify({
+            formatVersion: "1.6.0",
+            puzzle: {
+                name: "Imported SM Puzzle",
+                type: "custom",
+                width: 4,
+                height: 4,
+                minDigit: 1,
+                maxDigit: 4,
+                cells: Array.from({ length: 16 }, () => ({})),
+                constraints: [
+                    { type: 0 },
+                    {
+                        type: 1,
+                        regions: Array.from({ length: 16 }, (_, i) =>
+                            Math.floor(Math.floor(i / 4) / 2) * 2 + Math.floor((i % 4) / 2),
+                        ),
+                    },
+                ],
+            },
+        });
+        vi.spyOn(window, "prompt").mockImplementation(() => sudokumaker);
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        await act(async () => {
+            fireEvent.click(screen.getByRole("button", { name: /import from sudokumaker/i }));
+        });
+        const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+        expect(JSON.parse(textarea.value).metadata.title).toBe("Imported SM Puzzle");
+    });
+
+    it("imports a real dev.sudokumaker.app share link pasted via the prompt fallback", async () => {
+        const shareLink =
+            "https://dev.sudokumaker.app/?puzzle=DpZHNCoMwEITfZc5B_LfkQXopHoJsraCJxChUybsX13Nt2vLtYZlhZ2F3w93YQbkr2akzGhJJVEYxBMZ5XXuC3KDVQJCAgJrdw9ijb6jvJ8jb5sVfhbZbSEM6O5PAovqZIJN3RvlVTHVuF4Ex6bmdB8Zkv93i85g_r1qgMXpyVnXa8cvgniNBxvvKo00ELLWd0bsfi52ESZkQJWNypmBClJKpmAsToNS-9v4F";
+        vi.spyOn(window, "prompt").mockImplementation(() => shareLink);
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        await act(async () => {
+            fireEvent.click(screen.getByRole("button", { name: /import from sudokumaker/i }));
+        });
+        const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+        const imported = JSON.parse(textarea.value);
+        expect(Object.keys(imported.givens ?? {})).toHaveLength(8);
+        expect(container.querySelector(".author-error")).toBeNull();
+    });
+
+    it("shows a SudokuMaker import error inline instead of throwing on malformed input", async () => {
+        vi.spyOn(window, "prompt").mockImplementation(() => "not json");
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        await act(async () => {
+            fireEvent.click(screen.getByRole("button", { name: /import from sudokumaker/i }));
+        });
+        expect(container.querySelector(".author-notice")?.textContent).toMatch(/import failed/i);
+    });
+
+    it("exports to SudokuMaker, copying a share link (or falling back to prompt)", async () => {
+        const promptSpy = vi.spyOn(window, "prompt").mockImplementation(() => null);
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        await act(async () => {
+            fireEvent.click(screen.getByRole("button", { name: /export to sudokumaker/i }));
+        });
+        expect(promptSpy).toHaveBeenCalledWith(
+            "SudokuMaker share link:",
+            expect.stringMatching(/^https:\/\/sudokumaker\.app\/\?puzzle=D/),
+        );
         expect(container.querySelector(".author-notice")?.textContent).toMatch(/copied/i);
     });
 });

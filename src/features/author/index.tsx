@@ -7,7 +7,8 @@ import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
-import { exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
+import { encodeFPuzzlesShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
+import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker } from "@/interop/sudokumaker.ts";
 
 import "./style.css";
 
@@ -108,18 +109,18 @@ export default function Author() {
             ? `${window.location.origin}/p/${encodePuzzle(result.parsed)}`
             : undefined;
 
-    const pasteText = async (): Promise<string | null> => {
+    const pasteText = async (promptMessage: string): Promise<string | null> => {
         try {
             const clip = await navigator.clipboard.readText();
             if (clip) return clip;
         } catch {
             // fall through to the prompt fallback below
         }
-        return window.prompt("Paste f-puzzles JSON or an f-puzzles.com share link:");
+        return window.prompt(promptMessage);
     };
 
     const handleImportFPuzzles = async () => {
-        const pasted = await pasteText();
+        const pasted = await pasteText("Paste f-puzzles JSON or an f-puzzles.com share link:");
         if (!pasted) return;
         const imported = importFPuzzles(pasted);
         if (imported instanceof Error) {
@@ -143,16 +144,54 @@ export default function Author() {
             setInteropNotice(`Export failed: ${exported.message}`);
             return;
         }
-        const json = JSON.stringify(exported.data, null, 2);
+        const link = encodeFPuzzlesShareLink(exported.data);
         try {
-            await navigator.clipboard.writeText(json);
+            await navigator.clipboard.writeText(link);
         } catch {
-            window.prompt("f-puzzles JSON:", json);
+            window.prompt("f-puzzles share link:", link);
         }
         setInteropNotice(
             exported.warnings.length > 0
                 ? `Copied, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
-                : "Copied f-puzzles JSON to clipboard.",
+                : "Copied f-puzzles share link to clipboard.",
+        );
+    };
+
+    const handleImportSudokuMaker = async () => {
+        const pasted = await pasteText("Paste SudokuMaker JSON or a sudokumaker.app share link:");
+        if (!pasted) return;
+        const imported = importSudokuMaker(pasted);
+        if (imported instanceof Error) {
+            setInteropNotice(`Import failed: ${imported.message}`);
+            return;
+        }
+        const json = JSON.stringify(imported.puzzle, null, 2);
+        setText(json);
+        setSubmitted(json);
+        setInteropNotice(
+            imported.warnings.length > 0
+                ? `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`
+                : "Imported SudokuMaker JSON.",
+        );
+    };
+
+    const handleExportSudokuMaker = async () => {
+        if (!("parsed" in result) || !result.parsed) return;
+        const exported = exportSudokuMaker(result.parsed);
+        if (exported instanceof Error) {
+            setInteropNotice(`Export failed: ${exported.message}`);
+            return;
+        }
+        const link = encodeSudokuMakerShareLink(exported.data);
+        try {
+            await navigator.clipboard.writeText(link);
+        } catch {
+            window.prompt("SudokuMaker share link:", link);
+        }
+        setInteropNotice(
+            exported.warnings.length > 0
+                ? `Copied, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
+                : "Copied SudokuMaker share link to clipboard.",
         );
     };
 
@@ -242,6 +281,14 @@ export default function Author() {
                         {"parsed" in result && result.parsed && (
                             <button className="secondary" onClick={handleExportFPuzzles}>
                                 Export to f-puzzles
+                            </button>
+                        )}
+                        <button className="secondary" onClick={handleImportSudokuMaker}>
+                            Import from SudokuMaker…
+                        </button>
+                        {"parsed" in result && result.parsed && (
+                            <button className="secondary" onClick={handleExportSudokuMaker}>
+                                Export to SudokuMaker
                             </button>
                         )}
                     </div>

@@ -19,7 +19,7 @@
  * clue whose cells don't resolve.
  */
 
-import { decompressFromBase64 } from "lz-string";
+import { compressToBase64, decompressFromBase64 } from "lz-string";
 
 import { GridGeometry, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
 import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
@@ -540,3 +540,8 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
 
     return { data, warnings };
 };
+
+/** The inverse of the share-link decoding in `importFPuzzles`: lz-string
+ *  `compressToBase64`, dropped into the same `?load=` query param. */
+export const encodeFPuzzlesShareLink = (data: FPuzzlesExport): string =>
+    `https://f-puzzles.com/?load=${compressToBase64(JSON.stringify(data))}`;

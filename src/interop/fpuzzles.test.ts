@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exportFPuzzles, importFPuzzles, type FPuzzlesExport } from "@/interop/fpuzzles.ts";
+import { encodeFPuzzlesShareLink, exportFPuzzles, importFPuzzles, type FPuzzlesExport } from "@/interop/fpuzzles.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -233,6 +233,26 @@ describe("exportFPuzzles", () => {
         const exported = exportFPuzzles(puzzle);
         if (exported instanceof Error) throw exported;
         expect(exported.data.solution).toEqual(["1", "2", "2", "1"]);
+    });
+
+    it("encodes a share link that decodes back to the same data", () => {
+        const puzzle: PuzzleDefinition = {
+            version: 1,
+            metadata: { id: "p", title: "Round Trip" },
+            geometry: { type: "grid", width: 4, height: 4 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [{ use: "sudoku" }],
+        };
+        const exported = exportFPuzzles(puzzle);
+        if (exported instanceof Error) throw exported;
+
+        const link = encodeFPuzzlesShareLink(exported.data);
+        expect(link).toMatch(/^https:\/\/f-puzzles\.com\/\?load=/);
+
+        const reimported = importFPuzzles(link);
+        if (reimported instanceof Error) throw reimported;
+        expect(reimported.puzzle.metadata.title).toBe("Round Trip");
+        expect(reimported.puzzle.geometry).toEqual({ ...puzzle.geometry, boxWidth: 2, boxHeight: 2 });
     });
 });
 

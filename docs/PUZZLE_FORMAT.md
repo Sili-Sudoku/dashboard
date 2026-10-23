@@ -150,7 +150,22 @@ real user actually has, not raw JSON. The payload is lz-string-compressed and
 base64-encoded; it is deliberately extracted with a plain regex rather than
 `URLSearchParams`, because the payload's literal `+` characters are valid
 unencoded base64 and would otherwise be corrupted into spaces by
-form-urlencoded decoding.
+form-urlencoded decoding. `encodeFPuzzlesShareLink` is the inverse — it's what
+the Author page's "Export to f-puzzles" button actually copies (a loadable
+`https://f-puzzles.com/?load=...` URL), not raw JSON, since that's what's
+actually useful to paste back into the source app.
+
+`src/interop/sudokumaker.ts` does the same for the
+[SudokuMaker](https://sudokumaker.app/) JSON format — `importSudokuMaker`/
+`exportSudokuMaker`, same common-types coverage and `{ ..., warnings }`
+contract, reachable from the Author page's "Import from SudokuMaker…"/"Export
+to SudokuMaker" buttons. It also accepts a share link (`?puzzle=<payload>`,
+raw-deflate-compressed via `pako`, or a legacy lz-string-compressed payload
+behind an `N` prefix instead of `D`) or the plain uncompressed `.json` export.
+`encodeSudokuMakerShareLink` is the inverse, always writing the current
+(non-legacy) `D`-prefixed format against the production `sudokumaker.app`
+host (not `dev.`); "Export to SudokuMaker" copies that link, same as the
+f-puzzles button.
 
 ## Visual objects
 
