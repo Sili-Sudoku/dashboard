@@ -5,6 +5,7 @@ import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene, Shape } from "@/renderer/scene.ts";
 import {
     cellInViewport,
+    clamp,
     clampView,
     expandViewport,
     fitView,
@@ -13,13 +14,23 @@ import {
     MIN_ZOOM,
     panView,
     shapeInViewport,
-    VIRTUALIZE_CELL_THRESHOLD,
     ZOOM_STEP,
     zoomViewAt,
     type ViewportRect,
 } from "@/renderer/virtualize.ts";
 
 import "./board.css";
+
+// Breathing room against window.innerWidth/innerHeight when clamping the fit (#77
+// follow-up) — keeps the box from touching the very edge of the browser viewport.
+const EDGE_MARGIN = 16;
+
+// Matches board.css's `.board-wrap { gap: 0.5rem }` — the toolbar sits *above* the
+// viewport inside the same wrap, so that gap (plus the toolbar's own height, measured
+// below) has to come out of the height budget too, or the wrap renders taller than
+// what was actually available and pushes whatever's below the board off-screen (#77
+// follow-up: this is what was still showing up as "a little overflow").
+const TOOLBAR_GAP = 8;
 
 interface Props {
     scene: Scene;
@@ -44,29 +55,86 @@ const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
-    const isLarge = scene.cells.length > VIRTUALIZE_CELL_THRESHOLD;
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const measureRef = useRef<HTMLDivElement>(null);
+    const toolbarRef = useRef<HTMLDivElement>(null);
     // The visible rect, in board units — this *is* the SVG's viewBox. No scrolling:
     // panning/zooming just change this rect, like SudokuPad's canvas.
     const [view, setView] = useState<ViewportRect | null>(null);
     const [zoomPct, setZoomPct] = useState(100);
+    // The wrap/viewport box's own on-screen size (#77 follow-up) — a stable canvas
+    // the view pans/zooms *within*, not something that visibly resizes every time
+    // the player zooms, but it does track .board-measure's available space via a
+    // ResizeObserver (below) so it doesn't freeze at whatever happened to be
+    // available on first mount and then overflow once the window/devtools panel
+    // changes size. Left unset until the first measurement runs.
+    const [boxSize, setBoxSize] = useState<{ width: number; height: number } | null>(null);
 
     useLayoutEffect(() => {
-        if (!isLarge || view) return;
-        const el = containerRef.current;
+        const el = measureRef.current;
         if (!el) return;
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        const initial = fitView(scene.width, scene.height, rect.width, rect.height);
-        setView(initial);
-        setZoomPct(Math.round((rect.width / initial.width) * 100));
-        // Only runs once, to establish the starting "whole board" view — re-fitting
-        // on every scene/container change would fight the user's own pan/zoom.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLarge, view]);
+        let firstFit = true;
 
-    const visibleScene = useMemo(() => cullToViewport(scene, isLarge ? view : null), [scene, isLarge, view]);
+        // Not fitView() here — that letterboxes the viewBox to match the *measured*
+        // container's aspect ratio, which is right when the box is a fixed external
+        // shape (e.g. a later manual "Fit to screen"). But here the box's own shape
+        // is *derived* from the scene (below), so the starting view should just be
+        // the scene's own bounding box — no letterboxing to a container aspect
+        // ratio that the box won't actually keep.
+        const fit = () => {
+            const rect = el.getBoundingClientRect();
+            // .board-measure's *measured* size turned out not to be as independent of
+            // its own children as intended — confirmed with a logging run: every
+            // resize tick reported a size bigger than the last, by roughly the same
+            // amount, each time Board.tsx set boxSize onto the elements nested
+            // inside it (a feedback loop, not a one-off misread). Whatever the exact
+            // mechanism, the window's own bounds are a ceiling nothing can
+            // legitimately exceed, so clamp against those rather than trusting the
+            // flex-reported size outright — that caps the loop regardless of cause.
+            const width = Math.min(rect.width, window.innerWidth - rect.left - EDGE_MARGIN);
+            const height = Math.min(rect.height, window.innerHeight - rect.top - EDGE_MARGIN);
+            if (width <= 0 || height <= 0) return;
+            // The toolbar renders *above* the viewport inside the same wrap (see
+            // TOOLBAR_GAP above) — its height isn't board-size-dependent, so measuring
+            // it directly and subtracting it from the budget is safe (not circular).
+            const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height ?? 0;
+            const viewportHeight = height - toolbarHeight - TOOLBAR_GAP;
+            if (width <= 0 || viewportHeight <= 0) return;
+            const scale = clamp(Math.min(width / scene.width, viewportHeight / scene.height), MIN_ZOOM, MAX_ZOOM);
+            setBoxSize({ width: scene.width * scale, height: scene.height * scale });
+            // Only the very first fit also sets the starting view/zoom — later
+            // resizes just let the existing canvas grow/shrink; they shouldn't
+            // fight the player's own pan/zoom by resetting it.
+            if (!firstFit) return;
+            firstFit = false;
+            setView({ left: 0, top: 0, width: scene.width, height: scene.height });
+            // 100% = the whole board fits in view, always — not the achieved physical
+            // scale, which swings with screen size/DPI/cell size and had no stable
+            // meaning to the player (#77 follow-up: this showed up as a baseline fit
+            // reading "169%" on one window and something else on another). Every other
+            // zoom% below is defined the same way: scene.width / view.width * 100.
+            setZoomPct(100);
+        };
+
+        fit();
+        window.addEventListener("resize", fit);
+
+        if (typeof ResizeObserver === "undefined") {
+            // not available in every test/legacy env — initial fit above still runs
+            return () => window.removeEventListener("resize", fit);
+        }
+        const observer = new ResizeObserver(fit);
+        observer.observe(el);
+        return () => {
+            window.removeEventListener("resize", fit);
+            observer.disconnect();
+        };
+        // Only re-runs if the scene itself changes (a different puzzle) — PuzzlePlayer
+        // remounts Board per-puzzle anyway, so in practice this is mount-only.
+    }, [scene.width, scene.height]);
+
+    const visibleScene = useMemo(() => cullToViewport(scene, view), [scene, view]);
 
     const applyZoom = useCallback(
         (fracX: number, fracY: number, factor: number) => {
@@ -75,17 +143,20 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             const rect = el.getBoundingClientRect();
             const next = zoomViewAt(view, scene.width, scene.height, rect.width, fracX, fracY, factor);
             setView(next);
-            setZoomPct(Math.round((rect.width / next.width) * 100));
+            // scene.width / view.width, not rect.width / view.width — see the mount-fit
+            // comment above; this keeps every zoom action's % relative to "whole board
+            // visible", regardless of the container's actual pixel size.
+            setZoomPct(Math.round((scene.width / next.width) * 100));
         },
         [view, scene.width, scene.height],
     );
 
     const handleZoomSlider = (pct: number) => {
-        const el = containerRef.current;
-        if (!el || !view) return;
-        const rect = el.getBoundingClientRect();
-        const currentScale = rect.width / view.width;
-        applyZoom(0.5, 0.5, pct / 100 / currentScale);
+        if (!view) return;
+        // Inverse of the display formula above: the view width (in board units) that
+        // would make scene.width / viewWidth * 100 equal the slider's chosen pct.
+        const targetWidth = (scene.width * 100) / pct;
+        applyZoom(0.5, 0.5, view.width / targetWidth);
     };
 
     const handleFitToScreen = () => {
@@ -94,7 +165,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         const rect = el.getBoundingClientRect();
         const next = fitView(scene.width, scene.height, rect.width, rect.height);
         setView(next);
-        setZoomPct(Math.round((rect.width / next.width) * 100));
+        setZoomPct(Math.round((scene.width / next.width) * 100)); // always 100 — see above
     };
 
     const handleResetZoom = () => {
@@ -103,14 +174,18 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         const rect = el.getBoundingClientRect();
         const cx = view.left + view.width / 2;
         const cy = view.top + view.height / 2;
-        // "100%" = 1 board unit per screen pixel, recentered on wherever you currently are.
+        // "Actual size" = 1 board unit per screen pixel, recentered on wherever you
+        // currently are — a different, independently useful zoom level from "fit", so
+        // it isn't literally "100%" anymore now that 100% always means "fit" (#77
+        // follow-up); the displayed % below reflects whatever that native scale works
+        // out to relative to fit, same formula as every other zoom action.
         const next = clampView(
             { left: cx - rect.width / 2, top: cy - rect.height / 2, width: rect.width, height: rect.height },
             scene.width,
             scene.height,
         );
         setView(next);
-        setZoomPct(100);
+        setZoomPct(Math.round((scene.width / next.width) * 100));
     };
 
     // React's onWheel prop is attached passively at the root (for scroll-perf reasons
@@ -119,7 +194,6 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     // listener, explicitly registered non-passive, can zoom without the page scrolling
     // along with it at the same time.
     useLayoutEffect(() => {
-        if (!isLarge) return;
         const el = containerRef.current;
         if (!el) return;
 
@@ -134,7 +208,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
         el.addEventListener("wheel", onNativeWheel, { passive: false });
         return () => el.removeEventListener("wheel", onNativeWheel);
-    }, [isLarge, applyZoom]);
+    }, [applyZoom]);
 
     // Panning (#49): middle- or right-button drag, so it never competes with the
     // existing left-button cell-selection drag below.
@@ -177,15 +251,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         onPaintEnd();
     };
 
-    const viewBox =
-        isLarge && view ? `${view.left} ${view.top} ${view.width} ${view.height}` : scene.viewBox;
+    const viewBox = view ? `${view.left} ${view.top} ${view.width} ${view.height}` : scene.viewBox;
 
     const svg = (
         <svg
             className="board"
             viewBox={viewBox}
-            width={isLarge ? "100%" : scene.width}
-            height={isLarge ? "100%" : scene.height}
+            width="100%"
+            height="100%"
             role="grid"
             onPointerUp={stopPainting}
             onPointerLeave={stopPainting}
@@ -313,45 +386,53 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         </svg>
     );
 
-    if (!isLarge) return svg;
-
     return (
-        <div className="board-large-wrap">
-            <div className="board-zoom-toolbar">
-                <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out">
-                    <ZoomOut size={16} />
-                </button>
-                <input
-                    type="range"
-                    className="board-zoom-slider"
-                    min={Math.round(MIN_ZOOM * 100)}
-                    max={Math.round(MAX_ZOOM * 100)}
-                    step={1}
-                    value={zoomPct}
-                    onChange={(e) => handleZoomSlider(Number(e.target.value))}
-                    aria-label="Zoom level"
-                />
-                <span className="board-zoom-level">{zoomPct}%</span>
-                <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in">
-                    <ZoomIn size={16} />
-                </button>
-                <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen">
-                    <Maximize size={16} /> Fit
-                </button>
-                <button type="button" onClick={handleResetZoom} aria-label="Reset zoom to 100%">
-                    100%
-                </button>
-            </div>
-            <div
-                className="board-viewport"
-                ref={containerRef}
-                onPointerDown={handleContainerPointerDown}
-                onPointerMove={handleContainerPointerMove}
-                onPointerUp={stopPanning}
-                onPointerLeave={stopPanning}
-                onContextMenu={(e) => e.preventDefault()}
-            >
-                {svg}
+        // .board-measure is the always-uncapped flex-filling region; .board-wrap is
+        // sized to exactly boxSize (#77 follow-up) and horizontally centered (top-
+        // aligned, not vertically centered — see board.css) within it — grows to
+        // fill available space up to the puzzle's own natural*MAX_ZOOM size, shrinks
+        // to hug small puzzles instead of forcing a mostly-empty box, and tracks
+        // .board-measure's size via ResizeObserver so it doesn't freeze at whatever
+        // happened to be available on first mount.
+        <div className="board-measure" ref={measureRef}>
+            <div className="board-wrap" style={boxSize ? { width: boxSize.width } : undefined}>
+                <div className="board-zoom-toolbar" ref={toolbarRef}>
+                    <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out">
+                        <ZoomOut size={16} />
+                    </button>
+                    <input
+                        type="range"
+                        className="board-zoom-slider"
+                        min={Math.round(MIN_ZOOM * 100)}
+                        max={Math.round(MAX_ZOOM * 100)}
+                        step={1}
+                        value={zoomPct}
+                        onChange={(e) => handleZoomSlider(Number(e.target.value))}
+                        aria-label="Zoom level"
+                    />
+                    <span className="board-zoom-level">{zoomPct}%</span>
+                    <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in">
+                        <ZoomIn size={16} />
+                    </button>
+                    <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen">
+                        <Maximize size={16} /> Fit
+                    </button>
+                    <button type="button" onClick={handleResetZoom} aria-label="Reset to actual size (1 board unit per pixel)">
+                        Actual size
+                    </button>
+                </div>
+                <div
+                    className="board-viewport"
+                    ref={containerRef}
+                    style={boxSize ? { height: boxSize.height } : undefined}
+                    onPointerDown={handleContainerPointerDown}
+                    onPointerMove={handleContainerPointerMove}
+                    onPointerUp={stopPanning}
+                    onPointerLeave={stopPanning}
+                    onContextMenu={(e) => e.preventDefault()}
+                >
+                    {svg}
+                </div>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import { Moon, Sun } from "lucide-react";
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
 
 import Home from "@/features/home";
 import Play from "@/features/play";
@@ -8,9 +8,16 @@ import { useTheme } from "@/app/use_theme.ts";
 
 export default function AppRouter() {
     const { theme, toggleTheme } = useTheme();
+    // The Play route is the only one with a puzzle board, which wants the
+    // viewport-filling layout (board.css/player.css's flex-fill chain) instead
+    // of the centered-column default — driven directly off the route rather
+    // than a CSS :has(.board-wrap) structural match, since that depends on
+    // :has() support and silently no-ops (no error, just the fallback
+    // centered layout) on anything that lacks it.
+    const isBoardRoute = useLocation().pathname.startsWith("/p/");
 
     return (
-        <div className="app">
+        <div className={`app${isBoardRoute ? " app--board" : ""}`}>
             <header className="app-header">
                 <Link to="/" className="logo">
                     Constraint Puzzle Runtime
@@ -30,7 +37,7 @@ export default function AppRouter() {
                 </nav>
             </header>
 
-            <main className="app-main">
+            <main className={`app-main${isBoardRoute ? " app-main--board" : ""}`}>
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/p/:ref" element={<Play />} />

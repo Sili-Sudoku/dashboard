@@ -1,10 +1,10 @@
 /**
- * Pure viewport-culling helpers for large boards (#48). `buildScene()` always
- * builds the full cell/shape list — a puzzle's geometry is independent of any
- * viewport — so culling is purely a rendering concern, applied by `Board.tsx`
- * just before mapping shapes to SVG elements. Below a cell-count threshold,
- * `Board.tsx` skips this entirely and renders everything, unchanged from
- * before this card.
+ * Pure viewport-culling helpers for the pan/zoom board (#48). `buildScene()`
+ * always builds the full cell/shape list — a puzzle's geometry is independent
+ * of any viewport — so culling is purely a rendering concern, applied by
+ * `Board.tsx` just before mapping shapes to SVG elements. Until a view is
+ * established (or on a puzzle small enough that it never needs to cull
+ * anything out), everything just renders, same as before this card.
  */
 
 import type { Point } from "@/runtime/geometry.ts";
@@ -17,9 +17,6 @@ export interface ViewportRect {
     width: number;
     height: number;
 }
-
-/** Only switch to a scrollable, culled viewport above this many cells. */
-export const VIRTUALIZE_CELL_THRESHOLD = 400;
 
 export const MIN_ZOOM = 0.02;
 export const MAX_ZOOM = 3;
@@ -34,7 +31,16 @@ export const clamp = (v: number, min: number, max: number): number => Math.min(m
  * what portion of the board fills that container.
  */
 
-/** A view rect centered on the whole scene, scaled (and letterboxed) to fit `containerWidth` x `containerHeight`. */
+/**
+ * A view rect centered on the whole scene, scaled (and letterboxed) to fit
+ * `containerWidth` x `containerHeight`, same as the "Fit" toolbar button —
+ * clamped to the same MIN_ZOOM..MAX_ZOOM range as manual zooming, so the
+ * initial fit can never land somewhere the player couldn't also reach by
+ * hand. (#77 follow-up: this used to cap at 1 — never scale up past native
+ * size — but that fought with Board.tsx's own box-sizing cap to pin small
+ * puzzles at an undersized box no matter how much screen was available;
+ * growing to fill available space, SudokuPad-style, is the actual goal.)
+ */
 export const fitView = (
     sceneWidth: number,
     sceneHeight: number,

@@ -115,10 +115,12 @@
     padding: 1.5rem 0;
 }
 
-/* Large boards (#48/#49): let .puzzle-player flex-fill the rest of the page's
-   height instead of sizing to its content — part of the chain completed in
-   player.css/board.css and the app shell's style.css. */
-.play:has(.board-large-wrap) {
+/* Let .puzzle-player flex-fill the rest of the page's height instead of
+   sizing to its content (#48/#49) — part of the chain completed in
+   player.css/board.css and the app shell's style.css. Every puzzle (not just
+   large ones) uses this layout now, so this applies unconditionally — the
+   Play route always renders a board below. */
+.play {
     display: flex;
     flex-direction: column;
     flex: 1;

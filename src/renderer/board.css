@@ -8,17 +8,21 @@
     background: var(--surface);
 }
 
-/* Large boards (#48/#49): a SudokuPad-style pan/zoom canvas instead of shrinking
-   the whole board to fit. .board-large-wrap/.board-viewport flex-fill whatever
-   space the page actually gives them (the chain is completed by :has() rules in
-   player.css and the app shell's style.css) — the window, not some fixed vh/px
-   box, is the bounding box. The SVG inside is sized via width/height="100%"
-   attributes, which need a *definite* ancestor height to resolve against —
-   flexbox gives every ancestor in the chain a definite computed height after
-   layout, even without a literal `height` value. Board.tsx then drives pan/zoom
-   entirely by rewriting the SVG's viewBox (scroll wheel = zoom at cursor, middle/
-   right-drag = pan), and culls offscreen cells/shapes to keep the DOM small
-   regardless of total board size or zoom level. */
+/* A SudokuPad-style pan/zoom canvas instead of shrinking the whole board to fit
+   (#48/#49). .board-wrap/.board-viewport get an exact pixel size computed by
+   Board.tsx from how much space .board-measure actually has (the chain is
+   completed by player.css and the app shell's style.css, gated by the
+   route-driven .app--board/.app-main--board classes set in router.tsx) — the
+   window, not some fixed vh/px box, is the bounding box. The SVG inside is
+   sized via width/height="100%" attributes, which need a *definite* ancestor
+   height to resolve against — flexbox gives every ancestor in the chain a
+   definite computed height after layout, even without a literal `height`
+   value; skip a link in that chain (e.g. the above classes not being
+   applied) and the SVG falls back to sizing itself by its own aspect ratio
+   instead, which is how this broke once before. Board.tsx then drives
+   pan/zoom entirely by rewriting the SVG's viewBox (scroll wheel = zoom at
+   cursor, middle/right-drag = pan), and culls offscreen cells/shapes to keep
+   the DOM small regardless of total board size or zoom level. */
 /* .board-viewport is still a distinct bordered region that the toolbar sits
    above and the sidebar sits beside — a current implementation detail, not
    the end state. SudokuPad has no such region at all: the puzzle canvas is
@@ -28,7 +32,6 @@
    here — flagged so it isn't mistaken for the final shape of this. */
 .board-viewport {
     width: 100%;
-    flex: 1;
     /* Just a floor against total collapse, not a target size — small enough that
        the normal case (plenty of window height) never has to fall back to the
        app shell's overflow-y:auto scroll in style.css. */
@@ -45,12 +48,33 @@
     display: block;
 }
 
-.board-large-wrap {
+/* The always-uncapped flex-filling region the board's on-screen size is fit
+   against (#77 follow-up) — .board-wrap/.board-viewport below get an exact
+   pixel size from Board.tsx (not just a max-width/max-height ceiling), kept
+   in sync via a ResizeObserver on *this* element so the fit keeps up with
+   window/devtools-panel resizes instead of freezing at whatever size was
+   available on first mount. Horizontally centers .board-wrap once it's
+   narrower than the full available width, same as the old margin:auto did —
+   but top-aligned (not vertically centered), so the toolbar/grid starts
+   flush with this element's own top edge instead of floating in empty space
+   whenever the board doesn't fill the full height (small puzzles, or
+   anything capped by MAX_ZOOM before reaching it). PuzzlePlayer.tsx measures
+   .board-viewport's own top directly for the sidebar's position, so this
+   isn't load-bearing for that alignment anymore — it's just the more
+   predictable default look on its own. */
+.board-measure {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.board-wrap {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    flex: 1;
-    min-height: 0;
 }
 .board-zoom-toolbar {
     display: flex;

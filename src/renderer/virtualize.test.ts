@@ -119,7 +119,7 @@ describe("fitView", () => {
         expect(view.width).toBe(100 / MIN_ZOOM);
     });
 
-    it("clamps to MAX_ZOOM for a board far smaller than the container", () => {
+    it("clamps to MAX_ZOOM for a board far smaller than the container, instead of blowing up arbitrarily", () => {
         const view = fitView(10, 10, 100_000, 100_000);
         expect(view.width).toBe(100_000 / MAX_ZOOM);
     });

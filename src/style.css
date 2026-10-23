@@ -101,16 +101,29 @@ code, pre {
     display: flex;
     flex-direction: column;
 }
-/* Large boards (#48/#49): clamp the whole shell to the window's actual height
-   instead of letting content push it taller — on a normal window there's
-   enough room and this never kicks in; overflow-y:auto (not hidden) is a
-   safety valve for a pathologically short window, so content can still be
-   reached by scrolling rather than silently clipped off-screen. The sticky
-   toolbar in board.css covers that edge case so the controls don't scroll
-   away with it. */
-.app:has(.board-large-wrap) {
+/* Pages with a puzzle board (#48/#49): clamp the whole shell to the window's
+   actual height instead of letting content push it taller — on a normal
+   window there's enough room and this never kicks in; overflow-y:auto (not
+   hidden) is a safety valve for a pathologically short window, so content
+   can still be reached by scrolling rather than silently clipped off-screen.
+   The sticky toolbar in board.css covers that edge case so the controls
+   don't scroll away with it. Home/Author never render a board, so they're
+   unaffected. Driven by an explicit .app--board class set from the current
+   route in router.tsx, not a :has(.board-wrap) structural match — the board
+   needs a *definite* height from this chain to size its SVG correctly
+   (height:100% on an indefinite-height ancestor just falls back to the SVG's
+   own aspect ratio instead), so this can't be left to a selector that
+   silently no-ops wherever :has() isn't supported. */
+.app.app--board {
     height: 100vh;
     overflow-y: auto;
+    /* Without this, the vertical scrollbar appearing/disappearing changes the
+       available *width* (#77 follow-up) — which feeds back into Board.tsx's
+       ResizeObserver-driven fit, narrowing the box, which can make the
+       scrollbar vanish again, widening it back out, back and forth. Reserving
+       the gutter unconditionally (whether or not the scrollbar is actually
+       needed right now) breaks that loop at the source. */
+    scrollbar-gutter: stable;
 }
 
 .app-header {
@@ -147,11 +160,13 @@ code, pre {
     width: 100%;
     margin: 0 auto;
 }
-/* Large boards (#48/#49): the window is the bounding box, not a centered
-   1100px column — drop the cap/margin and complete the flex-fill chain
-   (continued in play/style.css, player.css, board.css) so the board gets
-   every pixel of height below the header too, not just a fixed vh slice. */
-.app-main:has(.board-large-wrap) {
+/* Pages with a puzzle board (#48/#49): the window is the bounding box, not a
+   centered 1100px column — drop the cap/margin and complete the flex-fill
+   chain (continued in play/style.css, player.css, board.css) so the board
+   gets every pixel of height below the header too, not just a fixed vh
+   slice. Home/Author never render a board, so they keep the centered column
+   above. Same .app-main--board route-driven class as .app--board above. */
+.app-main.app-main--board {
     max-width: none;
     width: 100%;
     margin: 0;

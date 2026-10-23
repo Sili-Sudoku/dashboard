@@ -1,28 +1,22 @@
+/* The board gets the full available window, not a small fixed cap — the
+   point of zoom/fit-to-screen is to actually use the screen (#48/#49). This
+   also stretches the row's items full-height (instead of the default
+   flex-start-sized-to-content) and makes the column itself a flex container,
+   so the fill-the-remaining-space chain continuing down into board.css's
+   .board-wrap/.board-viewport has a definite height to grow into at
+   every level. */
 .puzzle-player {
     display: flex;
     gap: 1.6rem;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
 }
 
 .pp-board-col {
     flex: 1 1 420px;
     min-width: 300px;
-    max-width: 620px;
-}
-/* Large boards (#48/#49) get the full available window, not the small-puzzle
-   cap — the point of zoom/fit-to-screen is to actually use the screen. This
-   also switches the row to stretch its items full-height (instead of the
-   default flex-start-sized-to-content) and makes the column itself a flex
-   container, so the fill-the-remaining-space chain continuing down into
-   board.css's .board-large-wrap/.board-viewport has a definite height to grow
-   into at every level. */
-.puzzle-player:has(.board-large-wrap) {
-    align-items: stretch;
-    flex: 1;
-    min-height: 0;
-}
-.pp-board-col:has(.board-large-wrap) {
     max-width: none;
     display: flex;
     flex-direction: column;
@@ -41,13 +35,16 @@
    own content still scrolls internally (max-height + overflow-y) so a tall
    constraint panel/hotkey legend can't push the box itself past the bottom
    of the screen. */
-.puzzle-player:has(.board-large-wrap) .pp-side {
+.pp-side {
     position: fixed;
     top: var(--pp-side-top, 0px);
     right: 1.2rem;
     width: 340px;
     max-height: calc(100vh - var(--pp-side-top, 0px) - 1.6rem);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
 }
 
 .pp-hint {
@@ -62,13 +59,6 @@
     border-radius: 3px;
     padding: 0 0.25rem;
     font-size: 0.72rem;
-}
-
-.pp-side {
-    flex: 0 1 340px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
 }
 
 .pp-toggle {

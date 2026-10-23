@@ -31,11 +31,21 @@ export default function PuzzlePlayer({ puzzle }: Props) {
     // Fixed needs a concrete top offset, though; rather than hardcode (and get wrong
     // whenever the header/title changes height), measure where the board column
     // naturally starts and pin the sidebar there instead.
+    //
+    // "Where it naturally starts" means the *grid*, not the column (#77 follow-up):
+    // the column's own top is the zoom toolbar's top, a row above the grid, so pinning
+    // there left the sidebar's number pad sitting noticeably higher than the puzzle.
+    // .board-viewport is the grid itself — falls back to the column's top if, for
+    // whatever reason, it isn't in the DOM yet.
     useLayoutEffect(() => {
         const root = rootRef.current;
         const boardCol = boardColRef.current;
         if (!root || !boardCol) return;
-        const sync = () => root.style.setProperty("--pp-side-top", `${boardCol.getBoundingClientRect().top}px`);
+        const sync = () => {
+            const top = boardCol.querySelector(".board-viewport")?.getBoundingClientRect().top
+                ?? boardCol.getBoundingClientRect().top;
+            root.style.setProperty("--pp-side-top", `${top}px`);
+        };
         sync();
         window.addEventListener("resize", sync);
         return () => window.removeEventListener("resize", sync);
