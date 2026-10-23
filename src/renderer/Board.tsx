@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
+import { Lock, Maximize, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
 import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene, Shape } from "@/renderer/scene.ts";
@@ -77,6 +77,10 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     // panning/zooming just change this rect, like SudokuPad's canvas.
     const [view, setView] = useState<ViewportRect | null>(null);
     const [zoomPct, setZoomPct] = useState(100);
+    // Freezes the view's scale (wheel, +/-, slider, Fit, Actual size) while panning
+    // still works — e.g. for a player who keeps nudging the zoom by accident while
+    // just trying to scroll/pan around a puzzle they've already sized how they want.
+    const [zoomLocked, setZoomLocked] = useState(false);
     // The wrap/viewport box's own on-screen size (#77 follow-up) — a stable canvas
     // the view pans/zooms *within*, not something that visibly resizes every time
     // the player zooms, but it does track .board-measure's available space via a
@@ -152,6 +156,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
     const applyZoom = useCallback(
         (fracX: number, fracY: number, factor: number) => {
+            if (zoomLocked) return;
             const el = containerRef.current;
             if (!el || !view) return;
             const rect = el.getBoundingClientRect();
@@ -162,7 +167,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             // visible", regardless of the container's actual pixel size.
             setZoomPct(Math.round((scene.width / next.width) * 100));
         },
-        [view, scene.width, scene.height],
+        [view, scene.width, scene.height, zoomLocked],
     );
 
     const handleZoomSlider = (pct: number) => {
@@ -174,6 +179,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     };
 
     const handleFitToScreen = () => {
+        if (zoomLocked) return;
         const el = containerRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
@@ -183,6 +189,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     };
 
     const handleResetZoom = () => {
+        if (zoomLocked) return;
         const el = containerRef.current;
         if (!el || !view) return;
         const rect = el.getBoundingClientRect();
@@ -212,6 +219,9 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         if (!el) return;
 
         const onNativeWheel = (e: WheelEvent) => {
+            // Locked: let the wheel event do whatever it'd normally do (scroll the
+            // page) instead of hijacking it for a zoom that's just going to no-op.
+            if (zoomLocked) return;
             e.preventDefault();
             const rect = el.getBoundingClientRect();
             const fracX = (e.clientX - rect.left) / rect.width;
@@ -222,7 +232,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
         el.addEventListener("wheel", onNativeWheel, { passive: false });
         return () => el.removeEventListener("wheel", onNativeWheel);
-    }, [applyZoom]);
+    }, [applyZoom, zoomLocked]);
 
     // Panning (#49): middle- or right-button drag, so it never competes with the
     // existing left-button cell-selection drag below.
@@ -412,7 +422,16 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         <div className="board-measure" ref={measureRef}>
             <div className="board-wrap" style={boxSize ? { width: boxSize.width } : undefined}>
                 <div className="board-zoom-toolbar" ref={toolbarRef}>
-                    <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out">
+                    <button
+                        type="button"
+                        className={zoomLocked ? "active" : ""}
+                        onClick={() => setZoomLocked((v) => !v)}
+                        aria-pressed={zoomLocked}
+                        aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
+                    >
+                        {zoomLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                    </button>
+                    <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
                         <ZoomOut size={16} />
                     </button>
                     <input
@@ -424,15 +443,21 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         value={zoomPct}
                         onChange={(e) => handleZoomSlider(Number(e.target.value))}
                         aria-label="Zoom level"
+                        disabled={zoomLocked}
                     />
                     <span className="board-zoom-level">{zoomPct}%</span>
-                    <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in">
+                    <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
                         <ZoomIn size={16} />
                     </button>
-                    <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen">
+                    <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
                         <Maximize size={16} /> Fit
                     </button>
-                    <button type="button" onClick={handleResetZoom} aria-label="Reset to actual size (1 board unit per pixel)">
+                    <button
+                        type="button"
+                        onClick={handleResetZoom}
+                        aria-label="Reset to actual size (1 board unit per pixel)"
+                        disabled={zoomLocked}
+                    >
                         Actual size
                     </button>
                 </div>

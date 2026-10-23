@@ -104,6 +104,18 @@
 .board-zoom-toolbar button:hover {
     background: var(--surface-alt);
 }
+.board-zoom-toolbar button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+.board-zoom-toolbar button.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+.board-zoom-slider:disabled {
+    opacity: 0.45;
+}
 .board-zoom-level {
     font-size: 0.78rem;
     color: var(--ink-soft);

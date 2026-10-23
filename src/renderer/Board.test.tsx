@@ -382,4 +382,51 @@ describe("Board — large puzzles", () => {
         // Zooming via the slider stays centered on the current view, same as the +/- buttons.
         expect(readViewBox(svg).left + readViewBox(svg).width / 2).toBeCloseTo(250);
     });
+
+    it("locks the zoom level (wheel, buttons, slider, Fit, Actual size all no-op) while still allowing pan", () => {
+        const scene = bigScene(25, 20); // 500x500 board
+        const { container, getByLabelText } = render(
+            <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+        const svg = container.querySelector("svg.board") as SVGSVGElement;
+        const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
+        const level = () => container.querySelector(".board-zoom-level")?.textContent;
+
+        // Zoom in first, so there's room to pan once locked (at the full-scene "fit"
+        // view, left/top are already clamped to 0 — there'd be nothing to pan into).
+        act(() => getByLabelText("Zoom in").click());
+        const zoomedLevel = level();
+        const zoomedView = readViewBox(svg);
+
+        act(() => getByLabelText("Lock zoom at its current level").click());
+
+        expect((getByLabelText("Zoom in") as HTMLButtonElement).disabled).toBe(true);
+        expect((getByLabelText("Zoom out") as HTMLButtonElement).disabled).toBe(true);
+        expect((getByLabelText("Zoom level") as HTMLInputElement).disabled).toBe(true);
+        expect((getByLabelText("Fit whole board to screen") as HTMLButtonElement).disabled).toBe(true);
+        expect((getByLabelText("Reset to actual size (1 board unit per pixel)") as HTMLButtonElement).disabled).toBe(true);
+
+        act(() => getByLabelText("Zoom in").click());
+        expect(level()).toBe(zoomedLevel); // disabled buttons don't fire, but double-check the handler itself no-ops too
+        act(() => {
+            viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -300, clientX: 50, clientY: 50, bubbles: true }));
+        });
+        expect(level()).toBe(zoomedLevel);
+        expect(readViewBox(svg)).toEqual(zoomedView);
+
+        // Panning still works while locked.
+        act(() => {
+            viewport.dispatchEvent(new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }));
+            viewport.dispatchEvent(new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
+            viewport.dispatchEvent(new MouseEvent("pointerup", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
+        });
+        expect(readViewBox(svg).left).toBeLessThan(zoomedView.left); // dragged right -> view shifts left
+        expect(level()).toBe(zoomedLevel); // panning doesn't touch the zoom level
+
+        // Unlocking restores normal zoom behavior.
+        act(() => getByLabelText("Unlock zoom (currently locked)").click());
+        expect((getByLabelText("Zoom in") as HTMLButtonElement).disabled).toBe(false);
+        act(() => getByLabelText("Zoom in").click());
+        expect(level()).not.toBe(zoomedLevel);
+    });
 });
