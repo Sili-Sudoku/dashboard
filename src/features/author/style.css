@@ -72,26 +72,51 @@
 .author-dims {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    gap: 1rem;
     margin-bottom: 0.6rem;
 }
 
-.author-dims label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+.author-dims-group {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.author-dims-group legend {
+    padding: 0;
+    margin-bottom: 0.2rem;
     font-size: 0.75rem;
+    color: var(--ink-soft);
+}
+
+.author-dims-pair {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.author-dims-x {
     color: var(--ink-soft);
 }
 
 .author-dims input {
     font: inherit;
-    width: 4.5rem;
+    width: 3.2rem;
     padding: 0.25rem 0.4rem;
     border: 1px solid var(--line);
     border-radius: 0.35rem;
     background: var(--surface);
     color: var(--ink);
+    text-align: center;
+    /* The browser's default spinner arrows are the main "ugly" part of a
+     * number input; they're dropped in favor of plain scroll/type editing. */
+    -moz-appearance: textfield;
+}
+
+.author-dims input::-webkit-outer-spin-button,
+.author-dims input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .author-editor {

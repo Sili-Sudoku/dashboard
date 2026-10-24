@@ -1,4 +1,4 @@
-import { useMemo, useState, type WheelEvent } from "react";
+import { useMemo, useState, type FocusEvent, type WheelEvent } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
 import { compilePuzzle } from "@/runtime/compile.ts";
@@ -30,6 +30,10 @@ const SudokuMakerIcon = () => (
 // content, so scrolling past them silently rewrites the grid size. Blurring on wheel lets
 // the scroll pass through to the page instead of being consumed as an increment/decrement.
 const blurOnWheel = (e: WheelEvent<HTMLInputElement>) => e.currentTarget.blur();
+
+// Selecting the existing value on focus means typing a new number replaces it
+// outright, instead of inserting at the cursor and leaving the old digits behind.
+const selectOnFocus = (e: FocusEvent<HTMLInputElement>) => e.currentTarget.select();
 
 interface ImportDialogProps {
     title: string;
@@ -291,46 +295,58 @@ export default function Author() {
                         </select>
                     </label>
                     <div className="author-dims">
-                        <label>
-                            Width
-                            <input
-                                type="number"
-                                min={1}
-                                value={dims.width}
-                                onChange={(e) => setDims({ width: e.target.valueAsNumber })}
-                                onWheel={blurOnWheel}
-                            />
-                        </label>
-                        <label>
-                            Height
-                            <input
-                                type="number"
-                                min={1}
-                                value={dims.height}
-                                onChange={(e) => setDims({ height: e.target.valueAsNumber })}
-                                onWheel={blurOnWheel}
-                            />
-                        </label>
-                        <label>
-                            Box width
-                            <input
-                                type="number"
-                                min={1}
-                                value={dims.boxWidth}
-                                onChange={(e) => setDims({ boxWidth: e.target.valueAsNumber })}
-                                onWheel={blurOnWheel}
-                            />
-                        </label>
-                        <label>
-                            Box height
-                            <input
-                                type="number"
-                                min={1}
-                                value={dims.boxHeight}
-                                onChange={(e) => setDims({ boxHeight: e.target.valueAsNumber })}
-                                onWheel={blurOnWheel}
-                            />
-                        </label>
+                        <fieldset className="author-dims-group">
+                            <legend>Grid size</legend>
+                            <div className="author-dims-pair">
+                                <input
+                                    type="number"
+                                    min={1}
+                                    aria-label="Width"
+                                    value={dims.width}
+                                    onChange={(e) => setDims({ width: e.target.valueAsNumber })}
+                                    onFocus={selectOnFocus}
+                                    onWheel={blurOnWheel}
+                                />
+                                <span className="author-dims-x" aria-hidden="true">
+                                    ×
+                                </span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    aria-label="Height"
+                                    value={dims.height}
+                                    onChange={(e) => setDims({ height: e.target.valueAsNumber })}
+                                    onFocus={selectOnFocus}
+                                    onWheel={blurOnWheel}
+                                />
+                            </div>
+                        </fieldset>
+                        <fieldset className="author-dims-group">
+                            <legend>Box size</legend>
+                            <div className="author-dims-pair">
+                                <input
+                                    type="number"
+                                    min={1}
+                                    aria-label="Box width"
+                                    value={dims.boxWidth}
+                                    onChange={(e) => setDims({ boxWidth: e.target.valueAsNumber })}
+                                    onFocus={selectOnFocus}
+                                    onWheel={blurOnWheel}
+                                />
+                                <span className="author-dims-x" aria-hidden="true">
+                                    ×
+                                </span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    aria-label="Box height"
+                                    value={dims.boxHeight}
+                                    onChange={(e) => setDims({ boxHeight: e.target.valueAsNumber })}
+                                    onFocus={selectOnFocus}
+                                    onWheel={blurOnWheel}
+                                />
+                            </div>
+                        </fieldset>
                     </div>
                     <textarea value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
                     <div className="author-actions">
