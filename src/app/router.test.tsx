@@ -26,10 +26,12 @@ afterEach(() => {
  * class rather than a CSS :has(.board-wrap) structural match, since :has()
  * silently no-ops (no error, just falls back to the plain centered layout)
  * wherever it isn't supported, and that failure mode is exactly what broke
- * the board's sizing once already.
+ * the board's sizing once already. Author embeds a live preview board too
+ * (next to the JSON editor), so it gets the same treatment as Play — only
+ * Home is a plain centered page.
  */
 describe("AppRouter — board-route layout class", () => {
-    it("adds app--board/app-main--board only on a puzzle route", () => {
+    it("adds app--board/app-main--board on a puzzle route", () => {
         const { container } = render(
             <MemoryRouter initialEntries={["/p/demo-mixed"]}>
                 <AppRouter />
@@ -49,13 +51,13 @@ describe("AppRouter — board-route layout class", () => {
         expect(container.querySelector(".app-main.app-main--board")).toBeNull();
     });
 
-    it("leaves the classes off the author route", () => {
+    it("also adds the classes on the author route, which embeds a live preview board", () => {
         const { container } = render(
             <MemoryRouter initialEntries={["/new"]}>
                 <AppRouter />
             </MemoryRouter>,
         );
-        expect(container.querySelector(".app.app--board")).toBeNull();
-        expect(container.querySelector(".app-main.app-main--board")).toBeNull();
+        expect(container.querySelector(".app.app--board")).not.toBeNull();
+        expect(container.querySelector(".app-main.app-main--board")).not.toBeNull();
     });
 });

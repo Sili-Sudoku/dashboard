@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
 import { Braces, Copy, Share2, X } from "lucide-react";
 
@@ -8,6 +9,7 @@ import type { CompiledPuzzle, PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import { getPuzzle } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+import { usePageHeader, usePageActionsSlot } from "@/app/page_header.ts";
 
 import "./style.css";
 
@@ -37,6 +39,12 @@ export default function Play() {
     const { definition, compiled, error } = useMemo(() => resolve(ref), [ref]);
     const [copied, setCopied] = useState(false);
     const [jsonView, setJsonView] = useState<JsonView>("off");
+    usePageHeader(
+        definition?.metadata.title,
+        definition?.metadata.description,
+        definition?.metadata.author ? `by ${definition.metadata.author}` : undefined,
+    );
+    const actionsSlot = usePageActionsSlot();
 
     const share = async () => {
         if (!definition) return;
@@ -61,29 +69,27 @@ export default function Play() {
             ? JSON.stringify(compiled, null, 2)
             : JSON.stringify(definition, null, 2);
 
+    const actions = (
+        <div className="play-actions">
+            <button
+                className="play-btn"
+                aria-pressed={jsonView !== "off"}
+                onClick={() => setJsonView((v) => (v === "off" ? "artifact" : "off"))}
+            >
+                <Braces size={15} /> {jsonView === "off" ? "View JSON" : "Hide JSON"}
+            </button>
+            <button className="play-btn" onClick={share}>
+                <Share2 size={15} /> {copied ? "Link copied" : "Share"}
+            </button>
+        </div>
+    );
+
     return (
         <div className="play">
-            <header className="play-header">
-                <div>
-                    <h1>{definition.metadata.title}</h1>
-                    {definition.metadata.description && <p>{definition.metadata.description}</p>}
-                    {definition.metadata.author && (
-                        <span className="play-author">by {definition.metadata.author}</span>
-                    )}
-                </div>
-                <div className="play-actions">
-                    <button
-                        className="play-btn"
-                        aria-pressed={jsonView !== "off"}
-                        onClick={() => setJsonView((v) => (v === "off" ? "artifact" : "off"))}
-                    >
-                        <Braces size={15} /> {jsonView === "off" ? "View JSON" : "Hide JSON"}
-                    </button>
-                    <button className="play-btn" onClick={share}>
-                        <Share2 size={15} /> {copied ? "Link copied" : "Share"}
-                    </button>
-                </div>
-            </header>
+            {/* Portals into the navbar's action slot (see app/page_header.ts) when
+                rendered under AppRouter; falls back to an inline header when it
+                isn't (e.g. this component's own tests render it standalone). */}
+            {actionsSlot ? createPortal(actions, actionsSlot) : <header className="play-header">{actions}</header>}
 
             {jsonView !== "off" && (
                 <section className="play-json">

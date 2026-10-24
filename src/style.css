@@ -107,8 +107,9 @@ code, pre {
    hidden) is a safety valve for a pathologically short window, so content
    can still be reached by scrolling rather than silently clipped off-screen.
    The sticky toolbar in board.css covers that edge case so the controls
-   don't scroll away with it. Home/Author never render a board, so they're
-   unaffected. Driven by an explicit .app--board class set from the current
+   don't scroll away with it. Home never renders a board, so it's unaffected;
+   Play and Author (its JSON editor sits beside a live preview) both do.
+   Driven by an explicit .app--board class set from the current
    route in router.tsx, not a :has(.board-wrap) structural match — the board
    needs a *definite* height from this chain to size its SVG correctly
    (height:100% on an indefinite-height ancestor just falls back to the SVG's
@@ -147,8 +148,51 @@ code, pre {
     font-size: 0.85rem;
 }
 
-.app-header nav {
+/* Play/Author's registered page title (see app/page_header.ts) — stands in
+ * for the tagline on routes that have one. min-width:0 lets it actually
+ * shrink/ellipsize under the header's flex row instead of forcing the row
+ * wider than the window on a long puzzle title; the description (if any) is
+ * just the native title-attribute tooltip, not more layout. */
+.app-header-page {
+    min-width: 0;
+    display: inline-flex;
+    align-items: baseline;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+}
+
+.app-header-sep {
+    margin-right: 0.5rem;
+    color: var(--ink-soft);
+    font-weight: 400;
+}
+
+.app-header-byline {
+    margin-left: 0.5rem;
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 0.82rem;
+}
+
+/* Play's View JSON/Share buttons portal in here (app/page_header.ts) instead
+ * of rendering their own row above the board. margin-left:auto (not nav's,
+ * which is dropped below) so this and nav land flush together at the row's
+ * end — two auto margins on the same side would instead split the leftover
+ * space and leave a visible gap between them. Empty when no page has
+ * registered an actions slot (Home, or a page that doesn't need one). */
+.app-header-actions {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.app-header nav {
     display: flex;
     gap: 1rem;
 }
@@ -164,8 +208,10 @@ code, pre {
    centered 1100px column — drop the cap/margin and complete the flex-fill
    chain (continued in play/style.css, player.css, board.css) so the board
    gets every pixel of height below the header too, not just a fixed vh
-   slice. Home/Author never render a board, so they keep the centered column
-   above. Same .app-main--board route-driven class as .app--board above. */
+   slice. Home never renders a board, so it keeps the centered column above;
+   Author also drops the cap now, so its editor+preview grid can actually use
+   the window's width instead of being squeezed into a 1100px column. Same
+   .app-main--board route-driven class as .app--board above. */
 .app-main.app-main--board {
     max-width: none;
     width: 100%;

@@ -1,18 +1,56 @@
-.author > section {
-    max-width: 70ch;
+/* Joins the flex-fill chain .app-main--board sets up (router.tsx now treats
+ * /new as a board route too, same as /p/:ref) so .author-grid actually gets
+ * a definite height to stretch its two columns into, instead of collapsing
+ * to whatever height its content happens to need. .author-grid is .author's
+ * *only* child now — the page's own title/description used to live here as
+ * a sibling `<section>` above it (and the "…or build it in code" example as
+ * one below), and because flexbox hands a flex-grow item only what's left
+ * after every sibling's own natural height is subtracted, those two blocks
+ * were quietly capping the live board's height no matter how much vertical
+ * space the window actually had. Both are gone from this column now: the
+ * title/description is registered in the navbar instead (app/page_header.ts)
+ * and the code example lives inside .author-editor's sidebar (which scrolls
+ * on its own) — so .author-grid gets essentially all of .author's height. */
+.author {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
 }
 
+/* A grid-based proportional split (editor 1fr / preview 1.6fr) used to live
+ * here, but that handed the *board* only a fraction of the window — on a
+ * 2171px-wide window it measured out to a 740px board vs. the solver page's
+ * 897px for the same puzzle, because the editor column ate real layout
+ * width. The solver's sidebar (.pp-side in player.css) doesn't do that: it's
+ * a fixed-width position:fixed overlay that doesn't shrink the board column
+ * at all. Mirroring that here — a fixed-width editor instead of a
+ * proportional share — lets .author-preview (and the board inside it) claim
+ * the same width the solver page would for the same window, with the editor
+ * just occupying a fixed-width lane beside it rather than negotiating for a
+ * cut of the board's own space. */
 .author-grid {
-    margin-top: 1.2rem;
-    display: grid;
-    grid-template-columns: minmax(280px, 420px) 1fr;
+    display: flex;
+    align-items: stretch;
     gap: 1.4rem;
-    align-items: start;
+    /* 70vh floor so a pathologically short window still leaves the board
+     * usable rather than shrinking to nothing — in practice .author-grid is
+     * .author's only child now, so flex-grow:1 almost always lands well
+     * above this. */
+    flex: 1 0 70vh;
+    min-height: 420px;
 }
 
 @media (max-width: 900px) {
     .author-grid {
-        grid-template-columns: 1fr;
+        /* Stacked (editor, then preview) instead of side-by-side — each
+         * should size to its own natural content height, not stretch to
+         * share the row's height. */
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .author-editor {
+        flex: 0 0 auto;
     }
 }
 
@@ -56,9 +94,30 @@
     color: var(--ink);
 }
 
+.author-editor {
+    flex: 0 0 440px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Safety valve (same pattern as .pp-side in player.css): the editor's
+     * own content — dims row, textarea, interop controls, and now the SDK
+     * example appended at the end — can add up to more than .author-grid's
+     * stretched height on a short window. Scrolling the column internally
+     * keeps that from squeezing the textarea/live board instead. */
+    overflow-y: auto;
+}
+
 .author-editor textarea {
     width: 100%;
-    height: 460px;
+    /* flex-basis:auto (not the flex:1 shorthand's 0%) so a manual drag-resize
+     * actually sticks: resize sets the textarea's used height as if it were
+     * specified via the height property, but that only feeds back into flex
+     * layout as the flex-basis when flex-basis is auto — at 0% flex-grow
+     * just recomputes the box back to its grown size on the very next
+     * layout pass, so the resize handle silently no-ops. flex-grow:1 still
+     * fills all the available space by default, same as before. */
+    flex: 1 1 auto;
+    min-height: 260px;
     font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
     font-size: 0.78rem;
     line-height: 1.45;
@@ -70,43 +129,121 @@
     color: var(--ink);
 }
 
+/* Claims every pixel of width .author-grid has left over after the editor's
+ * fixed 440px lane (flex:1, not the flex item default flex:0 1 auto) —
+ * matching the solver page's board column, which gets the same full-width
+ * treatment since its sidebar doesn't occupy layout space either (see
+ * .author-grid's comment above). Stays flex-based all the way down into
+ * PuzzlePlayer/Board, which already expect that chain. */
+.author-preview {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 .author-actions {
     margin-top: 0.6rem;
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.author-actions button {
+.author-actions button,
+.author-interop button,
+.author-dialog-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.9rem;
     border: 1px solid var(--brand);
     background: var(--brand);
     color: #fff;
     border-radius: 0.5rem;
     cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    white-space: nowrap;
 }
 
-.author-actions button:nth-child(2) {
-    background: var(--surface);
-    color: var(--brand);
-}
-
-.author-actions button:hover {
+.author-actions button:hover,
+.author-interop button:hover,
+.author-dialog-actions button:hover {
     background: var(--brand-hover);
 }
 
-.author-actions button:nth-child(2):hover {
-    background: var(--surface-alt);
-    color: var(--brand);
-}
-
-.author-actions button.secondary {
+.author-actions button.secondary,
+.author-interop button.secondary,
+.author-dialog-actions button.secondary {
     background: var(--surface);
     color: var(--brand);
 }
 
-.author-actions button.secondary:hover {
+.author-actions button.secondary:hover,
+.author-interop button.secondary:hover,
+.author-dialog-actions button.secondary:hover {
     background: var(--surface-alt);
     color: var(--brand);
+}
+
+/* Import/export pairs for each external format, visually set apart from the
+ * core validate/share actions so the button row doesn't read as one
+ * undifferentiated pile. Each format is a row; both rows share the same
+ * grid-template-columns so the badge/import/export columns line up. */
+.author-interop {
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.author-interop-group {
+    display: grid;
+    grid-template-columns: 1.6rem 1.9rem 1.9rem;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.author-format-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 0.4rem;
+    background: var(--surface-alt);
+}
+
+.author-interop button.icon-button {
+    padding: 0.4rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    justify-content: center;
+}
+
+.author-icon {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+.author-icon-f {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--brand);
+    background: linear-gradient(135deg, #ff8a3d, #ee0979 55%, #8b5cf6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .author-error {
@@ -133,8 +270,77 @@
     color: var(--ink-soft);
 }
 
+.author-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.author-dialog {
+    width: min(560px, 90vw);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 0.6rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.author-dialog h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.author-dialog textarea {
+    width: 100%;
+    height: 220px;
+    font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    padding: 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    resize: vertical;
+    background: var(--surface);
+    color: var(--ink);
+}
+
+.author-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.author-dialog-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Now a block inside the scrollable .author-editor sidebar, not a full-width
+ * page section below the grid (see .author-grid's comment above for why) —
+ * styled like .author-interop's divider rather than the old 2rem page gap. */
 .author-sdk {
-    margin-top: 2rem;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--line);
+}
+
+.author-sdk h2 {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+}
+
+.author-sdk p {
+    margin: 0 0 0.6rem;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
 }
 
 .author-sdk pre {

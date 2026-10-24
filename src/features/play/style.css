@@ -1,24 +1,13 @@
+/* Title/description/byline used to render here too (h1+p+author span), and
+ * even the actions below normally portal into the navbar instead now (see
+ * app/page_header.ts) — this only renders when there's no navbar slot to
+ * portal into (a page rendered without AppRouter around it, e.g. this
+ * component's own tests), as a functional fallback rather than the normal
+ * layout. */
 .play-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.2rem;
-}
-
-.play-header h1 {
-    margin: 0 0 0.2rem;
-}
-
-.play-header p {
-    margin: 0;
-    color: var(--ink-soft);
-    max-width: 60ch;
-}
-
-.play-author {
-    font-size: 0.8rem;
-    color: var(--ink-soft);
+    justify-content: flex-end;
+    margin-bottom: 0.8rem;
 }
 
 .play-actions {

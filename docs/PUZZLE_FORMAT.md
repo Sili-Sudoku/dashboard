@@ -134,7 +134,7 @@ intentionally partial (classic sudoku including jigsaw regions, givens, killer
 cages, thermometers, arrows, kropki dots, odd/even); anything else in the
 source, or any puzzle constraint it can't represent on export, is reported as a
 warning rather than silently dropped. Reachable from the Author page's
-"Import from f-puzzles…" / "Export to f-puzzles" buttons.
+f-puzzles import/export icon buttons.
 
 When no cell declares a `region` at all, `importFPuzzles` falls back to the
 grid's default (√-based) box size if the grid size is a perfect square — a
@@ -144,6 +144,12 @@ constraint outright. Either way it's reported as a warning, since it's a
 guess: the source may genuinely have no boxes, or genuinely custom ones, with
 no way to tell from absent data alone.
 
+The Author page's import buttons open an in-app dialog (a `<textarea>` plus
+Cancel/Import) rather than `window.prompt` — browsers let a user permanently
+suppress native dialogs after a few fire, which would silently break the
+feature, and a native prompt is a single-line input anyway, awkward for
+pasting multi-line JSON.
+
 `importFPuzzles` also accepts an f-puzzles.com share link directly (the
 `?load=<payload>` URL, or just the payload on its own) — that's the artifact a
 real user actually has, not raw JSON. The payload is lz-string-compressed and
@@ -151,21 +157,21 @@ base64-encoded; it is deliberately extracted with a plain regex rather than
 `URLSearchParams`, because the payload's literal `+` characters are valid
 unencoded base64 and would otherwise be corrupted into spaces by
 form-urlencoded decoding. `encodeFPuzzlesShareLink` is the inverse — it's what
-the Author page's "Export to f-puzzles" button actually copies (a loadable
-`https://f-puzzles.com/?load=...` URL), not raw JSON, since that's what's
-actually useful to paste back into the source app.
+the Author page's f-puzzles export button actually opens (a loadable
+`https://f-puzzles.com/?load=...` URL, in a new tab), not raw JSON, since
+that's what's actually useful to load back into the source app.
 
 `src/interop/sudokumaker.ts` does the same for the
 [SudokuMaker](https://sudokumaker.app/) JSON format — `importSudokuMaker`/
 `exportSudokuMaker`, same common-types coverage and `{ ..., warnings }`
-contract, reachable from the Author page's "Import from SudokuMaker…"/"Export
-to SudokuMaker" buttons. It also accepts a share link (`?puzzle=<payload>`,
+contract, reachable from the Author page's SudokuMaker import/export icon
+buttons. It also accepts a share link (`?puzzle=<payload>`,
 raw-deflate-compressed via `pako`, or a legacy lz-string-compressed payload
 behind an `N` prefix instead of `D`) or the plain uncompressed `.json` export.
 `encodeSudokuMakerShareLink` is the inverse, always writing the current
 (non-legacy) `D`-prefixed format against the production `sudokumaker.app`
-host (not `dev.`); "Export to SudokuMaker" copies that link, same as the
-f-puzzles button.
+host (not `dev.`); the export button opens that link in a new tab, same as
+the f-puzzles button.
 
 ## Visual objects
 
