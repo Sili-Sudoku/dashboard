@@ -39,12 +39,44 @@
     color: var(--brand-hover);
 }
 
+/* Side-by-side with the board (same shape as .author-grid/.author-editor in
+ * the author page) rather than stacked above it — a fixed-width lane next to
+ * the board instead of a full-width block that pushes the board down. */
+.play-body {
+    display: flex;
+    align-items: stretch;
+    gap: 1.4rem;
+    flex: 1;
+    min-height: 0;
+}
+
 .play-json {
-    margin-bottom: 1.4rem;
+    flex: 0 0 440px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
     border: 1px solid var(--line);
     border-radius: 0.6rem;
-    overflow: hidden;
     background: var(--surface);
+}
+
+.play-board {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+@media (max-width: 900px) {
+    .play-body {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .play-json {
+        flex: 0 0 auto;
+    }
 }
 
 .pj-bar {
@@ -92,7 +124,11 @@
 .play-json pre {
     margin: 0;
     padding: 0.8rem;
-    max-height: 420px;
+    /* Fills the rest of the panel's height instead of capping at a fixed
+     * height — .play-json is now a side lane that stretches with the board
+     * (see .play-body above), not a block sized to its own content. */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
     font-size: 0.74rem;
     line-height: 1.45;

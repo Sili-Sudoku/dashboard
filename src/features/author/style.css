@@ -130,6 +130,12 @@
      * stretched height on a short window. Scrolling the column internally
      * keeps that from squeezing the textarea/live board instead. */
     overflow-y: auto;
+    /* Right padding gives this panel's own scrollbar track daylight from the
+     * textarea's native one — without it, both scrollbars (the panel's, for
+     * its overall content; the textarea's own, once a manual resize or long
+     * text overflows its box) sit flush against each other at nearly the
+     * same edge, reading as one confusing double scrollbar instead of two. */
+    padding-right: 0.6rem;
 }
 
 .author-editor textarea {
@@ -140,8 +146,15 @@
      * layout as the flex-basis when flex-basis is auto — at 0% flex-grow
      * just recomputes the box back to its grown size on the very next
      * layout pass, so the resize handle silently no-ops. flex-grow:1 still
-     * fills all the available space by default, same as before. */
-    flex: 1 1 auto;
+     * fills all the available space by default, same as before.
+     * flex-shrink:0 (not the shorthand's 1) for the same reason, one level
+     * deeper: once resized larger than .author-editor's available space,
+     * that's negative free space in flex terms, and shrink:1 claws the item
+     * straight back down to fit the container — same visible no-op as the
+     * flex-basis bug, just triggered by overflow instead of by 0% basis.
+     * Disabling shrink lets a resize past the container's size actually
+     * overflow it (.author-editor scrolls, same as any other overflow). */
+    flex: 1 0 auto;
     min-height: 260px;
     font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
     font-size: 0.78rem;

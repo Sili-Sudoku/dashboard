@@ -91,42 +91,46 @@ export default function Play() {
                 isn't (e.g. this component's own tests render it standalone). */}
             {actionsSlot ? createPortal(actions, actionsSlot) : <header className="play-header">{actions}</header>}
 
-            {jsonView !== "off" && (
-                <section className="play-json">
-                    <div className="pj-bar">
-                        <div className="pj-tabs">
-                            <button
-                                className={jsonView === "artifact" ? "active" : ""}
-                                onClick={() => setJsonView("artifact")}
-                            >
-                                Artifact (authored)
-                            </button>
-                            <button
-                                className={jsonView === "compiled" ? "active" : ""}
-                                onClick={() => setJsonView("compiled")}
-                            >
-                                Compiled (primitives the runtime sees)
-                            </button>
+            <div className="play-body">
+                {jsonView !== "off" && (
+                    <section className="play-json">
+                        <div className="pj-bar">
+                            <div className="pj-tabs">
+                                <button
+                                    className={jsonView === "artifact" ? "active" : ""}
+                                    onClick={() => setJsonView("artifact")}
+                                >
+                                    Artifact (authored)
+                                </button>
+                                <button
+                                    className={jsonView === "compiled" ? "active" : ""}
+                                    onClick={() => setJsonView("compiled")}
+                                >
+                                    Compiled (primitives the runtime sees)
+                                </button>
+                            </div>
+                            <div className="pj-bar-right">
+                                <button onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
+                                    <Copy size={14} /> {copied ? "Copied" : "Copy"}
+                                </button>
+                                <button onClick={() => setJsonView("off")} title="Close" aria-label="Close">
+                                    <X size={14} />
+                                </button>
+                            </div>
                         </div>
-                        <div className="pj-bar-right">
-                            <button onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
-                                <Copy size={14} /> {copied ? "Copied" : "Copy"}
-                            </button>
-                            <button onClick={() => setJsonView("off")} title="Close" aria-label="Close">
-                                <X size={14} />
-                            </button>
-                        </div>
-                    </div>
-                    <p className="pj-note">
-                        {jsonView === "artifact"
-                            ? "The serializable puzzle definition — this is what a URL, file, or database row holds."
-                            : "After compile: definition references are expanded, selectors resolved, and every constraint is a primitive expression tagged by its source."}
-                    </p>
-                    <pre>{jsonText}</pre>
-                </section>
-            )}
+                        <p className="pj-note">
+                            {jsonView === "artifact"
+                                ? "The serializable puzzle definition — this is what a URL, file, or database row holds."
+                                : "After compile: definition references are expanded, selectors resolved, and every constraint is a primitive expression tagged by its source."}
+                        </p>
+                        <pre>{jsonText}</pre>
+                    </section>
+                )}
 
-            <PuzzlePlayer key={definition.metadata.id} puzzle={compiled} />
+                <div className="play-board">
+                    <PuzzlePlayer key={definition.metadata.id} puzzle={compiled} />
+                </div>
+            </div>
         </div>
     );
 }
