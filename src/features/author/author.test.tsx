@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import Author from "@/features/author/index.tsx";
+import { demoMixed } from "@/puzzles/index.ts";
 
 afterEach(() => {
     cleanup();
@@ -18,7 +19,7 @@ const importViaDialog = (openButtonName: RegExp, dialogPlaceholder: RegExp, text
 };
 
 describe("Author", () => {
-    it("re-validates on click and surfaces parse errors", () => {
+    it("surfaces parse errors live, with no click needed, and clears them once valid again", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
@@ -28,10 +29,12 @@ describe("Author", () => {
 
         const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
         fireEvent.change(textarea, { target: { value: "{ not json" } });
-        expect(container.querySelector(".author-error")).toBeNull(); // not submitted yet
-
-        fireEvent.click(screen.getByRole("button", { name: /validate.*preview/i }));
         expect(container.querySelector(".author-error")).not.toBeNull();
+        expect(textarea.className).toContain("invalid");
+
+        fireEvent.change(textarea, { target: { value: JSON.stringify(demoMixed, null, 2) } });
+        expect(container.querySelector(".author-error")).toBeNull();
+        expect(textarea.className).not.toContain("invalid");
     });
 
     it("shows the actual resolved box size, not just what's in the JSON", () => {

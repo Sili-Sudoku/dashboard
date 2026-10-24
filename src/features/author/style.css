@@ -154,6 +154,14 @@
     color: var(--ink);
 }
 
+/* Live validity feedback: red while the current text doesn't parse/compile,
+ * cleared the instant it does — the board preview itself only ever updates
+ * on the valid transition (see Author's `liveError` effect), so this border
+ * is what tells you an edit hasn't applied yet. */
+.author-editor textarea.invalid {
+    border-color: var(--violated-line);
+}
+
 /* Claims every pixel of width .author-grid has left over after the editor's
  * fixed 440px lane (flex:1, not the flex item default flex:0 1 auto) —
  * matching the solver page's board column, which gets the same full-width

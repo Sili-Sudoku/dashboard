@@ -10,6 +10,7 @@ import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 import { demoMixed } from "@/puzzles/demo_mixed.ts";
 import { whisperLinePuzzle } from "@/puzzles/whisper_line.ts";
 import { largeDemo } from "@/puzzles/large_demo.ts";
+import { largeDemo0, largeDemo30, largeDemo50, largeDemo70 } from "@/puzzles/large_demo_density.ts";
 
 export const puzzleRegistry: Readonly<Record<string, PuzzleDefinition>> = {
     [demoMixed.metadata.id]: demoMixed,
@@ -17,10 +18,14 @@ export const puzzleRegistry: Readonly<Record<string, PuzzleDefinition>> = {
     [classicSudoku.metadata.id]: classicSudoku,
     [miniSudoku.metadata.id]: miniSudoku,
     [largeDemo.metadata.id]: largeDemo,
+    [largeDemo0.metadata.id]: largeDemo0,
+    [largeDemo30.metadata.id]: largeDemo30,
+    [largeDemo50.metadata.id]: largeDemo50,
+    [largeDemo70.metadata.id]: largeDemo70,
 };
 
 export const listPuzzles = (): readonly PuzzleDefinition[] => Object.values(puzzleRegistry);
 
 export const getPuzzle = (id: string): PuzzleDefinition | undefined => puzzleRegistry[id];
 
-export { classicSudoku, miniSudoku, demoMixed, whisperLinePuzzle, largeDemo };
+export { classicSudoku, miniSudoku, demoMixed, whisperLinePuzzle, largeDemo, largeDemo0, largeDemo30, largeDemo50, largeDemo70 };

@@ -112,6 +112,7 @@ const evaluateOneConstraint = (
     constraint: CompiledPuzzle["constraints"][number],
     ctx: EvalContext,
     lookup: ValueLookup,
+    skipInfeasibilitySearch: boolean,
 ): ConstraintEvaluation => {
     let status: ConstraintStatus;
     let error: string | undefined;
@@ -128,7 +129,11 @@ const evaluateOneConstraint = (
         error = err instanceof Error ? err.message : String(err);
     }
 
-    if (status === "incomplete" && isProvablyInfeasible(constraint.expr, constraint.cells, ctx, lookup)) {
+    if (
+        status === "incomplete" &&
+        !skipInfeasibilitySearch &&
+        isProvablyInfeasible(constraint.expr, constraint.cells, ctx, lookup)
+    ) {
         status = "violated";
         error = "no assignment of the remaining empty cells can satisfy this constraint";
     }
@@ -191,10 +196,30 @@ const finalize = (
     };
 };
 
-export const evaluate = (puzzle: CompiledPuzzle, lookup: ValueLookup): EvaluationResult => {
+export interface EvaluateOptions {
+    /**
+     * Skip the per-constraint infeasibility search (see `isProvablyInfeasible`
+     * above). That search exists to give the live player instant "this is
+     * already dead" feedback on variant rules without per-operator code — but
+     * it's a real brute-force search, and a caller that's already doing its
+     * own search (e.g. a solver's backtracking, which will discover the same
+     * infeasibility itself a few levels deeper in the tree) doesn't need
+     * evaluate's copy of it too. Off by default so every existing caller
+     * (the live player, authoring validation) keeps today's behavior.
+     */
+    skipInfeasibilitySearch?: boolean;
+}
+
+export const evaluate = (
+    puzzle: CompiledPuzzle,
+    lookup: ValueLookup,
+    options: EvaluateOptions = {},
+): EvaluationResult => {
     const geometry = createGeometry(puzzle.geometry);
     const ctx: EvalContext = { geometry, regions: puzzle.regions, domain: puzzle.domain, valueOf: lookup };
-    const constraints = puzzle.constraints.map((c) => evaluateOneConstraint(c, ctx, lookup));
+    const constraints = puzzle.constraints.map((c) =>
+        evaluateOneConstraint(c, ctx, lookup, options.skipInfeasibilitySearch ?? false),
+    );
     return finalize(puzzle, geometry, lookup, constraints);
 };
 
@@ -212,6 +237,7 @@ export const evaluateIncremental = (
     lookup: ValueLookup,
     previous: EvaluationResult,
     changedCells: Iterable<CellId>,
+    options: EvaluateOptions = {},
 ): EvaluationResult => {
     const geometry = createGeometry(puzzle.geometry);
     const affected = new Set(affectedConstraints(puzzle, changedCells));
@@ -223,7 +249,9 @@ export const evaluateIncremental = (
 
     const ctx: EvalContext = { geometry, regions: puzzle.regions, domain: puzzle.domain, valueOf: lookup };
     const constraints = puzzle.constraints.map((c, i) =>
-        affected.has(c.id) ? evaluateOneConstraint(c, ctx, lookup) : previous.constraints[i],
+        affected.has(c.id)
+            ? evaluateOneConstraint(c, ctx, lookup, options.skipInfeasibilitySearch ?? false)
+            : previous.constraints[i],
     );
     return finalize(puzzle, geometry, lookup, constraints);
 };

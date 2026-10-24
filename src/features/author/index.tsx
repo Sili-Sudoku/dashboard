@@ -5,6 +5,7 @@ import { compilePuzzle } from "@/runtime/compile.ts";
 import { GridGeometry } from "@/runtime/geometry.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
+import { solve, type SolveResult } from "@/runtime/solver.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
@@ -131,6 +132,11 @@ export default function Author() {
     const [interopNotice, setInteropNotice] = useState<string | undefined>();
     const [importDialog, setImportDialog] = useState<ImportFormat | undefined>();
     const [importDraft, setImportDraft] = useState("");
+    // Tagged with the `submitted` string it was computed for, so a stale result
+    // from a previous puzzle never shows for whatever is loaded now — simpler
+    // than clearing it from every call site that can change `submitted`.
+    const [solveResult, setSolveResult] = useState<{ for: string; result: SolveResult; ms: number } | undefined>();
+    const [solving, setSolving] = useState(false);
     usePageHeader(
         "Author a puzzle",
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
@@ -144,10 +150,27 @@ export default function Author() {
         setSubmitted(json);
     };
 
-    const liveDef = useMemo(() => {
-        const parsed = parsePuzzle(text);
-        return parsed instanceof Error ? undefined : parsed;
-    }, [text]);
+    // Parsed and compiled on every keystroke (both are sub-millisecond even for
+    // the largest puzzle in the repo — measured, not assumed) so the textarea's
+    // border can track validity live. Compiling doesn't apply anything by
+    // itself; `submitted` (and so the board preview) only ever picks up `text`
+    // once it's actually valid — adjusted during render just below, React's
+    // documented alternative to an effect for "derive state from a change in
+    // other state" — so a mid-edit invalid state never blanks or remounts the
+    // last-good preview.
+    const liveParsed = useMemo(() => parsePuzzle(text), [text]);
+    const liveDef = liveParsed instanceof Error ? undefined : liveParsed;
+    const liveError = useMemo(() => {
+        if (liveParsed instanceof Error) return liveParsed.message;
+        const compiled = compilePuzzle(liveParsed, definitions);
+        return compiled instanceof Error ? compiled.message : undefined;
+    }, [liveParsed]);
+
+    const [appliedText, setAppliedText] = useState(text);
+    if (text !== appliedText) {
+        setAppliedText(text);
+        if (!liveError) setSubmitted(text);
+    }
 
     const dims = readDims(liveDef) ?? DEFAULT_DIMS;
 
@@ -178,6 +201,26 @@ export default function Author() {
         if (compiled instanceof Error) return { error: compiled.message, parsed };
         return { compiled, parsed };
     }, [submitted]);
+
+    const runSolve = async () => {
+        if (!("compiled" in result) || !result.compiled || solving) return;
+        setSolving(true);
+        const puzzle = result.compiled;
+        const target = submitted;
+        const t0 = performance.now();
+        // solve() yields back to the event loop periodically, so this await
+        // doesn't freeze the page even for a multi-second search.
+        const solved = await solve(puzzle);
+        setSolveResult({ for: target, result: solved, ms: Math.round(performance.now() - t0) });
+        setSolving(false);
+    };
+
+    const SOLVE_STATUS_LABEL: Record<SolveResult["status"], string> = {
+        unique: "Unique solution.",
+        multiple: "Multiple solutions.",
+        none: "No solution. The givens conflict.",
+        unknown: "Timed out before finishing. Result unknown.",
+    };
 
     const shareLink =
         "parsed" in result && result.parsed
@@ -348,9 +391,18 @@ export default function Author() {
                             </div>
                         </fieldset>
                     </div>
-                    <textarea value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+                    <textarea
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        spellCheck={false}
+                        className={liveError ? "invalid" : undefined}
+                    />
                     <div className="author-actions">
-                        <button onClick={() => setSubmitted(text)}>Validate &amp; preview</button>
+                        {"compiled" in result && result.compiled && (
+                            <button className="secondary" onClick={runSolve} disabled={solving}>
+                                {solving ? "Checking…" : "Check uniqueness"}
+                            </button>
+                        )}
                         {shareLink && (
                             <button
                                 className="secondary"
@@ -414,8 +466,15 @@ export default function Author() {
                             )}
                         </div>
                     </div>
-                    {"error" in result && result.error && <pre className="author-error">{result.error}</pre>}
+                    {liveError && <pre className="author-error">{liveError}</pre>}
                     {interopNotice && <pre className="author-notice">{interopNotice}</pre>}
+                    {solveResult && solveResult.for === submitted && (
+                        <pre className="author-notice">
+                            {SOLVE_STATUS_LABEL[solveResult.result.status]}
+                            {"\n"}({solveResult.ms}ms, {solveResult.result.probes} oracle probe
+                            {solveResult.result.probes === 1 ? "" : "s"})
+                        </pre>
+                    )}
 
                     <section className="author-sdk">
                         <h2>…or build it in code</h2>
