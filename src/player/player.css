@@ -94,3 +94,12 @@
     border-radius: 0.5rem;
     font-weight: 700;
 }
+
+/* checkAgainstSolution's first-press toast (#52 follow-up): tells the player
+   something's wrong without yet revealing which cells — a second press
+   reveals those via .digit.incorrect / .note-flagged instead. */
+.pp-check-mistake {
+    background: var(--violated);
+    color: var(--violated-line);
+    border: 1px solid var(--invalid);
+}

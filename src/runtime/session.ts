@@ -67,11 +67,28 @@ export interface SessionOptions {
  */
 export type InputMode = "digit" | "corner" | "center";
 
+/**
+ * Outcome of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
+ * - "clean" — no mistakes found.
+ * - "mistake-value" — a placed value doesn't match the solution. Reported
+ *   without saying where yet (first press since the board last changed —
+ *   "are you on the right track" rather than "here's exactly what's
+ *   wrong"). Takes precedence over "mistake-notes" when both are present:
+ *   a wrong digit is the more actionable problem.
+ * - "mistake-notes" — no wrong placed value, but a centre note has
+ *   eliminated the correct digit somewhere. Same first-press, not-yet-
+ *   located reporting as "mistake-value".
+ * - "revealed" — a second consecutive press (no edit in between) found the
+ *   same mistake(s) again, so this time they're actually highlighted via
+ *   `incorrectCells`/`flaggedCells`.
+ */
+export type CheckOutcome = "clean" | "mistake-value" | "mistake-notes" | "revealed";
+
 export class PuzzleSession {
     readonly puzzle: CompiledPuzzle;
     readonly geometry: Geometry;
     inputMode: InputMode = "digit";
-    /** Opt-in: when leaving a cell, flag it if its remaining notes no longer include the solution digit. */
+    /** Opt-in: when leaving a cell, flag it if its remaining centre notes no longer include the solution digit. */
     checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
@@ -80,6 +97,10 @@ export class PuzzleSession {
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
     private flaggedCells = new Set<CellId>();
+    /** Cells flagged by `checkAgainstSolution` as holding a placed value that doesn't match the solution. */
+    private incorrectCells = new Set<CellId>();
+    /** True once `checkAgainstSolution` has found a mistake but not yet revealed it — disarmed by any board edit. */
+    private checkArmed = false;
     private readonly listeners = new Set<() => void>();
     private cachedEvaluation: EvaluationResult | null = null;
     /** Cells whose value changed since `cachedEvaluation` was last computed. */
@@ -164,9 +185,14 @@ export class PuzzleSession {
         return this.cursor;
     }
 
-    /** Cells currently flagged by `checkNotesOnLeave` (remaining notes missing the solution digit). */
+    /** Cells whose remaining centre notes exclude the solution digit — set by `checkNotesOnLeave` and/or `checkAgainstSolution`. */
     getFlaggedCells(): ReadonlySet<CellId> {
         return this.flaggedCells;
+    }
+
+    /** Cells flagged by `checkAgainstSolution` as holding a value that doesn't match the solution. */
+    getIncorrectCells(): ReadonlySet<CellId> {
+        return this.incorrectCells;
     }
 
     /** Cells still hidden by fog (see `runtime/fog.ts`) — empty for puzzles without `fog`. */
@@ -266,6 +292,19 @@ export class PuzzleSession {
     }
 
     /**
+     * True if `state`'s remaining centre notes used to include `answer` but
+     * no longer do — a bad elimination. Corner notes aren't checked: as
+     * conventionally used, a centre note asserts "this cell *is* one of
+     * these digits" (so excluding the answer is a genuine mistake), while a
+     * corner note is more like "this digit goes in here-or-here" scratch
+     * work across several cells — it isn't a per-cell candidate list, so
+     * judging it against this cell's solution digit doesn't mean anything.
+     */
+    private notesExcludeAnswer(state: CellState, answer: number): boolean {
+        return state.centerNotes.length > 0 && !state.centerNotes.includes(answer);
+    }
+
+    /**
      * Re-checks `cell` (the cell the cursor is about to leave, if any) against
      * `checkNotesOnLeave`, flagging it if its remaining notes no longer include
      * the declared solution digit — i.e. the player eliminated the right answer.
@@ -283,10 +322,71 @@ export class PuzzleSession {
             return;
         }
 
-        const hasNotes = state.notes.length > 0 || state.centerNotes.length > 0;
-        const stillCandidate = state.notes.includes(answer) || state.centerNotes.includes(answer);
-        if (hasNotes && !stillCandidate) this.flaggedCells.add(cell);
+        if (this.notesExcludeAnswer(state, answer)) this.flaggedCells.add(cell);
         else this.flaggedCells.delete(cell);
+    }
+
+    /**
+     * Manual "check" (SudokuPad's 'V'): a one-shot, on-demand sweep of the
+     * whole board against the known solution — deliberately not live/
+     * continuous, so the puzzle doesn't turn into trial-and-error (#52). A
+     * no-op if the puzzle has no declared solution.
+     *
+     * Two-stage on purpose: usually the player just wants to know if they're
+     * on the right track, not have every mistake immediately pointed out
+     * (that tips into trial-and-error territory just as much as a live
+     * checker would). So the first press only reports "mistake" — nothing
+     * is highlighted. Only a second, consecutive press (no edit in between)
+     * actually reveals which cells via `incorrectCells` (a placed value that
+     * doesn't match the solution — "legal so far, but wrong") and
+     * `flaggedCells` (remaining notes that have eliminated the correct
+     * digit — reusing the exact same check `checkNotesOnLeave` does
+     * per-cell, just run across every cell at once).
+     */
+    checkAgainstSolution(): CheckOutcome {
+        const solution = this.puzzle.solution;
+        if (!solution) return "clean";
+
+        const incorrect = new Set<CellId>();
+        const flagged = new Set<CellId>();
+        for (const cell of this.geometry.cells) {
+            if (this.isGiven(cell)) continue;
+            const answer = solution[cell];
+            if (answer === undefined) continue;
+            const state = this.board.get(cell);
+            if (!state) continue;
+
+            if (state.value !== null) {
+                if (state.value !== answer) incorrect.add(cell);
+            } else if (this.notesExcludeAnswer(state, answer)) {
+                flagged.add(cell);
+            }
+        }
+        const clean = incorrect.size === 0 && flagged.size === 0;
+
+        let outcome: CheckOutcome;
+        if (clean) {
+            outcome = "clean";
+            this.checkArmed = false;
+        } else if (this.checkArmed) {
+            outcome = "revealed";
+            this.checkArmed = false;
+        } else {
+            // A wrong placed value is the more actionable problem, so it wins
+            // over a note-elimination mistake when both are present.
+            outcome = incorrect.size > 0 ? "mistake-value" : "mistake-notes";
+            this.checkArmed = true;
+        }
+
+        if (outcome === "revealed" || outcome === "clean") {
+            this.incorrectCells = incorrect;
+            this.flaggedCells = flagged;
+        } else {
+            this.incorrectCells.clear();
+            this.flaggedCells.clear();
+        }
+        this.emit();
+        return outcome;
     }
 
     // --- mutation -------------------------------------------------------
@@ -321,7 +421,11 @@ export class PuzzleSession {
         if (!this.puzzle.domain.includes(digit)) return;
 
         this.pushPatch(cells);
-        for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+        this.checkArmed = false;
+        for (const cell of cells) {
+            this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+            this.incorrectCells.delete(cell);
+        }
         this.markDirty(cells);
         this.emit();
     }
@@ -341,7 +445,11 @@ export class PuzzleSession {
         if (cells.length === 0) return;
         if (!this.puzzle.domain.includes(digit)) return;
 
-        for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+        this.checkArmed = false;
+        for (const cell of cells) {
+            this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+            this.incorrectCells.delete(cell);
+        }
         this.markDirty(cells);
         this.emit();
     }
@@ -362,6 +470,7 @@ export class PuzzleSession {
         if (!this.puzzle.domain.includes(digit)) return;
 
         this.pushPatch(cells);
+        this.checkArmed = false;
         for (const cell of cells) {
             const current = this.board.get(cell) ?? EMPTY_CELL;
             if (current.value !== null) continue;
@@ -386,6 +495,7 @@ export class PuzzleSession {
         if (!hasContent) return;
 
         this.pushPatch(cells);
+        this.checkArmed = false;
         for (const cell of cells) {
             const current = this.board.get(cell);
             if (!current) continue;
@@ -395,6 +505,7 @@ export class PuzzleSession {
             } else {
                 this.board.set(cell, next);
             }
+            if (field === "value") this.incorrectCells.delete(cell);
         }
         if (field === "value") this.markDirty(cells);
         this.emit();
@@ -405,6 +516,8 @@ export class PuzzleSession {
         if (!entry) return;
         this.futureStack.push(this.applyEntry(entry));
         this.flaggedCells.clear();
+        this.incorrectCells.clear();
+        this.checkArmed = false;
         this.emit();
     }
 
@@ -413,6 +526,8 @@ export class PuzzleSession {
         if (!entry) return;
         this.past.push(this.applyEntry(entry));
         this.flaggedCells.clear();
+        this.incorrectCells.clear();
+        this.checkArmed = false;
         this.emit();
     }
 
@@ -421,6 +536,8 @@ export class PuzzleSession {
         this.pushFullSnapshot();
         this.board.clear();
         this.flaggedCells.clear();
+        this.incorrectCells.clear();
+        this.checkArmed = false;
         this.invalidateEvaluation();
         this.emit();
     }
@@ -446,6 +563,8 @@ export class PuzzleSession {
         this.pushFullSnapshot();
         this.applyProgress(snapshot);
         this.flaggedCells.clear();
+        this.incorrectCells.clear();
+        this.checkArmed = false;
         this.invalidateEvaluation();
         this.emit();
     }

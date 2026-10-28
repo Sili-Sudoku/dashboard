@@ -16,6 +16,7 @@ const SHORTCUTS: { keys: string; action: string }[] = [
     { keys: "Enter", action: "select every cell sharing the cursor cell's value" },
     { keys: "Ctrl+Z", action: "undo" },
     { keys: "Ctrl+Shift+Z / Ctrl+Y", action: "redo" },
+    { keys: "V", action: "check entered values/centre notes against the solution (if the puzzle has one)" },
     { keys: "Escape", action: "deselect everything — click a cell to start again" },
 ];
 

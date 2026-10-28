@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
-import { PartyPopper, ShieldAlert } from "lucide-react";
+import { AlertTriangle, BadgeCheck, PartyPopper, ShieldAlert } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function PuzzlePlayer({ puzzle }: Props) {
-    const session = usePuzzleSession(puzzle);
+    const { session, checkToast, check } = usePuzzleSession(puzzle);
     const rootRef = useRef<HTMLDivElement>(null);
     const boardColRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +57,7 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 notesOf: (c) => session.displayState(c).notes,
                 centerNotesOf: (c) => session.displayState(c).centerNotes,
                 flaggedCells: session.getFlaggedCells(),
+                incorrectCells: session.getIncorrectCells(),
                 isGiven: (c) => session.isGiven(c),
                 selection: session.getSelection(),
                 cursor: session.getCursor(),
@@ -118,14 +119,33 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     onUndo={() => session.undo()}
                     onRedo={() => session.redo()}
                     onReset={() => session.reset()}
+                    onCheck={puzzle.solution ? check : undefined}
                 />
+
+                {checkToast === "clean" && (
+                    <div className="pp-complete pp-check-clean">
+                        <BadgeCheck size={18} /> Everything is correct
+                    </div>
+                )}
+
+                {checkToast === "mistake-value" && (
+                    <div className="pp-complete pp-check-mistake">
+                        <AlertTriangle size={18} /> At least 1 digit entered is wrong
+                    </div>
+                )}
+
+                {checkToast === "mistake-notes" && (
+                    <div className="pp-complete pp-check-mistake">
+                        <AlertTriangle size={18} /> At least 1 note has eliminated the correct digit
+                    </div>
+                )}
 
                 {puzzle.solution && (
                     <button
                         className={`pp-toggle ${session.checkNotesOnLeave ? "active" : ""}`}
                         aria-pressed={session.checkNotesOnLeave}
                         onClick={() => session.setCheckNotesOnLeave(!session.checkNotesOnLeave)}
-                        title="When you move off a cell, flag it in red if its remaining notes no longer include the correct digit"
+                        title="When you move off a cell, flag it in red if its remaining centre notes no longer include the correct digit"
                     >
                         <ShieldAlert size={15} /> Check notes on leave
                     </button>

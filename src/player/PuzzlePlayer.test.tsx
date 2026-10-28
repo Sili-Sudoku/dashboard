@@ -311,13 +311,13 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
     });
 
-    it("flags a cell's remaining notes in red on leave, once 'check notes on leave' is enabled", () => {
+    it("flags a cell's remaining centre notes in red on leave, once 'check notes on leave' is enabled", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
         // off by default: a bad elimination on r1c2 (solution digit is '2') goes unflagged
         fireEvent.pointerDown(cells[1]);
-        fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
+        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
         fireEvent.click(screen.getByRole("button", { name: "1" }));
         fireEvent.click(screen.getByRole("button", { name: "3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2
@@ -329,13 +329,71 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.pointerDown(cells[1]); // back on r1c2, candidates {1,3} still missing '2'
         fireEvent.pointerDown(cells[2]); // leave again — now checked
-        expect(container.querySelectorAll(".note-flagged")).toHaveLength(2);
+        // Centre notes render as one joined <text>, unlike one-per-digit corner notes.
+        expect(container.querySelectorAll(".note-flagged")).toHaveLength(1);
 
         // fixing the candidates (adding the correct digit back) clears the flag on next leave
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: "2" }));
         fireEvent.pointerDown(cells[2]);
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
+    });
+
+    it("hides the Check button for puzzles with no declared solution", () => {
+        render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
+        expect(screen.queryByRole("button", { name: /^check$/i })).toBeNull();
+    });
+
+    it("clicking Check first just reports a mistake, a second press reveals it, and fixing it clears the flag", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        const checkButton = () => screen.getByRole("button", { name: /^check$/i });
+
+        fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
+        fireEvent.click(screen.getByRole("button", { name: "3" })); // wrong
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(0); // not checked yet
+
+        fireEvent.click(checkButton()); // first press: toast only, nothing revealed
+        expect(screen.queryByText(/digit entered is wrong/i)).not.toBeNull();
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(0);
+
+        fireEvent.click(checkButton()); // second press, no edit in between: reveals it
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(1);
+
+        fireEvent.click(screen.getByRole("button", { name: "2" })); // fix it
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(0);
+    });
+
+    it("the 'V' hotkey runs the same two-stage check as the Check button", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+
+        fireEvent.pointerDown(cells[1]);
+        fireEvent.click(screen.getByRole("button", { name: "3" })); // wrong
+        fireEvent.keyDown(window, { key: "v" });
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(0);
+        fireEvent.keyDown(window, { key: "v" });
+        expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(1);
+    });
+
+    it("Check reports 'everything is correct' when the board has no mistakes", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
+        expect(screen.queryByText(/everything is correct/i)).not.toBeNull();
+    });
+
+    it("reports a note mistake separately from a wrong value, and doesn't mention 'digit entered'", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+
+        fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
+        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
+        fireEvent.click(screen.getByRole("button", { name: "1" }));
+        fireEvent.click(screen.getByRole("button", { name: "3" })); // candidates {1,3} — missing '2'
+
+        fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
+        expect(screen.queryByText(/eliminated the correct digit/i)).not.toBeNull();
+        expect(screen.queryByText(/digit entered is wrong/i)).toBeNull();
     });
 
     it("hides the keyboard shortcut legend by default, revealed via a toggle", () => {

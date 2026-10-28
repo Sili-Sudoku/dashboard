@@ -4,7 +4,7 @@
  * keyboard input and progress persistence.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
@@ -62,6 +62,29 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         useCallback((cb) => session.subscribe(cb), [session]),
         () => session.revision,
     );
+
+    // The "clean" / "mistake-value" / "mistake-notes" results are transient
+    // toasts, not board state — a *revealed* mistake stays visibly red/
+    // flagged until fixed, but a plain confirmation (before anything's been
+    // revealed) has nothing to keep showing, so it fades after a few
+    // seconds instead of sitting in the sidebar forever. Lives here, not in
+    // the component, so the Check button and the 'V' hotkey below both
+    // drive the exact same feedback — the keyboard is just a shortcut for
+    // the same action.
+    const [checkToast, setCheckToast] = useState<"clean" | "mistake-value" | "mistake-notes" | null>(null);
+    const toastTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const check = useCallback(() => {
+        clearTimeout(toastTimeout.current);
+        const outcome = session.checkAgainstSolution();
+        if (outcome === "revealed") {
+            // No toast — the highlighted cells are the feedback.
+            setCheckToast(null);
+            return;
+        }
+        setCheckToast(outcome);
+        toastTimeout.current = setTimeout(() => setCheckToast(null), 2500);
+    }, [session]);
+    useEffect(() => () => clearTimeout(toastTimeout.current), []);
 
     // Persist progress after each change.
     const saveTimer = useRef<number | undefined>(undefined);
@@ -279,6 +302,13 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
                 session.redo();
                 return;
             }
+            // SudokuPad's 'V' check (#52) — a no-op on PuzzleSession's side if
+            // the puzzle has no declared solution, so no need to gate it here.
+            if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "v") {
+                e.preventDefault();
+                check();
+                return;
+            }
             if (e.key === "Escape") session.selectNone();
         };
 
@@ -307,7 +337,7 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             window.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
         };
-    }, [session, puzzle.domain]);
+    }, [session, puzzle.domain, check]);
 
-    return session;
+    return { session, checkToast, check };
 };

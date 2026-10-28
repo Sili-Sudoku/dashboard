@@ -381,18 +381,26 @@ describe("PuzzleSession — checkNotesOnLeave", () => {
         session.setCheckNotesOnLeave(true);
     });
 
-    it("flags a cell on leave if its remaining notes dropped the solution digit", () => {
+    it("flags a cell on leave if its remaining centre notes dropped the solution digit", () => {
         session.select("r1c2"); // solution digit here is 2
-        session.toggleCornerNote(1);
-        session.toggleCornerNote(3); // candidates {1,3} — missing the correct '2'
+        session.toggleCenterNote(1);
+        session.toggleCenterNote(3); // candidates {1,3} — missing the correct '2'
         session.select("r1c3"); // leaving r1c2
         expect(session.getFlaggedCells()).toEqual(new Set(["r1c2"]));
     });
 
-    it("does not flag a cell whose notes still include the solution digit", () => {
+    it("does not flag a cell whose centre notes still include the solution digit", () => {
         session.select("r1c2");
+        session.toggleCenterNote(1);
+        session.toggleCenterNote(2); // correct digit still present
+        session.select("r1c3");
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    it("does not check corner notes at all — they're scratch work, not a per-cell candidate list", () => {
+        session.select("r1c2"); // solution digit here is 2
         session.toggleCornerNote(1);
-        session.toggleCornerNote(2); // correct digit still present
+        session.toggleCornerNote(3); // would exclude '2' if this were a centre note
         session.select("r1c3");
         expect(session.getFlaggedCells().size).toBe(0);
     });
@@ -405,20 +413,20 @@ describe("PuzzleSession — checkNotesOnLeave", () => {
 
     it("re-checks on every leave, clearing a flag once the digit is restored", () => {
         session.select("r1c2");
-        session.toggleCornerNote(1);
-        session.toggleCornerNote(3);
+        session.toggleCenterNote(1);
+        session.toggleCenterNote(3);
         session.select("r1c3");
         expect(session.getFlaggedCells()).toEqual(new Set(["r1c2"]));
 
         session.select("r1c2");
-        session.toggleCornerNote(2); // add the correct digit back
+        session.toggleCenterNote(2); // add the correct digit back
         session.select("r1c3");
         expect(session.getFlaggedCells().size).toBe(0);
     });
 
     it("never flags a cell once it holds a value", () => {
         session.select("r1c2");
-        session.toggleCornerNote(1); // wrong candidate only
+        session.toggleCenterNote(1); // wrong candidate only
         session.input(2); // now fill in the (correct) value — clears notes
         session.select("r1c3");
         expect(session.getFlaggedCells().size).toBe(0);
@@ -427,21 +435,135 @@ describe("PuzzleSession — checkNotesOnLeave", () => {
     it("is off by default and checks nothing until enabled", () => {
         const fresh = new PuzzleSession(compiledWithSolution());
         fresh.select("r1c2");
-        fresh.toggleCornerNote(1);
-        fresh.toggleCornerNote(3);
+        fresh.toggleCenterNote(1);
+        fresh.toggleCenterNote(3);
         fresh.select("r1c3");
         expect(fresh.getFlaggedCells().size).toBe(0);
     });
 
     it("clears all flags immediately when disabled", () => {
         session.select("r1c2");
-        session.toggleCornerNote(1);
-        session.toggleCornerNote(3);
+        session.toggleCenterNote(1);
+        session.toggleCenterNote(3);
         session.select("r1c3");
         expect(session.getFlaggedCells().size).toBe(1);
 
         session.setCheckNotesOnLeave(false);
         expect(session.getFlaggedCells().size).toBe(0);
+    });
+});
+
+describe("PuzzleSession — checkAgainstSolution", () => {
+    let session: PuzzleSession;
+
+    beforeEach(() => {
+        session = new PuzzleSession(compiledWithSolution()); // r1c2's solution digit is 2
+    });
+
+    it("does not flag a placed value that matches the solution", () => {
+        session.select("r1c2");
+        session.input(2);
+        expect(session.checkAgainstSolution()).toBe("clean");
+        expect(session.getIncorrectCells().size).toBe(0);
+    });
+
+    it("never flags a given, even though checking is otherwise unconditional", () => {
+        expect(session.checkAgainstSolution()).toBe("clean");
+        expect(session.getIncorrectCells().has("r1c1")).toBe(false);
+        expect(session.getFlaggedCells().has("r1c1")).toBe(false);
+    });
+
+    it("is a no-op when the puzzle has no declared solution", () => {
+        const noSolution = new PuzzleSession(compiled());
+        noSolution.select("r1c2");
+        noSolution.input(3);
+        expect(noSolution.checkAgainstSolution()).toBe("clean");
+        expect(noSolution.getIncorrectCells().size).toBe(0);
+    });
+
+    it("does not check corner notes — they're scratch work, not a per-cell candidate list", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(3); // would exclude '2' if this were a centre note
+        expect(session.checkAgainstSolution()).toBe("clean");
+        expect(session.getFlaggedCells().size).toBe(0);
+    });
+
+    describe("two-stage reveal", () => {
+        it("the first press reports a wrong value without revealing which cell", () => {
+            session.select("r1c2");
+            session.input(3); // wrong — solution is 2
+            expect(session.checkAgainstSolution()).toBe("mistake-value");
+            expect(session.getIncorrectCells().size).toBe(0);
+        });
+
+        it("the first press reports a note mistake, separately from a wrong value", () => {
+            session.select("r1c2");
+            session.toggleCenterNote(1);
+            session.toggleCenterNote(3); // candidates {1,3} — missing the correct '2'
+            expect(session.checkAgainstSolution()).toBe("mistake-notes");
+            expect(session.getFlaggedCells().size).toBe(0);
+        });
+
+        it("a wrong value takes precedence over a note mistake when both are present", () => {
+            session.select("r1c3"); // solution digit here is 3
+            session.toggleCenterNote(1);
+            session.toggleCenterNote(2); // candidates {1,2} — missing the correct '3'
+            session.select("r1c2"); // solution digit here is 2
+            session.input(4); // wrong
+            expect(session.checkAgainstSolution()).toBe("mistake-value");
+        });
+
+        it("a second consecutive press (no edit in between) reveals the cell", () => {
+            session.select("r1c2");
+            session.input(3); // wrong
+            session.checkAgainstSolution(); // first press — hidden
+            expect(session.checkAgainstSolution()).toBe("revealed");
+            expect(session.getIncorrectCells()).toEqual(new Set(["r1c2"]));
+        });
+
+        it("reveals centre notes that have eliminated the correct digit, same check as checkNotesOnLeave", () => {
+            session.select("r1c2");
+            session.toggleCenterNote(1);
+            session.toggleCenterNote(3); // candidates {1,3} — missing the correct '2'
+            session.checkAgainstSolution(); // first press — hidden
+            expect(session.checkAgainstSolution()).toBe("revealed");
+            expect(session.getFlaggedCells()).toEqual(new Set(["r1c2"]));
+        });
+
+        it("an edit between presses resets back to the hidden first-press stage", () => {
+            session.select("r1c2");
+            session.input(3); // wrong
+            session.checkAgainstSolution(); // armed
+            session.erase();
+            session.input(3); // still wrong, but this edit disarmed the reveal
+            expect(session.checkAgainstSolution()).toBe("mistake-value");
+            expect(session.getIncorrectCells().size).toBe(0);
+        });
+
+        it("clears a revealed cell's incorrect flag as soon as it's edited again, without a new check", () => {
+            session.select("r1c2");
+            session.input(3); // wrong
+            session.checkAgainstSolution();
+            session.checkAgainstSolution();
+            expect(session.getIncorrectCells()).toEqual(new Set(["r1c2"]));
+
+            session.input(2); // corrected — stale flag shouldn't linger until the next check
+            expect(session.getIncorrectCells().size).toBe(0);
+        });
+
+        it("re-running the check replaces the previous results rather than accumulating them", () => {
+            session.select("r1c2");
+            session.input(3); // wrong
+            session.checkAgainstSolution();
+            session.checkAgainstSolution();
+            expect(session.getIncorrectCells()).toEqual(new Set(["r1c2"]));
+
+            session.select("r1c2");
+            session.input(2); // fix it without going through erase/undo
+            expect(session.checkAgainstSolution()).toBe("clean");
+            expect(session.getIncorrectCells().size).toBe(0);
+        });
     });
 });
 

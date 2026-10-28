@@ -1,4 +1,4 @@
-import { RotateCcw, Undo2, Redo2 } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, BadgeCheck } from "lucide-react";
 
 import "./style.css";
 
@@ -8,20 +8,32 @@ interface Props {
     onUndo: () => void;
     onRedo: () => void;
     onReset: () => void;
+    /** Omitted entirely when the puzzle has no declared solution to check against (#52). */
+    onCheck?: () => void;
 }
 
-export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset }: Props) {
+export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck }: Props) {
     return (
         <div className="controls">
-            <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-                <Undo2 size={16} /> Undo
-            </button>
-            <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
-                <Redo2 size={16} /> Redo
-            </button>
-            <button onClick={onReset} title="Clear all entered values">
-                <RotateCcw size={16} /> Reset
-            </button>
+            <div className="controls-row">
+                <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+                    <Undo2 size={16} /> Undo
+                </button>
+                <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
+                    <Redo2 size={16} /> Redo
+                </button>
+                <button onClick={onReset} title="Clear all entered values">
+                    <RotateCcw size={16} /> Reset
+                </button>
+            </div>
+            {onCheck && (
+                <button
+                    onClick={onCheck}
+                    title="Check against the solution (V) — a second press (with no edits in between) reveals exactly what's wrong"
+                >
+                    <BadgeCheck size={16} /> Check
+                </button>
+            )}
         </div>
     );
 }

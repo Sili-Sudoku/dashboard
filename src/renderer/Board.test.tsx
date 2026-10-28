@@ -27,6 +27,7 @@ const bigScene = (n: number, cellSize = 20): Scene => {
                 notes: [],
                 centerNotes: [],
                 flagged: false,
+                incorrect: false,
                 hidden: false,
             });
         }
@@ -64,6 +65,27 @@ describe("Board — small puzzles", () => {
         // ever computed — the box stays unsized, same as before any fit happens.
         expect(wrap.style.width).toBe("");
         expect(viewport.style.height).toBe("");
+    });
+});
+
+describe("Board — checkAgainstSolution's incorrect marker (#52 follow-up)", () => {
+    it("draws a diagonal slash through a value flagged incorrect, not a line-through", () => {
+        const scene = bigScene(1);
+        scene.cells[0] = { ...scene.cells[0], value: 4, incorrect: true };
+        const { container } = render(
+            <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+        expect(container.querySelector(".digit.incorrect")).not.toBeNull();
+        expect(container.querySelector(".incorrect-slash")).not.toBeNull();
+    });
+
+    it("draws no slash for a value that isn't flagged incorrect", () => {
+        const scene = bigScene(1);
+        scene.cells[0] = { ...scene.cells[0], value: 4, incorrect: false };
+        const { container } = render(
+            <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+        expect(container.querySelector(".incorrect-slash")).toBeNull();
     });
 });
 

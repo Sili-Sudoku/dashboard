@@ -171,6 +171,20 @@
     fill: var(--entered);
     font-weight: 500;
 }
+/* checkAgainstSolution (#52): a placed value that's legal so far (no rule
+   broken yet) but doesn't match the known solution — distinct from
+   .cell-violated/.cell-invalid, which flag rule breaks, not "wrong" per se.
+   A horizontal line-through reads oddly against digits that already have
+   their own horizontal strokes (e.g. 4, 7) — a diagonal slash (drawn
+   separately, see .incorrect-slash) reads as "crossed out" more clearly. */
+.board .digit.incorrect {
+    fill: var(--violated-line);
+}
+.board .incorrect-slash {
+    stroke: var(--violated-line);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
 .board .note {
     fill: var(--ink-soft);
 }

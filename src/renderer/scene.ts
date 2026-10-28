@@ -23,8 +23,10 @@ export interface SceneInput {
     valueOf: (cell: CellId) => number | null;
     notesOf: (cell: CellId) => readonly number[];
     centerNotesOf: (cell: CellId) => readonly number[];
-    /** Cells flagged by PuzzleSession.checkNotesOnLeave (a bad note elimination). */
+    /** Cells flagged by PuzzleSession.checkNotesOnLeave/checkAgainstSolution (a bad note elimination). */
     flaggedCells: ReadonlySet<CellId>;
+    /** Cells flagged by PuzzleSession.checkAgainstSolution as holding a value that doesn't match the solution. */
+    incorrectCells: ReadonlySet<CellId>;
     /** Structural given-ness, independent of fog — `buildScene` combines it with `hiddenCells` itself. */
     isGiven: (cell: CellId) => boolean;
     selection: ReadonlySet<CellId>;
@@ -50,8 +52,10 @@ export interface CellShape {
     given: boolean;
     notes: readonly number[];
     centerNotes: readonly number[];
-    /** Flagged by checkNotesOnLeave — remaining notes no longer include the solution digit. */
+    /** Flagged by checkNotesOnLeave/checkAgainstSolution — remaining notes no longer include the solution digit. */
     flagged: boolean;
+    /** Flagged by checkAgainstSolution — the placed value doesn't match the solution. */
+    incorrect: boolean;
     /** Still hidden by fog — the renderer paints over it rather than leaking what's underneath. */
     hidden: boolean;
 }
@@ -121,6 +125,7 @@ export const buildScene = (input: SceneInput): Scene => {
             notes: input.notesOf(cell),
             centerNotes: input.centerNotesOf(cell),
             flagged: input.flaggedCells.has(cell),
+            incorrect: input.incorrectCells.has(cell),
             hidden,
         };
     });

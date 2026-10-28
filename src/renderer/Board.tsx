@@ -380,18 +380,29 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     const cx = c.x + c.size / 2;
                     const cy = c.y + c.size / 2;
                     if (c.value !== null) {
+                        const slash = c.size * 0.22;
                         return (
-                            <text
-                                key={`v-${c.cell}`}
-                                className={c.given ? "digit given" : "digit entered"}
-                                x={cx}
-                                y={cy}
-                                fontSize={c.size * 0.62}
-                                textAnchor="middle"
-                                dominantBaseline="central"
-                            >
-                                {c.value}
-                            </text>
+                            <g key={`v-${c.cell}`}>
+                                <text
+                                    className={`digit ${c.given ? "given" : "entered"} ${c.incorrect ? "incorrect" : ""}`}
+                                    x={cx}
+                                    y={cy}
+                                    fontSize={c.size * 0.62}
+                                    textAnchor="middle"
+                                    dominantBaseline="central"
+                                >
+                                    {c.value}
+                                </text>
+                                {c.incorrect && (
+                                    <line
+                                        className="incorrect-slash"
+                                        x1={cx - slash}
+                                        y1={cy + slash}
+                                        x2={cx + slash}
+                                        y2={cy - slash}
+                                    />
+                                )}
+                            </g>
                         );
                     }
                     const centerText = c.centerNotes.join("");
