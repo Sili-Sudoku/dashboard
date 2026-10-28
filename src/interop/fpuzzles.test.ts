@@ -65,11 +65,14 @@ describe("importFPuzzles", () => {
     });
 
     it("reports unsupported clue types as warnings instead of silently dropping them", () => {
+        // "negative" (a global "no unmarked adjacent pair satisfies this relation"
+        // flag) is deliberately deferred — see kanban card for it — so it's still
+        // a good stand-in for "a clue type this importer doesn't know about".
         const data = sampleFPuzzles() as unknown as Record<string, unknown>;
-        data.palindrome = [{ cells: ["R1C1", "R1C2"] }];
+        data.negative = ["ratio", "xv"];
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
-        expect(result.warnings.some((w) => w.includes("palindrome"))).toBe(true);
+        expect(result.warnings.some((w) => w.includes("negative"))).toBe(true);
     });
 
     it("falls back to named jigsaw regions when boxes aren't a rectangular tiling", () => {
@@ -253,6 +256,170 @@ describe("exportFPuzzles", () => {
         if (reimported instanceof Error) throw reimported;
         expect(reimported.puzzle.metadata.title).toBe("Round Trip");
         expect(reimported.puzzle.geometry).toEqual({ ...puzzle.geometry, boxWidth: 2, boxHeight: 2 });
+    });
+});
+
+/** sampleFPuzzles() plus one instance of every newly-supported clue type, on
+ *  cells the base sample doesn't already touch. */
+const sampleExtendedFPuzzles = (): FPuzzlesExport => ({
+    ...sampleFPuzzles(),
+    "diagonal+": true,
+    "diagonal-": true,
+    antiknight: true,
+    antiking: true,
+    nonconsecutive: true,
+    disjointgroups: true,
+    palindrome: [{ lines: [["R8C1", "R8C2", "R8C3"]] }],
+    clone: [{ cells: ["R8C4", "R8C5"], cloneCells: ["R8C6", "R8C7"] }],
+    quadruple: [{ cells: ["R1C8", "R1C9", "R2C8", "R2C9"], values: [1, 2] }],
+    minimum: [{ cell: "R9C1" }],
+    maximum: [{ cell: "R9C2" }],
+    xv: [{ cells: ["R9C3", "R9C4"], value: "X" }],
+    // Anchored just outside the grid, not by a resolved cell list — see the
+    // module doc comment. "R0C3" sits above column 3; stepping "DR" from there
+    // lands on r1c4, then r2c5, ... (the real f-puzzles shape, confirmed via a
+    // live import crash on our first, wrong guess).
+    littlekillersum: [{ cell: "R0C3", direction: "DR", value: "9" }],
+    // "R10C9" sits below column 9 on this 9x9 grid; a sandwich anchor is never
+    // a resolved cell list either — it always means "this whole column/row".
+    sandwichsum: [{ cell: "R10C9", value: "0" }],
+    betweenline: [{ lines: [["R6C7", "R6C8", "R6C9"]] }],
+});
+
+describe("importFPuzzles: extended clue types", () => {
+    it("imports diagonals, chess constraints, and every newly-supported clue type", () => {
+        const result = importFPuzzles(sampleExtendedFPuzzles());
+        if (result instanceof Error) throw result;
+        const { puzzle, warnings } = result;
+        expect(warnings).toEqual([]);
+
+        expect(puzzle.regions?.["diagonal:bltr"]).toBeDefined();
+        expect(puzzle.regions?.["diagonal:tlbr"]).toBeDefined();
+        const sudokuRef = puzzle.constraints.find((s) => isDefinitionRef(s) && s.use === "sudoku");
+        expect(sudokuRef && isDefinitionRef(sudokuRef) ? sudokuRef.extraRegions : undefined).toEqual(
+            expect.arrayContaining(["diagonal:bltr", "diagonal:tlbr"]),
+        );
+
+        const compiled = compilePuzzle(puzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        const sources = new Set(compiled.constraints.map((c) => c.source));
+        for (const expected of [
+            "sudoku", "killer", "thermometer", "arrow", "kropkiDifference", "kropkiRatio", "odd", "even",
+            "antiknight", "antiking", "nonconsecutive", "disjointgroups",
+            "palindrome", "clone", "quadruple", "minimum", "maximum", "xv", "sandwich", "betweenline",
+        ]) {
+            expect(sources.has(expected)).toBe(true);
+        }
+    });
+
+    it("skips (with warnings, never silently) malformed instances of the new clue types", () => {
+        const data = sampleFPuzzles() as unknown as Record<string, unknown>;
+        data.palindrome = [{ lines: [["R1C1"]] }]; // too short
+        data.clone = [{ cells: ["R1C1"], cloneCells: ["R1C2", "R1C3"] }]; // mismatched lengths
+        data.quadruple = [{ cells: ["bad-cell"], values: [1] }]; // bad cell id
+        data.minimum = [{ cell: "bad-cell" }];
+        data.xv = [{ cells: ["R1C1", "R1C2"], value: "Q" }]; // unrecognized marker
+        data.littlekillersum = [{ cell: "R0C1", direction: "DR" }]; // no numeric sum
+        data.sandwichsum = [{ cell: "bad-cell", value: "5" }]; // unrecognized anchor
+        data.betweenline = [{ lines: [["R1C1", "R1C2"]] }]; // too few cells (need >= 3)
+
+        const result = importFPuzzles(data);
+        if (result instanceof Error) throw result;
+        const joined = result.warnings.join(" | ");
+        for (const expected of ["palindrome", "clone", "quadruple", "minimum", "xv", "littlekillersum", "sandwichsum", "betweenline"]) {
+            expect(joined).toContain(expected);
+        }
+    });
+
+    it("disjointgroups: warns and omits the constraint when there's no uniform box layout", () => {
+        const data: FPuzzlesExport = {
+            size: 6,
+            grid: Array.from({ length: 6 }, () => Array.from({ length: 6 }, () => ({}))),
+            title: "No boxes",
+            disjointgroups: true,
+        };
+        const result = importFPuzzles(data);
+        if (result instanceof Error) throw result;
+        expect(result.warnings.some((w) => w.includes("disjointgroups"))).toBe(true);
+
+        const compiled = compilePuzzle(result.puzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        expect(compiled.constraints.some((c) => c.source === "disjointgroups")).toBe(false);
+    });
+});
+
+describe("exportFPuzzles: extended clue types", () => {
+    it("round-trips every newly-supported clue type through import", () => {
+        const puzzle: PuzzleDefinition = {
+            version: 1,
+            metadata: { id: "p", title: "Extended" },
+            geometry: { type: "grid", width: 9, height: 9, boxWidth: 3, boxHeight: 3 },
+            domain: { values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+            regions: {
+                "diagonal:bltr": ["r9c1", "r8c2", "r7c3", "r6c4", "r5c5", "r4c6", "r3c7", "r2c8", "r1c9"],
+                "diagonal:tlbr": ["r1c1", "r2c2", "r3c3", "r4c4", "r5c5", "r6c6", "r7c7", "r8c8", "r9c9"],
+            },
+            constraints: [
+                { use: "sudoku", extraRegions: ["diagonal:bltr", "diagonal:tlbr"] },
+                { use: "antiknight" },
+                { use: "antiking" },
+                { use: "nonconsecutive" },
+                { use: "disjointgroups" },
+                { use: "palindrome", cells: ["r1c2", "r1c3", "r1c4"] },
+                { use: "clone", cells: ["r2c1", "r2c2"], cloneCells: ["r3c1", "r3c2"] },
+                { use: "quadruple", cells: ["r1c8", "r1c9", "r2c8", "r2c9"], values: [1, 2] },
+                { use: "minimum", cell: "r4c1" },
+                { use: "maximum", cell: "r4c2" },
+                { use: "xv", cells: ["r4c3", "r4c4"], target: 10 },
+                { use: "killer", cells: ["r5c1", "r6c2"], sum: 9, distinct: false },
+                {
+                    use: "sandwich",
+                    cells: ["r6c1", "r6c2", "r6c3", "r6c4", "r6c5", "r6c6", "r6c7", "r6c8", "r6c9"],
+                    sum: 5,
+                },
+                { use: "betweenline", cells: ["r7c1", "r7c2", "r7c3"] },
+            ],
+        };
+
+        const exported = exportFPuzzles(puzzle);
+        if (exported instanceof Error) throw exported;
+        expect(exported.warnings).toEqual([]);
+        expect(exported.data["diagonal+"]).toBe(true);
+        expect(exported.data["diagonal-"]).toBe(true);
+        expect(exported.data.antiknight).toBe(true);
+        expect(exported.data.littlekillersum).toEqual([{ cell: "R4C0", direction: "DR", value: "9" }]);
+        expect(exported.data.sandwichsum).toEqual([{ cell: "R6C0", value: "5" }]);
+
+        const reimported = importFPuzzles(exported.data);
+        if (reimported instanceof Error) throw reimported;
+        expect(reimported.warnings).toEqual([]);
+
+        const compiled = compilePuzzle(reimported.puzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        const sources = new Set(compiled.constraints.map((c) => c.source));
+        for (const expected of [
+            "sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups",
+            "palindrome", "clone", "quadruple", "minimum", "maximum", "xv", "killer", "sandwich", "betweenline",
+        ]) {
+            expect(sources.has(expected)).toBe(true);
+        }
+    });
+
+    it("reports (does not silently drop) clues it cannot represent in f-puzzles export", () => {
+        const base: Pick<PuzzleDefinition, "version" | "metadata" | "geometry" | "domain"> = {
+            version: 1,
+            metadata: { id: "p", title: "p" },
+            geometry: { type: "grid", width: 4, height: 4 },
+            domain: { values: [1, 2, 3, 4] },
+        };
+
+        const noSum = exportFPuzzles({ ...base, constraints: [{ use: "killer", cells: ["r1c1", "r1c2"], distinct: false }] });
+        if (noSum instanceof Error) throw noSum;
+        expect(noSum.warnings.some((w) => w.includes("littlekillersum"))).toBe(true);
+
+        const badTarget = exportFPuzzles({ ...base, constraints: [{ use: "xv", cells: ["r1c1", "r1c2"], target: 7 }] });
+        if (badTarget instanceof Error) throw badTarget;
+        expect(badTarget.warnings.some((w) => w.includes("xv"))).toBe(true);
     });
 });
 

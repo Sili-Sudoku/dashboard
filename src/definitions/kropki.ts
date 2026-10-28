@@ -28,17 +28,35 @@ const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): Cons
 
         const ca = ctx.geometry.center(a);
         const cb = ctx.geometry.center(b);
+        const mid = { x: (ca.x + cb.x) / 2, y: (ca.y + cb.y) / 2 };
+        // Deliberately fixed black/white, not theme-aware "ink": the dot's
+        // color *is* the clue (white = difference, black = ratio), so it
+        // can't follow --ink into dark mode without the two becoming the
+        // same near-white and losing the distinction they exist to draw.
+        const isCustomValue = value !== defaultValue;
         const objects: VisualObject[] = [
             {
                 kind: "circle",
-                at: { x: (ca.x + cb.x) / 2, y: (ca.y + cb.y) / 2 },
-                r: 0.12,
+                at: mid,
+                r: isCustomValue ? 0.16 : 0.12,
                 style:
                     kind === "difference"
-                        ? { fill: "#fff", stroke: "var(--ink)", strokeWidth: 0.02, z: 3 }
-                        : { fill: "var(--ink)", stroke: "var(--ink)", strokeWidth: 0.02, z: 3 },
+                        ? { fill: "#fff", stroke: "#000", strokeWidth: 0.02, z: 3 }
+                        : { fill: "#000", stroke: "#000", strokeWidth: 0.02, z: 3 },
             },
         ];
+        // A non-default value is invisible without a label — only the
+        // conventional default (1 for difference, 2 for ratio) is implied by
+        // the plain dot, same as a real f-puzzles export shows a digit here
+        // once the value departs from that default.
+        if (isCustomValue) {
+            objects.push({
+                kind: "text",
+                at: mid,
+                text: String(value),
+                style: { stroke: kind === "difference" ? "#000" : "#fff", fontSize: 0.17, z: 4 },
+            });
+        }
 
         return {
             constraints: [{ expr, label: `kropki ${kind} ${a}-${b} (${value})` }],

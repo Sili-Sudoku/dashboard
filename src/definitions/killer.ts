@@ -1,6 +1,11 @@
 /**
  * Killer cage: the cells are all different and (optionally) sum to a target.
  * Contributes a dashed "cage" outline with the sum printed in the corner.
+ *
+ * `distinct: false` turns this into a plain sum-only clue (no allDifferent) —
+ * e.g. a "little killer" diagonal, whose cells aren't necessarily already
+ * distinct the way a cage's cells are. Drawn as a sum label at the first cell
+ * instead of a cage outline, since there's no enclosed region to outline.
  */
 
 import {
@@ -24,9 +29,12 @@ export const killer: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
         sum = parsed;
     }
 
-    const constraints: EmittedConstraint[] = [
-        { expr: ["allDifferent", ["cells", [...cells]]], label: `cage ${cells.join(",")} distinct` },
-    ];
+    const distinct = params.distinct !== false;
+
+    const constraints: EmittedConstraint[] = [];
+    if (distinct) {
+        constraints.push({ expr: ["allDifferent", ["cells", [...cells]]], label: `cage ${cells.join(",")} distinct` });
+    }
     if (sum !== undefined) {
         constraints.push({
             expr: ["==", ["sum", ["cells", [...cells]]], sum],
@@ -34,14 +42,18 @@ export const killer: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
         });
     }
 
-    const objects: VisualObject[] = [
-        {
-            kind: "cage",
-            cells,
-            label: sum !== undefined ? String(sum) : undefined,
-            style: { stroke: "var(--cage)", strokeWidth: 0.02, dashed: true, z: 2 },
-        },
-    ];
+    const objects: VisualObject[] = distinct
+        ? [
+              {
+                  kind: "cage",
+                  cells,
+                  label: sum !== undefined ? String(sum) : undefined,
+                  style: { stroke: "var(--cage)", strokeWidth: 0.02, dashed: true, z: 2 },
+              },
+          ]
+        : sum !== undefined
+          ? [{ kind: "text", at: cells[0], text: String(sum), style: { fontSize: 0.3 } }]
+          : [];
 
     return { constraints, objects };
 };

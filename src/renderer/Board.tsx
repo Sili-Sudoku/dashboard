@@ -310,14 +310,9 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 />
             ))}
 
-            {/* constraint graphics below digits */}
-            <g className="shapes" pointerEvents="none">
-                {visibleScene.shapes.map((s, i) => (
-                    <ShapeNode key={i} shape={s} />
-                ))}
-            </g>
-
-            {/* grid + box lines */}
+            {/* grid + box lines, drawn before constraint graphics so a dot/marker
+                sitting on a cell boundary (kropki, XV, ...) isn't painted over by
+                the line it sits on */}
             <g className="grid" pointerEvents="none">
                 {visibleScene.gridLines.map((l, i) => (
                     <line
@@ -329,6 +324,13 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         stroke={l.weight >= 3 ? "var(--line-strong)" : "var(--line)"}
                         strokeWidth={l.weight}
                     />
+                ))}
+            </g>
+
+            {/* constraint graphics below digits */}
+            <g className="shapes" pointerEvents="none">
+                {visibleScene.shapes.map((s, i) => (
+                    <ShapeNode key={i} shape={s} />
                 ))}
             </g>
 
@@ -536,6 +538,7 @@ function ShapeNode({ shape }: { shape: Shape }) {
                     x={shape.x}
                     y={shape.y}
                     fontSize={shape.fontSize}
+                    fontWeight={shape.bold ? "bold" : undefined}
                     fill={s.stroke}
                     textAnchor="middle"
                     dominantBaseline="central"

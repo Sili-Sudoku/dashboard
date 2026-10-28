@@ -49,7 +49,7 @@ export type VisualObject =
     | { id?: string; kind: "polygon"; points: readonly PointRef[]; style?: VisualStyle }
     | { id?: string; kind: "circle"; at: PointRef; r: number; style?: VisualStyle }
     | { id?: string; kind: "rect"; at: PointRef; w: number; h: number; style?: VisualStyle }
-    | { id?: string; kind: "text"; at: PointRef; text: string; style?: VisualStyle & { fontSize?: number } }
+    | { id?: string; kind: "text"; at: PointRef; text: string; style?: VisualStyle & { fontSize?: number; bold?: boolean } }
     | { id?: string; kind: "region"; cells: readonly CellId[]; style?: VisualStyle }
     | {
           id?: string;

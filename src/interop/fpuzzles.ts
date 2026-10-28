@@ -11,17 +11,28 @@
  * public f-puzzles export (this sandbox has no network route to
  * f-puzzles.com to fetch the live spec) and may not match every
  * exporter/version byte-for-byte — verify against a real exported file
- * before relying on an import. Scope is deliberately partial, per the v2
- * brief's "common types first": classic sudoku (including jigsaw regions),
- * givens, killer cages, thermometers, arrows, kropki dots (difference/
- * ratio), and odd/even markers. Anything else present in the source is
- * reported as a warning, never silently dropped — same for any supported
- * clue whose cells don't resolve.
+ * before relying on an import. Covers: classic sudoku (including jigsaw
+ * regions and diagonals), givens, killer cages (and little killer sums),
+ * thermometers, arrows, kropki dots (difference/ratio), xv, odd/even and
+ * minimum/maximum markers, palindrome/between lines, clones, quadruples,
+ * sandwich sums, and the antiknight/antiking/nonconsecutive/disjointgroups
+ * global flags. Still not covered: "negative" (see kanban). Anything else
+ * present in the source is reported as a warning, never silently dropped —
+ * same for any supported clue whose cells don't resolve.
+ *
+ * sandwichsum/littlekillersum are NOT a resolved-cells list like the other
+ * clue types — confirmed the hard way, via a real f-puzzles.com import
+ * crash (`currentSandwich.set is null`) on our first guess. Both are
+ * anchored by a single cell just *outside* the grid edge/corner (e.g.
+ * "R0C4" sits above column 4); littlekillersum additionally carries a
+ * `direction` ("UL"/"UR"/"DL"/"DR") for which diagonal runs back into the
+ * grid from that corner. See `outsideCellCoords`/`sandwichAnchor`/
+ * `littleKillerAnchor` below.
  */
 
 import { compressToBase64, decompressFromBase64 } from "lz-string";
 
-import { GridGeometry, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
+import { GridGeometry, parseGridCellId, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
 import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 export interface FPuzzlesCell {
@@ -44,7 +55,30 @@ export interface FPuzzlesArrowClue {
     lines: string[][];
 }
 
+export interface FPuzzlesCloneClue {
+    cells: string[];
+    cloneCells: string[];
+}
+
+export interface FPuzzlesQuadrupleClue {
+    cells: string[];
+    values: number[];
+}
+
 export type FPuzzlesCellClue = string | { cell: string };
+
+/** Anchored one cell outside the grid edge (e.g. "R0C4" above column 4), no direction needed. */
+export interface FPuzzlesOutsideClue {
+    cell: string;
+    value?: string | number;
+}
+
+/** Anchored one cell outside the grid corner, with a diagonal direction back into the grid. */
+export interface FPuzzlesLittleKillerClue {
+    cell: string;
+    direction: "UL" | "UR" | "DL" | "DR";
+    value?: string | number;
+}
 
 export interface FPuzzlesExport {
     size: number;
@@ -60,6 +94,21 @@ export interface FPuzzlesExport {
     ratio?: FPuzzlesCellsClue[];
     odd?: FPuzzlesCellClue[];
     even?: FPuzzlesCellClue[];
+    "diagonal+"?: boolean;
+    "diagonal-"?: boolean;
+    antiknight?: boolean;
+    antiking?: boolean;
+    disjointgroups?: boolean;
+    nonconsecutive?: boolean;
+    palindrome?: FPuzzlesLinesClue[];
+    clone?: FPuzzlesCloneClue[];
+    quadruple?: FPuzzlesQuadrupleClue[];
+    minimum?: FPuzzlesCellClue[];
+    maximum?: FPuzzlesCellClue[];
+    xv?: FPuzzlesCellsClue[];
+    littlekillersum?: FPuzzlesLittleKillerClue[];
+    sandwichsum?: FPuzzlesOutsideClue[];
+    betweenline?: FPuzzlesLinesClue[];
 }
 
 export interface ImportResult {
@@ -86,6 +135,21 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "ratio",
     "odd",
     "even",
+    "diagonal+",
+    "diagonal-",
+    "antiknight",
+    "antiking",
+    "disjointgroups",
+    "nonconsecutive",
+    "palindrome",
+    "clone",
+    "quadruple",
+    "minimum",
+    "maximum",
+    "xv",
+    "littlekillersum",
+    "sandwichsum",
+    "betweenline",
 ]);
 
 const toProjectCell = (cell: string): CellId | undefined => {
@@ -111,6 +175,89 @@ const mapCells = (ids: readonly string[]): CellId[] | undefined => {
 };
 
 /**
+ * Parse an "R{row}C{col}" cell reference without requiring it to be inside
+ * the grid — unlike `toProjectCell`, which only resolves cells that are
+ * actually part of the puzzle. Outside-the-grid anchor cells (0-indexed row
+ * 0 or `size+1`, same for column) are how f-puzzles positions sandwich and
+ * little killer clues, so they need their raw, possibly out-of-range
+ * coordinates, not a validated `CellId`.
+ */
+const outsideCellCoords = (cell: string): { row: number; col: number } | undefined => {
+    const m = /^[Rr](\d+)[Cc](\d+)$/.exec(cell);
+    if (!m) return undefined;
+    return { row: Number(m[1]), col: Number(m[2]) };
+};
+
+const DIAGONAL_DELTA: Record<"UL" | "UR" | "DL" | "DR", { dr: number; dc: number }> = {
+    UL: { dr: -1, dc: -1 },
+    UR: { dr: -1, dc: 1 },
+    DL: { dr: 1, dc: -1 },
+    DR: { dr: 1, dc: 1 },
+};
+
+/** Decode a sandwichsum anchor (just above/below a column, or left/right of a row) into the full row/column of cells it sums across. */
+const sandwichCellsFromAnchor = (anchor: { row: number; col: number }, size: number): CellId[] | undefined => {
+    const rowInGrid = anchor.row >= 1 && anchor.row <= size;
+    const colInGrid = anchor.col >= 1 && anchor.col <= size;
+    if (rowInGrid && !colInGrid) return range(size).map((i) => `r${anchor.row}c${i + 1}`);
+    if (colInGrid && !rowInGrid) return range(size).map((i) => `r${i + 1}c${anchor.col}`);
+    return undefined;
+};
+
+/** Encode a sandwich's full row/column of cells back into its outside-the-grid anchor cell. */
+const sandwichAnchor = (cells: readonly CellId[], size: number): string | undefined => {
+    if (cells.length !== size) return undefined;
+    const coords = cells.map(parseGridCellId);
+    if (coords.some((c) => !c)) return undefined;
+    const pts = coords as { row: number; col: number }[];
+    const rows = new Set(pts.map((p) => p.row));
+    const cols = new Set(pts.map((p) => p.col));
+    if (rows.size === 1 && cols.size === size) return `R${pts[0].row + 1}C0`;
+    if (cols.size === 1 && rows.size === size) return `R0C${pts[0].col + 1}`;
+    return undefined;
+};
+
+/** Decode a littlekillersum anchor + direction into the diagonal run of in-grid cells it sums. */
+const littleKillerCellsFromAnchor = (
+    anchor: { row: number; col: number },
+    direction: string,
+    size: number,
+): CellId[] | undefined => {
+    const delta = DIAGONAL_DELTA[direction as keyof typeof DIAGONAL_DELTA];
+    if (!delta) return undefined;
+    const cells: CellId[] = [];
+    let row = anchor.row + delta.dr;
+    let col = anchor.col + delta.dc;
+    while (row >= 1 && row <= size && col >= 1 && col <= size) {
+        cells.push(`r${row}c${col}`);
+        row += delta.dr;
+        col += delta.dc;
+    }
+    return cells.length > 0 ? cells : undefined;
+};
+
+/** Encode a littlekillersum's diagonal run of cells back into its outside-the-grid anchor cell + direction. */
+const littleKillerAnchor = (
+    cells: readonly CellId[],
+): { cell: string; direction: "UL" | "UR" | "DL" | "DR" } | undefined => {
+    if (cells.length < 2) return undefined;
+    const coords = cells.map(parseGridCellId);
+    if (coords.some((c) => !c)) return undefined;
+    const pts = coords as { row: number; col: number }[];
+    const dr = pts[1].row - pts[0].row;
+    const dc = pts[1].col - pts[0].col;
+    if (Math.abs(dr) !== 1 || Math.abs(dc) !== 1) return undefined;
+    for (let i = 1; i < pts.length; i++) {
+        if (pts[i].row - pts[i - 1].row !== dr || pts[i].col - pts[i - 1].col !== dc) return undefined;
+    }
+    const direction = (Object.keys(DIAGONAL_DELTA) as (keyof typeof DIAGONAL_DELTA)[]).find(
+        (name) => DIAGONAL_DELTA[name].dr === dr && DIAGONAL_DELTA[name].dc === dc,
+    );
+    if (!direction) return undefined;
+    return { cell: `R${pts[0].row - dr + 1}C${pts[0].col - dc + 1}`, direction };
+};
+
+/**
  * f-puzzles.com shares a puzzle as a URL whose "load" query parameter is the
  * JSON, lz-string-compressed and base64-encoded (`?load=<payload>`) — not raw
  * JSON. Confirmed against a real share link; also confirmed the payload is
@@ -131,6 +278,8 @@ const slugify = (s: string): string => {
         .replace(/^-+|-+$/g, "");
     return slug || "puzzle";
 };
+
+const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
 
 const divisorsOf = (n: number): number[] => {
     const out: number[] = [];
@@ -277,7 +426,42 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         }
     }
 
+    // Diagonals are exactly the generic named-region + extraRegions mechanism
+    // `sudoku.ts` already exposes — no new definition needed, just synthesize
+    // the cell list and thread it through the same way jigsaw regions are.
+    const diagonalFlags: { key: "diagonal+" | "diagonal-"; name: string; cells: () => CellId[] }[] = [
+        { key: "diagonal+", name: "diagonal:bltr", cells: () => range(size).map((i) => `r${size - i}c${i + 1}`) },
+        { key: "diagonal-", name: "diagonal:tlbr", cells: () => range(size).map((i) => `r${i + 1}c${i + 1}`) },
+    ];
+    const extraDiagonalNames: string[] = [];
+    for (const d of diagonalFlags) {
+        if (src[d.key]) {
+            regions = { ...(regions ?? {}), [d.name]: d.cells() };
+            extraDiagonalNames.push(d.name);
+        }
+    }
+    if (extraDiagonalNames.length > 0 && isDefinitionRef(sudokuRef)) {
+        const existingExtra = Array.isArray(sudokuRef.extraRegions) ? (sudokuRef.extraRegions as string[]) : [];
+        sudokuRef = { ...sudokuRef, extraRegions: [...existingExtra, ...extraDiagonalNames] };
+    }
+
     const constraints: ConstraintSpec[] = [sudokuRef];
+
+    if (src.antiknight) constraints.push({ use: "antiknight" });
+    if (src.antiking) constraints.push({ use: "antiking" });
+    if (src.nonconsecutive) constraints.push({ use: "nonconsecutive" });
+    if (src.disjointgroups) {
+        // disjointgroups reads the geometry's own box:N selectors, so it's only
+        // honorable when those selectors actually match the puzzle's real boxes
+        // (not jigsaw, and not degenerate/disabled — see kanban #80).
+        const boxesUsable = !regions || Object.keys(regions).every((name) => name.startsWith("diagonal:"));
+        const probeGeometry = boxesUsable ? new GridGeometry(geometry) : undefined;
+        if (probeGeometry?.resolveRegion("box:0")) {
+            constraints.push({ use: "disjointgroups" });
+        } else {
+            warnings.push("disjointgroups: no uniform box layout to pair positions across; omitted");
+        }
+    }
 
     for (const clue of (src.killercage as FPuzzlesCellsClue[] | undefined) ?? []) {
         const cells = mapCells(clue.cells);
@@ -341,7 +525,10 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     importDot("kropkiDifference", src.difference as FPuzzlesCellsClue[] | undefined);
     importDot("kropkiRatio", src.ratio as FPuzzlesCellsClue[] | undefined);
 
-    const importParity = (use: "odd" | "even", clues: readonly FPuzzlesCellClue[] | undefined) => {
+    const importCellMarker = (
+        use: "odd" | "even" | "minimum" | "maximum",
+        clues: readonly FPuzzlesCellClue[] | undefined,
+    ) => {
         for (const clue of clues ?? []) {
             const raw = typeof clue === "string" ? clue : clue.cell;
             const cell = toProjectCell(raw);
@@ -352,8 +539,91 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             constraints.push({ use, cell });
         }
     };
-    importParity("odd", src.odd as FPuzzlesCellClue[] | undefined);
-    importParity("even", src.even as FPuzzlesCellClue[] | undefined);
+    importCellMarker("odd", src.odd as FPuzzlesCellClue[] | undefined);
+    importCellMarker("even", src.even as FPuzzlesCellClue[] | undefined);
+    importCellMarker("minimum", src.minimum as FPuzzlesCellClue[] | undefined);
+    importCellMarker("maximum", src.maximum as FPuzzlesCellClue[] | undefined);
+
+    for (const clue of (src.littlekillersum as FPuzzlesLittleKillerClue[] | undefined) ?? []) {
+        const anchor = outsideCellCoords(clue.cell);
+        const cells = anchor && littleKillerCellsFromAnchor(anchor, clue.direction, size);
+        if (!cells) {
+            warnings.push("littlekillersum with an unrecognized anchor cell or direction was skipped");
+            continue;
+        }
+        const sum = typeof clue.value === "string" ? Number(clue.value) : clue.value;
+        if (typeof sum !== "number" || !Number.isFinite(sum)) {
+            warnings.push("littlekillersum without a numeric sum was skipped");
+            continue;
+        }
+        constraints.push({ use: "killer", cells, sum, distinct: false });
+    }
+
+    for (const clue of (src.sandwichsum as FPuzzlesOutsideClue[] | undefined) ?? []) {
+        const anchor = outsideCellCoords(clue.cell);
+        const cells = anchor && sandwichCellsFromAnchor(anchor, size);
+        if (!cells) {
+            warnings.push("sandwichsum with an unrecognized anchor cell was skipped");
+            continue;
+        }
+        const sum = typeof clue.value === "string" ? Number(clue.value) : clue.value;
+        if (typeof sum !== "number" || !Number.isFinite(sum)) {
+            warnings.push("sandwichsum without a numeric sum was skipped");
+            continue;
+        }
+        constraints.push({ use: "sandwich", cells, sum });
+    }
+
+    for (const clue of (src.betweenline as FPuzzlesLinesClue[] | undefined) ?? []) {
+        for (const line of clue.lines ?? []) {
+            const cells = mapCells(line);
+            if (!cells || cells.length < 3) {
+                warnings.push("betweenline with an unrecognized cell id or too few cells was skipped");
+                continue;
+            }
+            constraints.push({ use: "betweenline", cells });
+        }
+    }
+
+    for (const clue of (src.palindrome as FPuzzlesLinesClue[] | undefined) ?? []) {
+        for (const line of clue.lines ?? []) {
+            const cells = mapCells(line);
+            if (!cells || cells.length < 2) {
+                warnings.push("palindrome line with an unrecognized cell id or too few cells was skipped");
+                continue;
+            }
+            constraints.push({ use: "palindrome", cells });
+        }
+    }
+
+    for (const clue of (src.clone as FPuzzlesCloneClue[] | undefined) ?? []) {
+        const cells = mapCells(clue.cells);
+        const cloneCells = mapCells(clue.cloneCells);
+        if (!cells || !cloneCells || cells.length !== cloneCells.length) {
+            warnings.push("clone with unrecognized or mismatched cells was skipped");
+            continue;
+        }
+        constraints.push({ use: "clone", cells, cloneCells });
+    }
+
+    for (const clue of (src.quadruple as FPuzzlesQuadrupleClue[] | undefined) ?? []) {
+        const cells = mapCells(clue.cells);
+        if (!cells || !Array.isArray(clue.values) || clue.values.length === 0) {
+            warnings.push("quadruple with unrecognized cells or no values was skipped");
+            continue;
+        }
+        constraints.push({ use: "quadruple", cells, values: clue.values });
+    }
+
+    for (const clue of (src.xv as FPuzzlesCellsClue[] | undefined) ?? []) {
+        const cells = mapCells(clue.cells);
+        const target = clue.value === "X" ? 10 : clue.value === "V" ? 5 : undefined;
+        if (!cells || cells.length !== 2 || target === undefined) {
+            warnings.push("xv marker with unrecognized cells or marker was skipped");
+            continue;
+        }
+        constraints.push({ use: "xv", cells, target });
+    }
 
     for (const key of Object.keys(src)) {
         if (!KNOWN_TOP_LEVEL_KEYS.has(key)) {
@@ -408,6 +678,9 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
     const warnings: string[] = [];
     const geometry = new GridGeometry(def.geometry);
 
+    const diagonalPlus = Object.keys(def.regions ?? {}).includes("diagonal:bltr");
+    const diagonalMinus = Object.keys(def.regions ?? {}).includes("diagonal:tlbr");
+
     const regionOf = new Map<CellId, number>();
     const jigsawEntries = Object.entries(def.regions ?? {}).filter(([name]) => name.startsWith("fbox:"));
     if (jigsawEntries.length > 0) {
@@ -448,6 +721,19 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
     const ratio: FPuzzlesCellsClue[] = [];
     const odd: FPuzzlesCellClue[] = [];
     const even: FPuzzlesCellClue[] = [];
+    const minimumClues: FPuzzlesCellClue[] = [];
+    const maximumClues: FPuzzlesCellClue[] = [];
+    const palindromeLines: FPuzzlesLinesClue[] = [];
+    const cloneClues: FPuzzlesCloneClue[] = [];
+    const quadrupleClues: FPuzzlesQuadrupleClue[] = [];
+    const xvClues: FPuzzlesCellsClue[] = [];
+    const littlekillersumClues: FPuzzlesLittleKillerClue[] = [];
+    const sandwichsumClues: FPuzzlesOutsideClue[] = [];
+    const betweenlineLines: FPuzzlesLinesClue[] = [];
+    let antiknightFlag = false;
+    let antikingFlag = false;
+    let nonconsecutiveFlag = false;
+    let disjointgroupsFlag = false;
 
     const exportCells = (cells: readonly CellId[]): string[] | undefined => {
         const out: string[] = [];
@@ -468,6 +754,18 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         if (use === "sudoku") continue; // implied by the grid + regions above
 
         if (use === "killer") {
+            if (params.distinct === false) {
+                const cellsParam = params.cells as CellId[];
+                const anchor = littleKillerAnchor(cellsParam);
+                if (!anchor || typeof params.sum !== "number") {
+                    warnings.push(
+                        "littlekillersum with cells that aren't a straight diagonal, or missing sum, was skipped",
+                    );
+                    continue;
+                }
+                littlekillersumClues.push({ cell: anchor.cell, direction: anchor.direction, value: String(params.sum) });
+                continue;
+            }
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
                 warnings.push("killer cage with a non-grid cell id was skipped");
@@ -509,6 +807,65 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 continue;
             }
             (use === "odd" ? odd : even).push({ cell });
+        } else if (use === "minimum" || use === "maximum") {
+            const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
+            const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
+            if (!cell) {
+                warnings.push(`${use} marker with a non-grid cell id was skipped`);
+                continue;
+            }
+            (use === "minimum" ? minimumClues : maximumClues).push({ cell });
+        } else if (use === "antiknight" || use === "antiking" || use === "nonconsecutive" || use === "disjointgroups") {
+            if (use === "antiknight") antiknightFlag = true;
+            if (use === "antiking") antikingFlag = true;
+            if (use === "nonconsecutive") nonconsecutiveFlag = true;
+            if (use === "disjointgroups") disjointgroupsFlag = true;
+        } else if (use === "palindrome") {
+            const cells = exportCells(params.cells as CellId[]);
+            if (!cells) {
+                warnings.push("palindrome with a non-grid cell id was skipped");
+                continue;
+            }
+            palindromeLines.push({ lines: [cells] });
+        } else if (use === "clone") {
+            const cells = exportCells(params.cells as CellId[]);
+            const cloneCells = exportCells(params.cloneCells as CellId[]);
+            if (!cells || !cloneCells) {
+                warnings.push("clone with a non-grid cell id was skipped");
+                continue;
+            }
+            cloneClues.push({ cells, cloneCells });
+        } else if (use === "quadruple") {
+            const cells = exportCells(params.cells as CellId[]);
+            const values = Array.isArray(params.values) ? (params.values as number[]) : undefined;
+            if (!cells || !values) {
+                warnings.push("quadruple with a non-grid cell id or missing values was skipped");
+                continue;
+            }
+            quadrupleClues.push({ cells, values });
+        } else if (use === "xv") {
+            const cells = exportCells(params.cells as CellId[]);
+            const marker = params.target === 10 ? "X" : params.target === 5 ? "V" : undefined;
+            if (!cells || !marker) {
+                warnings.push("xv marker with a non-grid cell id or unrepresentable target was skipped");
+                continue;
+            }
+            xvClues.push({ cells, value: marker });
+        } else if (use === "sandwich") {
+            const cellsParam = params.cells as CellId[];
+            const anchor = sandwichAnchor(cellsParam, size);
+            if (!anchor || typeof params.sum !== "number") {
+                warnings.push("sandwich with cells that aren't a full row/column, or missing sum, was skipped");
+                continue;
+            }
+            sandwichsumClues.push({ cell: anchor, value: String(params.sum) });
+        } else if (use === "betweenline") {
+            const cells = exportCells(params.cells as CellId[]);
+            if (!cells) {
+                warnings.push("betweenline with a non-grid cell id was skipped");
+                continue;
+            }
+            betweenlineLines.push({ lines: [cells] });
         } else {
             warnings.push(`constraint using definition "${use}" cannot be represented in f-puzzles export; dropped`);
         }
@@ -527,6 +884,21 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         ...(ratio.length > 0 ? { ratio } : {}),
         ...(odd.length > 0 ? { odd } : {}),
         ...(even.length > 0 ? { even } : {}),
+        ...(diagonalPlus ? { "diagonal+": true } : {}),
+        ...(diagonalMinus ? { "diagonal-": true } : {}),
+        ...(antiknightFlag ? { antiknight: true } : {}),
+        ...(antikingFlag ? { antiking: true } : {}),
+        ...(nonconsecutiveFlag ? { nonconsecutive: true } : {}),
+        ...(disjointgroupsFlag ? { disjointgroups: true } : {}),
+        ...(palindromeLines.length > 0 ? { palindrome: palindromeLines } : {}),
+        ...(cloneClues.length > 0 ? { clone: cloneClues } : {}),
+        ...(quadrupleClues.length > 0 ? { quadruple: quadrupleClues } : {}),
+        ...(minimumClues.length > 0 ? { minimum: minimumClues } : {}),
+        ...(maximumClues.length > 0 ? { maximum: maximumClues } : {}),
+        ...(xvClues.length > 0 ? { xv: xvClues } : {}),
+        ...(littlekillersumClues.length > 0 ? { littlekillersum: littlekillersumClues } : {}),
+        ...(sandwichsumClues.length > 0 ? { sandwichsum: sandwichsumClues } : {}),
+        ...(betweenlineLines.length > 0 ? { betweenline: betweenlineLines } : {}),
     };
 
     if (def.solution) {

@@ -7,6 +7,7 @@
  */
 
 import type { ConstraintDefinition, DefinitionOutput } from "@/definitions/types.ts";
+import type { VisualObject } from "@/runtime/puzzle.ts";
 
 export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const includeBoxes = params.boxes !== false;
@@ -18,11 +19,20 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
         return false;
     });
 
+    const objects: VisualObject[] = [];
     for (const sel of extraRegions) {
-        if (!ctx.regions[sel] && !ctx.geometry.resolveRegion(sel)) {
+        const cells = ctx.regions[sel] ?? ctx.geometry.resolveRegion(sel);
+        if (!cells) {
             return new Error(`sudoku: unknown extra region "${sel}"`);
         }
         selectors.push(sel);
+        // "diagonal:*" is this project's naming convention for the two main
+        // diagonals (see fpuzzles.ts's importer and kitchen_sink.ts) — draw the
+        // line the same way a thermometer/palindrome draws its path, since
+        // nothing else would otherwise show this region on the board at all.
+        if (sel.startsWith("diagonal:")) {
+            objects.push({ kind: "path", cells: [...cells], style: { stroke: "var(--diagonal)", strokeWidth: 0.12, z: 1 } });
+        }
     }
 
     return {
@@ -30,5 +40,6 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
             expr: ["allDifferent", ["cells", sel]],
             label: `${sel} all different`,
         })),
+        objects,
     };
 };

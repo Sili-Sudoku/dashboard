@@ -50,7 +50,7 @@ export type Shape =
     | { kind: "polygon"; points: Point[]; style: ResolvedStyle }
     | { kind: "circle"; cx: number; cy: number; r: number; style: ResolvedStyle }
     | { kind: "rect"; x: number; y: number; w: number; h: number; style: ResolvedStyle }
-    | { kind: "text"; x: number; y: number; text: string; fontSize: number; style: ResolvedStyle }
+    | { kind: "text"; x: number; y: number; text: string; fontSize: number; bold?: boolean; style: ResolvedStyle }
     | { kind: "arrowhead"; at: Point; angle: number; size: number; style: ResolvedStyle }
     | { kind: "cage"; segments: [Point, Point][]; label?: { x: number; y: number; text: string }; style: ResolvedStyle };
 
@@ -199,7 +199,7 @@ export const describeObject = (obj: VisualObject, geometry: Geometry, cellSize: 
         case "text": {
             const p = scalePoint(resolvePointRef(obj.at, geometry), cellSize);
             const fontSize = (obj.style?.fontSize ?? 0.3) * cellSize;
-            return [{ kind: "text", x: p.x, y: p.y, text: obj.text, fontSize, style }];
+            return [{ kind: "text", x: p.x, y: p.y, text: obj.text, fontSize, bold: obj.style?.bold ?? false, style }];
         }
         case "region": {
             return obj.cells.map((cell) => {

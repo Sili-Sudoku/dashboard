@@ -1,7 +1,10 @@
 /**
  * Odd/even markers: the cell's value must be odd (or even). Computed against
  * the puzzle's actual domain rather than assuming 1-9, so it works for any
- * domain size.
+ * domain size. Drawn the conventional way: a small gray filled circle (odd)
+ * or square (even) under the digit — behind it in z-order already, since the
+ * renderer always draws digits after constraint shapes, so this doesn't need
+ * its own z tweak to stay legible.
  */
 
 import {
@@ -12,7 +15,8 @@ import {
     type EmittedConstraint,
 } from "@/definitions/types.ts";
 import type { Expr } from "@/runtime/expression.ts";
-import type { CellId } from "@/runtime/geometry.ts";
+import type { CellId, Geometry } from "@/runtime/geometry.ts";
+import type { VisualObject } from "@/runtime/puzzle.ts";
 
 const resolveCells = (params: Readonly<Record<string, unknown>>, ctx: CompileContext): CellId[] | Error => {
     if (typeof params.cell === "string") {
@@ -21,6 +25,15 @@ const resolveCells = (params: Readonly<Record<string, unknown>>, ctx: CompileCon
     }
     if (params.cells !== undefined) return requireCellList(params, "cells", ctx);
     return new Error('expected a "cell" or "cells" parameter');
+};
+
+const MARKER_STYLE = { fill: "var(--line)", strokeWidth: 0 } as const;
+
+const markerFor = (parity: "odd" | "even", cell: CellId, geometry: Geometry): VisualObject => {
+    if (parity === "odd") return { kind: "circle", at: cell, r: 0.28, style: MARKER_STYLE };
+    const c = geometry.center(cell);
+    const half = 0.3;
+    return { kind: "rect", at: { x: c.x - half, y: c.y - half }, w: half * 2, h: half * 2, style: MARKER_STYLE };
 };
 
 const parityDefinition = (parity: "odd" | "even"): ConstraintDefinition =>
@@ -35,7 +48,10 @@ const parityDefinition = (parity: "odd" | "even"): ConstraintDefinition =>
             expr: ["or", ...matching.map((v): Expr => ["==", ["value", cell], v])] as Expr,
             label: `${cell} is ${parity}`,
         }));
-        return { constraints };
+
+        const objects: VisualObject[] = cells.map((cell) => markerFor(parity, cell, ctx.geometry));
+
+        return { constraints, objects };
     };
 
 export const odd = parityDefinition("odd");

@@ -26,6 +26,9 @@
     --thermo: #9aa4c8;
     --cage: #4a53a8;
     --arrow: #333850;
+    --palindrome: #c572b7;
+    --betweenline: #5861bb;
+    --diagonal: #b9bfe0;
 
     /* Code/JSON preview blocks (author SDK panel, play-page JSON view) stay a
        fixed dark "terminal" look in both themes — deliberately not riding on
@@ -66,6 +69,9 @@
     --thermo: #6c74a8;
     --cage: #a3aaf5;
     --arrow: #c7cadf;
+    --palindrome: #d98fcb;
+    --betweenline: #8b93ef;
+    --diagonal: #40436b;
 
     --code-bg: #0a0b14;
     --code-ink: #e9ecff;
