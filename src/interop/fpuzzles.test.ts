@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { encodeFPuzzlesShareLink, exportFPuzzles, importFPuzzles, type FPuzzlesExport } from "@/interop/fpuzzles.ts";
+import {
+    encodeFPuzzlesShareLink,
+    encodeSudokuPadShareLink,
+    exportFPuzzles,
+    importFPuzzles,
+    type FPuzzlesExport,
+} from "@/interop/fpuzzles.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -256,6 +262,28 @@ describe("exportFPuzzles", () => {
         if (reimported instanceof Error) throw reimported;
         expect(reimported.puzzle.metadata.title).toBe("Round Trip");
         expect(reimported.puzzle.geometry).toEqual({ ...puzzle.geometry, boxWidth: 2, boxHeight: 2 });
+    });
+
+    it("encodes a SudokuPad share link carrying the same payload as the f-puzzles.com link", () => {
+        const puzzle: PuzzleDefinition = {
+            version: 1,
+            metadata: { id: "p", title: "Round Trip" },
+            geometry: { type: "grid", width: 4, height: 4 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [{ use: "sudoku" }],
+        };
+        const exported = exportFPuzzles(puzzle);
+        if (exported instanceof Error) throw exported;
+
+        const fPuzzlesLink = encodeFPuzzlesShareLink(exported.data);
+        const sudokuPadLink = encodeSudokuPadShareLink(exported.data);
+        expect(sudokuPadLink).toMatch(/^https:\/\/sudokupad\.app\/fpuzzles/);
+
+        // Same lz-string payload, just a different URL wrapper -- decode both
+        // and confirm they carry identical data.
+        const fPuzzlesPayload = fPuzzlesLink.slice(fPuzzlesLink.indexOf("load=") + "load=".length);
+        const sudokuPadPayload = sudokuPadLink.slice("https://sudokupad.app/fpuzzles".length);
+        expect(sudokuPadPayload).toBe(fPuzzlesPayload);
     });
 });
 

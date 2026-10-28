@@ -364,7 +364,8 @@
     gap: 0.5rem;
 }
 
-.author-dialog-actions button:disabled {
+.author-dialog-actions button:disabled,
+.author-interop button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

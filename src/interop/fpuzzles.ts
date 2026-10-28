@@ -917,3 +917,13 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
  *  `compressToBase64`, dropped into the same `?load=` query param. */
 export const encodeFPuzzlesShareLink = (data: FPuzzlesExport): string =>
     `https://f-puzzles.com/?load=${compressToBase64(JSON.stringify(data))}`;
+
+/** SudokuPad reads the same f-puzzles JSON payload, lz-string-compressed the
+ *  same way, but via its own URL scheme (`sudokupad.app/fpuzzles<data>`,
+ *  payload appended directly to the path rather than a `?load=` query param)
+ *  rather than round-tripping through f-puzzles.com. Unverified against the
+ *  live site -- sudokupad.app isn't on this sandbox's network allowlist --
+ *  so this should be sanity-checked against a real SudokuPad load before
+ *  relying on it. */
+export const encodeSudokuPadShareLink = (data: FPuzzlesExport): string =>
+    `https://sudokupad.app/fpuzzles${compressToBase64(JSON.stringify(data))}`;

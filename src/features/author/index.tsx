@@ -9,10 +9,11 @@ import { solve, type SolveResult } from "@/runtime/solver.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
-import { encodeFPuzzlesShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
+import { encodeFPuzzlesShareLink, encodeSudokuPadShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
 import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker } from "@/interop/sudokumaker.ts";
 import { usePageHeader } from "@/app/page_header.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
+import sudokuPadIcon from "./sudokupad-icon.png";
 
 import "./style.css";
 
@@ -25,6 +26,8 @@ const FPuzzlesIcon = () => (
 const SudokuMakerIcon = () => (
     <img className="author-icon" src={sudokuMakerIcon} alt="" width={16} height={16} />
 );
+
+const SudokuPadIcon = () => <img className="author-icon" src={sudokuPadIcon} alt="" width={16} height={16} />;
 
 // Number inputs change value on scroll-wheel while focused (standard browser behavior) —
 // harmless normally, but these dim fields sit right above the page's own scrollable
@@ -259,6 +262,22 @@ export default function Author() {
         );
     };
 
+    const handleExportSudokuPad = () => {
+        if (!("parsed" in result) || !result.parsed) return;
+        const exported = exportFPuzzles(result.parsed);
+        if (exported instanceof Error) {
+            setInteropNotice(`Export failed: ${exported.message}`);
+            return;
+        }
+        const link = encodeSudokuPadShareLink(exported.data);
+        window.open(link, "_blank", "noopener,noreferrer");
+        setInteropNotice(
+            exported.warnings.length > 0
+                ? `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
+                : "Opened SudokuPad share link in a new tab.",
+        );
+    };
+
     const runImportSudokuMaker = (pasted: string) => {
         const imported = importSudokuMaker(pasted);
         if (imported instanceof Error) {
@@ -460,6 +479,29 @@ export default function Author() {
                                     onClick={handleExportSudokuMaker}
                                     aria-label="Export to SudokuMaker (opens in a new tab)"
                                     title="Export to SudokuMaker (opens in a new tab)"
+                                >
+                                    <ExternalLink size={15} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="author-interop-group">
+                            <span className="author-format-badge" aria-hidden="true">
+                                <SudokuPadIcon />
+                            </span>
+                            <button
+                                className="icon-button secondary"
+                                disabled
+                                aria-label="Import from SudokuPad (not supported yet)"
+                                title="Import from SudokuPad (not supported yet)"
+                            >
+                                <Import size={15} />
+                            </button>
+                            {"parsed" in result && result.parsed && (
+                                <button
+                                    className="icon-button secondary"
+                                    onClick={handleExportSudokuPad}
+                                    aria-label="Export to SudokuPad (opens in a new tab)"
+                                    title="Export to SudokuPad (opens in a new tab)"
                                 >
                                     <ExternalLink size={15} />
                                 </button>
