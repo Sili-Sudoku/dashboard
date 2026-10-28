@@ -54,6 +54,17 @@ describe("GridGeometry", () => {
         expect(small.resolveRegion("box:1")).toEqual(["r1c4", "r1c5", "r1c6", "r2c4", "r2c5", "r2c6"]);
     });
 
+    it("disables box regions entirely for a non-perfect-square default size", () => {
+        const nonSquare = createGeometry({ type: "grid", width: 6, height: 6 });
+        expect(nonSquare.regionSelectors.some((s) => s.startsWith("box:"))).toBe(false);
+        expect(nonSquare.resolveRegion("box:0")).toBeUndefined();
+
+        // Defaulting only one axis onto a non-square size is just as degenerate,
+        // even if the other axis was given explicitly.
+        const partial = createGeometry({ type: "grid", width: 6, height: 6, boxWidth: 3 });
+        expect(partial.regionSelectors.some((s) => s.startsWith("box:"))).toBe(false);
+    });
+
     it("rejects malformed specs and unknown cells", () => {
         expect(() => new GridGeometry({ type: "grid", width: 0, height: 9 })).toThrow();
         expect(() => geo.center("r99c99")).toThrow();

@@ -105,6 +105,15 @@ export class GridGeometry implements Geometry {
     readonly cells: readonly CellId[];
     readonly regionSelectors: readonly string[];
 
+    /**
+     * False when a box size had to be defaulted (not given in the spec) on a
+     * dimension that isn't a perfect square: there is no natural box subdivision
+     * then, and defaulting to the whole dimension would make "box:0" the entire
+     * grid, turning its allDifferent into a pigeonhole-guaranteed violation. In
+     * that case no "box:" selectors are emitted at all, rather than one bad one.
+     */
+    private readonly boxesEnabled: boolean;
+
     private readonly cellSet: Set<CellId>;
 
     constructor(spec: GridGeometrySpec) {
@@ -117,8 +126,11 @@ export class GridGeometry implements Geometry {
 
         this.width = spec.width;
         this.height = spec.height;
+        const widthHasDefaultBox = spec.boxWidth !== undefined || isPerfectSquare(spec.width);
+        const heightHasDefaultBox = spec.boxHeight !== undefined || isPerfectSquare(spec.height);
         this.boxWidth = spec.boxWidth ?? defaultBox(spec.width);
         this.boxHeight = spec.boxHeight ?? defaultBox(spec.height);
+        this.boxesEnabled = widthHasDefaultBox && heightHasDefaultBox;
 
         const cells: CellId[] = [];
         for (let row = 0; row < this.height; row++) {
@@ -132,10 +144,12 @@ export class GridGeometry implements Geometry {
         const selectors: string[] = ["all"];
         for (let r = 0; r < this.height; r++) selectors.push(`row:${r}`);
         for (let c = 0; c < this.width; c++) selectors.push(`col:${c}`);
-        const boxesAcross = Math.ceil(this.width / this.boxWidth);
-        const boxesDown = Math.ceil(this.height / this.boxHeight);
-        const boxCount = boxesAcross * boxesDown;
-        for (let b = 0; b < boxCount; b++) selectors.push(`box:${b}`);
+        if (this.boxesEnabled) {
+            const boxesAcross = Math.ceil(this.width / this.boxWidth);
+            const boxesDown = Math.ceil(this.height / this.boxHeight);
+            const boxCount = boxesAcross * boxesDown;
+            for (let b = 0; b < boxCount; b++) selectors.push(`box:${b}`);
+        }
         this.regionSelectors = selectors;
     }
 
@@ -207,6 +221,7 @@ export class GridGeometry implements Geometry {
             return range(this.height).map((row) => GridCellId(row, index));
         }
         if (kind === "box") {
+            if (!this.boxesEnabled) return undefined;
             const boxesAcross = Math.ceil(this.width / this.boxWidth);
             const boxesDown = Math.ceil(this.height / this.boxHeight);
             if (index >= boxesAcross * boxesDown) return undefined;
@@ -248,6 +263,11 @@ export const createGeometry = (spec: GridGeometrySpec): Geometry => {
         default:
             throw new Error(`unknown geometry type: ${(spec as { type: string }).type}`);
     }
+};
+
+const isPerfectSquare = (n: number): boolean => {
+    const root = Math.round(Math.sqrt(n));
+    return root * root === n;
 };
 
 const defaultBox = (n: number): number => {
