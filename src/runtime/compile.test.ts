@@ -104,6 +104,32 @@ describe("compilePuzzle", () => {
         expect(result).not.toBeInstanceOf(Error);
     });
 
+    it("rejects fog.hidden referencing an unknown cell", () => {
+        const result = compilePuzzle({
+            ...base,
+            solution: { r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 },
+            fog: { hidden: ["r9c9"] },
+        });
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toMatch(/fog.hidden references unknown cell/);
+    });
+
+    it("rejects fog declared without a solution", () => {
+        const result = compilePuzzle({ ...base, fog: { hidden: ["r1c1"] } });
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toMatch(/fog but has no solution/);
+    });
+
+    it("passes a valid fog declaration through to the compiled puzzle", () => {
+        const result = compilePuzzle({
+            ...base,
+            solution: { r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 },
+            fog: { hidden: ["r1c2"] },
+        });
+        if (result instanceof Error) throw result;
+        expect(result.fog).toEqual({ hidden: ["r1c2"] });
+    });
+
     it("compiles with an empty registry when no definitions are referenced", () => {
         const result = compilePuzzle({ ...base, constraints: [["allDifferent", ["cells", "col:0"]]] }, {});
         expect(result).not.toBeInstanceOf(Error);

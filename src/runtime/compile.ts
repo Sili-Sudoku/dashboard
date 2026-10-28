@@ -76,6 +76,15 @@ export const compilePuzzle = (
         }
     }
 
+    if (def.fog) {
+        if (!def.solution) {
+            return new Error("puzzle declares fog but has no solution (fog needs one to know what counts as solved)");
+        }
+        for (const cell of def.fog.hidden) {
+            if (!geometry.has(cell)) return new Error(`fog.hidden references unknown cell "${cell}"`);
+        }
+    }
+
     const objectError = validateObjects(def.objects ?? [], geometry);
     if (objectError) return objectError;
 
@@ -138,6 +147,7 @@ export const compilePuzzle = (
         domain,
         regions,
         givens,
+        fog: def.fog,
         objects,
         constraints,
         solution: def.solution,

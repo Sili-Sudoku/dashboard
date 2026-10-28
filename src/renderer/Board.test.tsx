@@ -27,6 +27,7 @@ const bigScene = (n: number, cellSize = 20): Scene => {
                 notes: [],
                 centerNotes: [],
                 flagged: false,
+                hidden: false,
             });
         }
     }

@@ -14,6 +14,7 @@ import type { CellId, Direction, Geometry } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
+import { hiddenCells } from "@/runtime/fog.ts";
 
 export interface CellState {
     value: number | null;
@@ -118,6 +119,22 @@ export class PuzzleSession {
         return this.board.get(cell) ?? EMPTY_CELL;
     }
 
+    /**
+     * What to actually show the player for `cell` — as opposed to
+     * `cellState`/`valueOf`, which always give a given priority since that's
+     * what a given *is* for evaluation/fog-reveal purposes. While a given is
+     * still hidden by fog, though, the player can't tell it apart from a
+     * hidden empty cell, so it must behave like one on screen: show (and
+     * accept) their own guess instead, deferring to the real given only once
+     * it's revealed.
+     */
+    displayState(cell: CellId): CellState {
+        if (this.isGiven(cell) && this.getHiddenCells().has(cell)) {
+            return this.board.get(cell) ?? EMPTY_CELL;
+        }
+        return this.cellState(cell);
+    }
+
     valueOf = (cell: CellId): number | null => {
         const given = this.puzzle.givens[cell];
         if (given !== undefined) return given;
@@ -135,6 +152,11 @@ export class PuzzleSession {
     /** Cells currently flagged by `checkNotesOnLeave` (remaining notes missing the solution digit). */
     getFlaggedCells(): ReadonlySet<CellId> {
         return this.flaggedCells;
+    }
+
+    /** Cells still hidden by fog (see `runtime/fog.ts`) — empty for puzzles without `fog`. */
+    getHiddenCells(): ReadonlySet<CellId> {
+        return hiddenCells(this.puzzle, this.valueOf);
     }
 
     get evaluation(): EvaluationResult {
@@ -267,7 +289,11 @@ export class PuzzleSession {
 
     private targets(): CellId[] {
         const cells = this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : [];
-        return cells.filter((c) => !this.isGiven(c));
+        // A given is normally immutable, but while it's still hidden by fog
+        // the player has no way to tell it apart from a hidden empty cell —
+        // so it stays editable, same as one, until it's revealed.
+        const hidden = this.getHiddenCells();
+        return cells.filter((c) => !this.isGiven(c) || hidden.has(c));
     }
 
     /** Applies a plain digit press according to the active `inputMode`. */
@@ -415,17 +441,30 @@ export class PuzzleSession {
 
     private applyProgress(snapshot: ProgressSnapshot): void {
         this.board.clear();
-        for (const [cell, entry] of Object.entries(snapshot)) {
-            if (!this.geometry.has(cell) || this.isGiven(cell)) continue;
+        const setEntry = (cell: CellId, entry: ProgressSnapshot[CellId]): void => {
             if (entry.value !== undefined && this.puzzle.domain.includes(entry.value)) {
                 this.board.set(cell, { value: entry.value, notes: [], centerNotes: [] });
-                continue;
+                return;
             }
             const notes = entry.notes ? [...entry.notes].sort((a, b) => a - b) : [];
             const centerNotes = entry.centerNotes ? [...entry.centerNotes].sort((a, b) => a - b) : [];
             if (notes.length > 0 || centerNotes.length > 0) {
                 this.board.set(cell, { value: null, notes, centerNotes });
             }
+        };
+
+        const entries = Object.entries(snapshot).filter(([cell]) => this.geometry.has(cell));
+        for (const [cell, entry] of entries) {
+            if (!this.isGiven(cell)) setEntry(cell, entry);
+        }
+        // A given's own saved guess only matters if it was still hidden by
+        // fog when saved — restore it the same way `targets()` lets it be
+        // entered in the first place. Computed after the pass above since
+        // the reveal rule only looks at the real board/given values, never
+        // at a given cell's own (not-yet-restored) entry anyway.
+        const hidden = hiddenCells(this.puzzle, this.valueOf);
+        for (const [cell, entry] of entries) {
+            if (this.isGiven(cell) && hidden.has(cell)) setEntry(cell, entry);
         }
     }
 

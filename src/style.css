@@ -21,6 +21,8 @@
     --satisfied-tint: #e7f7ec;
     --satisfied-border: #b9e4c6;
     --incomplete: #b9803a;
+    --fog: #d7d9e8;
+    --fog-line: #aeb3d1;
 
     /* Constraint-graphic palette referenced by definition-authored objects. */
     --thermo: #9aa4c8;
@@ -65,6 +67,8 @@
     --satisfied-tint: #1d3327;
     --satisfied-border: #2f5c3f;
     --incomplete: #e0a858;
+    --fog: #2b2d42;
+    --fog-line: #454875;
 
     --thermo: #6c74a8;
     --cage: #a3aaf5;

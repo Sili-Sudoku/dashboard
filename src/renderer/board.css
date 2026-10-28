@@ -142,6 +142,13 @@
     fill: var(--invalid);
 }
 
+.board .cell-fog {
+    fill: var(--fog);
+    stroke: var(--fog-line);
+    stroke-width: 1;
+    pointer-events: none;
+}
+
 .board .cell-ring {
     fill: none;
     pointer-events: none;

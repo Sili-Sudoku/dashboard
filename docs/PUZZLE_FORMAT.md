@@ -30,6 +30,8 @@ renderer, deterministic, reasonably compact, and versioned by the top-level
 
   "givens": { "r1c1": 5, "r1c5": 7 },              // optional fixed clues
 
+  "fog": { "hidden": ["r7c7", "r7c8"] },           // optional, requires "solution"
+
   "objects": [ /* visual objects, see below */ ],   // optional
 
   "constraints": [ /* see below */ ],               // required (may be empty)
@@ -43,6 +45,26 @@ renderer, deterministic, reasonably compact, and versioned by the top-level
 ### Cell ids
 
 Grid cells are `r<row>c<col>`, 1-indexed, row-major. `r1c1` is top-left.
+
+### Fog
+
+`fog.hidden` lists cells that start hidden and reveal progressively as the
+player solves correctly — requiring `solution` to be present, since
+"correct" is defined against it. A hidden cell clears once the player fills
+it in correctly themselves, or once an orthogonally adjacent cell is known
+to hold its correct value *because of the player's own progress* — a
+pre-existing given just sitting there from the start doesn't count on its
+own, or every hidden cell touching one would reveal instantly with no
+player action. Fog only affects rendering (what's drawn over a hidden cell's
+given/clue and any constraint graphics) — constraints evaluate the real
+board state as usual regardless of fog, and the player's own entry in a
+still-fogged cell stays visible.
+
+A hidden *given* stays editable, exactly like an empty cell, for as long as
+it's hidden — the player has no way to tell it apart from a hidden empty
+cell, so normal givens' usual lock stays suspended until it's revealed. Once
+revealed it locks and displays the real clue as usual, and any guess typed
+underneath it is discarded.
 
 ### Region selectors
 

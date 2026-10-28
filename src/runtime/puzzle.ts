@@ -84,6 +84,12 @@ export interface PuzzleDefinition {
     regions?: Readonly<Record<string, readonly CellId[]>>;
     /** Fixed clues: cell id -> value. */
     givens?: Readonly<Record<CellId, number>>;
+    /**
+     * Cells hidden at the start, revealed as the player (or an adjacent cell)
+     * solves them correctly — see `src/runtime/fog.ts`. Requires `solution`,
+     * since "correctly" is defined against it.
+     */
+    fog?: { hidden: readonly CellId[] };
     /** Author-declared visual objects (definitions may add more). */
     objects?: readonly VisualObject[];
     /** Constraints: primitive expressions and/or definition references. */
@@ -114,6 +120,7 @@ export interface CompiledPuzzle {
     domain: readonly number[];
     regions: Readonly<Record<string, readonly CellId[]>>;
     givens: Readonly<Record<CellId, number>>;
+    fog?: { hidden: readonly CellId[] };
     objects: readonly VisualObject[];
     constraints: readonly CompiledConstraint[];
     solution?: Readonly<Record<CellId, number>>;

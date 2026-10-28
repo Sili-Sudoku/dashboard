@@ -405,3 +405,69 @@ describe("PuzzleSession — checkNotesOnLeave", () => {
         expect(session.getFlaggedCells().size).toBe(0);
     });
 });
+
+describe("PuzzleSession — fog", () => {
+    // r1c1 (given, visible) - r1c2 (empty) / r2c1 (empty) - r2c2 (given, hidden).
+    // r2c2 only reveals once a player-filled neighbor (r1c2 or r2c1) is correct.
+    const compiledWithFog = (): CompiledPuzzle => {
+        const result = compilePuzzle({
+            version: 1,
+            metadata: { id: "fog-session", title: "fog-session" },
+            geometry: { type: "grid", width: 2, height: 2 },
+            domain: { values: [1, 2] },
+            givens: { r1c1: 1, r2c2: 1 },
+            solution: { r1c1: 1, r1c2: 2, r2c1: 2, r2c2: 1 },
+            fog: { hidden: ["r2c2"] },
+            constraints: [],
+        });
+        if (result instanceof Error) throw result;
+        return result;
+    };
+
+    it("lets the player type a guess into a still-hidden given, without disturbing its real value", () => {
+        const session = new PuzzleSession(compiledWithFog());
+        expect(session.getHiddenCells()).toEqual(new Set(["r2c2"]));
+
+        session.select("r2c2");
+        session.input(2); // a guess — wrong, as it happens (the real given is 1)
+
+        // Shown to the player: their own guess.
+        expect(session.displayState("r2c2").value).toBe(2);
+        // What actually counts for evaluation/fog purposes: the real given, untouched.
+        expect(session.valueOf("r2c2")).toBe(1);
+    });
+
+    it("also accepts notes on a still-hidden given, shown via displayState", () => {
+        const session = new PuzzleSession(compiledWithFog());
+        session.select("r2c2");
+        session.toggleCornerNote(2);
+        expect(session.displayState("r2c2").notes).toEqual([2]);
+    });
+
+    it("locks back to the real given and drops the player's guess once revealed", () => {
+        const session = new PuzzleSession(compiledWithFog());
+        session.select("r2c2");
+        session.input(2); // guess, while still hidden
+
+        session.select("r1c2");
+        session.input(2); // correct — reveals r2c2 by propagation
+        expect(session.getHiddenCells()).toEqual(new Set());
+
+        // Now shown as the real given, not the earlier guess.
+        expect(session.displayState("r2c2").value).toBe(1);
+
+        // And immutable again, like any other revealed given.
+        session.select("r2c2");
+        session.input(1);
+        expect(session.valueOf("r2c2")).toBe(1);
+    });
+
+    it("round-trips a guess in a still-hidden given through a progress snapshot", () => {
+        const session = new PuzzleSession(compiledWithFog());
+        session.select("r2c2");
+        session.input(2);
+
+        const restored = new PuzzleSession(compiledWithFog(), { initialProgress: session.toProgress() });
+        expect(restored.displayState("r2c2").value).toBe(2);
+    });
+});

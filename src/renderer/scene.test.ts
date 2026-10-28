@@ -53,6 +53,7 @@ describe("buildScene", () => {
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(),
             cursor: null,
+            hiddenCells: new Set(),
             evaluation: evaluate(puzzle, () => null),
         });
         expect(scene.cells).toHaveLength(81);
@@ -71,6 +72,7 @@ describe("buildScene", () => {
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(),
             cursor: null,
+            hiddenCells: new Set(),
             evaluation: evaluate(puzzle, lookupFromRecord(broken)),
         });
         expect(scene.cells.some((c) => c.tone === "violated")).toBe(true);
@@ -87,6 +89,7 @@ describe("buildScene", () => {
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(["r1c8"]),
             cursor: "r1c8",
+            hiddenCells: new Set(),
             evaluation: evaluate(puzzle, lookupFromRecord(broken)),
         });
         const cell = scene.cells.find((c) => c.cell === "r1c8");
@@ -104,6 +107,7 @@ describe("buildScene", () => {
             isGiven: (c) => c in puzzle.givens,
             selection: new Set(),
             cursor: null,
+            hiddenCells: new Set(),
             evaluation: evaluate(puzzle, () => null),
         });
         const cell = scene.cells.find((c) => c.cell === "r1c1");
@@ -121,9 +125,38 @@ describe("buildScene", () => {
             isGiven: () => false,
             selection: new Set(),
             cursor: null,
+            hiddenCells: new Set(),
             evaluation: evaluate(puzzle, () => null),
         });
         const zs = scene.shapes.map((s) => s.style.z);
         expect([...zs]).toEqual([...zs].sort((a, b) => a - b));
+    });
+
+    it("trusts valueOf as already fog-aware, and only styles given digits once revealed", () => {
+        // This module does no masking of its own — PuzzleSession.displayState
+        // is responsible for ever passing in a hidden given's real value, so
+        // here r1c1 (hidden, given) simulates the player's own guess
+        // underneath it (5), not the puzzle's actual clue.
+        const scene = buildScene({
+            puzzle,
+            valueOf: (c) => (c === "r1c1" ? 5 : c === "r1c3" ? 9 : null),
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set(),
+            isGiven: (c) => c in puzzle.givens,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(["r1c1", "r1c3"]),
+            evaluation: evaluate(puzzle, () => null),
+        });
+        // Value passes straight through, whatever it is.
+        expect(scene.cells.find((c) => c.cell === "r1c1")?.value).toBe(5);
+        expect(scene.cells.find((c) => c.cell === "r1c3")?.value).toBe(9);
+        // r1c1 is structurally given, but still hidden — rendered as a plain
+        // entry (not given-digit styling) until it's actually revealed.
+        expect(scene.cells.find((c) => c.cell === "r1c1")?.given).toBe(false);
+        // unlisted cells are unaffected either way.
+        expect(scene.cells.find((c) => c.cell === "r1c2")?.hidden).toBe(false);
+        expect(scene.cells.find((c) => c.cell === "r1c1")?.hidden).toBe(true);
     });
 });

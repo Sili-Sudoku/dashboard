@@ -53,14 +53,15 @@ export default function PuzzlePlayer({ puzzle }: Props) {
         () =>
             buildScene({
                 puzzle,
-                valueOf: session.valueOf,
-                notesOf: (c) => session.cellState(c).notes,
-                centerNotesOf: (c) => session.cellState(c).centerNotes,
+                valueOf: (c) => session.displayState(c).value,
+                notesOf: (c) => session.displayState(c).notes,
+                centerNotesOf: (c) => session.displayState(c).centerNotes,
                 flaggedCells: session.getFlaggedCells(),
                 isGiven: (c) => session.isGiven(c),
                 selection: session.getSelection(),
                 cursor: session.getCursor(),
                 evaluation: session.evaluation,
+                hiddenCells: session.getHiddenCells(),
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps

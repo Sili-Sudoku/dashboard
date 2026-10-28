@@ -334,6 +334,26 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 ))}
             </g>
 
+            {/* fog: an opaque cover per still-hidden cell, painted after the grid
+                lines and constraint graphics so neither leaks through — simpler
+                than making every shape kind individually cell-aware. Layered
+                before the ring/digit groups below so the player's own selection
+                and typing (see scene.ts) still show up on top of the fog. */}
+            <g className="fog" pointerEvents="none">
+                {visibleScene.cells
+                    .filter((c) => c.hidden)
+                    .map((c) => (
+                        <rect
+                            key={`fog-${c.cell}`}
+                            className="cell-fog"
+                            x={c.x}
+                            y={c.y}
+                            width={c.size}
+                            height={c.size}
+                        />
+                    ))}
+            </g>
+
             {/* selection/cursor ring — layered above the tone fill so a click still
                 shows feedback even on a violated/invalid cell */}
             <g className="rings" pointerEvents="none">

@@ -14,15 +14,24 @@ import type { EvaluationResult } from "@/runtime/evaluate.ts";
 
 export interface SceneInput {
     puzzle: CompiledPuzzle;
+    /**
+     * Expected to already be fog-aware (see `PuzzleSession.displayState`):
+     * for a hidden given, this must be the player's own entry, if any — not
+     * the given's real value — since this module makes no further attempt
+     * to mask it.
+     */
     valueOf: (cell: CellId) => number | null;
     notesOf: (cell: CellId) => readonly number[];
     centerNotesOf: (cell: CellId) => readonly number[];
     /** Cells flagged by PuzzleSession.checkNotesOnLeave (a bad note elimination). */
     flaggedCells: ReadonlySet<CellId>;
+    /** Structural given-ness, independent of fog — `buildScene` combines it with `hiddenCells` itself. */
     isGiven: (cell: CellId) => boolean;
     selection: ReadonlySet<CellId>;
     cursor: CellId | null;
     evaluation: EvaluationResult;
+    /** Cells still hidden by fog — see `runtime/fog.ts`. */
+    hiddenCells: ReadonlySet<CellId>;
 }
 
 export type CellTone = "normal" | "violated" | "invalid";
@@ -43,6 +52,8 @@ export interface CellShape {
     centerNotes: readonly number[];
     /** Flagged by checkNotesOnLeave — remaining notes no longer include the solution digit. */
     flagged: boolean;
+    /** Still hidden by fog — the renderer paints over it rather than leaking what's underneath. */
+    hidden: boolean;
 }
 
 export type Shape =
@@ -90,6 +101,7 @@ export const buildScene = (input: SceneInput): Scene => {
 
     const cells: CellShape[] = geometry.cells.map((cell) => {
         const p = geometry.anchor(cell, "tl");
+        const hidden = input.hiddenCells.has(cell);
         return {
             cell,
             x: p.x * cellSize,
@@ -97,11 +109,19 @@ export const buildScene = (input: SceneInput): Scene => {
             size: cellSize,
             tone: tone(cell, violated, invalid),
             ring: ring(cell, input.cursor, selected),
+            // `valueOf`/`notesOf`/etc. are expected to already be fog-aware
+            // (see PuzzleSession.displayState): a hidden given's *mystery*
+            // value isn't passed through at all, only the player's own entry
+            // underneath it, if any — so there's nothing left to mask here.
             value: input.valueOf(cell),
-            given: input.isGiven(cell),
+            // Only draw given-digit styling once the given is actually shown
+            // as one — while it's still hidden, any value here is the
+            // player's own (non-authoritative) guess, not the clue.
+            given: input.isGiven(cell) && !hidden,
             notes: input.notesOf(cell),
             centerNotes: input.centerNotesOf(cell),
             flagged: input.flaggedCells.has(cell),
+            hidden,
         };
     });
 
