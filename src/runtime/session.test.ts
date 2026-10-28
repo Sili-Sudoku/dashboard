@@ -149,6 +149,45 @@ describe("PuzzleSession", () => {
         expect(session.valueOf("r1c2")).toBe(2);
     });
 
+    it("undo restores a cell's exact prior notes, not just a blank value", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(3);
+        session.input(2); // overwrites the notes with a value
+
+        session.undo();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1, 3], centerNotes: [] });
+    });
+
+    it("undo of an edit that deleted a cell's entry restores it, not a stray empty one", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.erase(); // value cleared with no notes left -> the board entry itself is deleted
+
+        session.undo();
+        expect(session.valueOf("r1c2")).toBe(2);
+        session.redo();
+        expect(session.valueOf("r1c2")).toBeNull();
+    });
+
+    it("undoes a multi-cell edit by restoring each cell's own independent prior state", () => {
+        session.select("r1c2");
+        session.input(1); // r1c2 starts with a value...
+        session.select("r1c3");
+        session.toggleCornerNote(1); // ...r1c3 starts with a note...
+        // r1c4 starts empty
+
+        session.select("r1c2");
+        session.select("r1c3", "add");
+        session.select("r1c4", "add");
+        session.input(3); // overwrite all three with the same value in one patch
+
+        session.undo();
+        expect(session.cellState("r1c2")).toEqual({ value: 1, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [1], centerNotes: [] });
+        expect(session.cellState("r1c4")).toEqual({ value: null, notes: [], centerNotes: [] });
+    });
+
     it("erase only clears the layer matching the active input mode", () => {
         session.select("r1c2");
         session.toggleCornerNote(1);

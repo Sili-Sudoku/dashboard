@@ -26,6 +26,21 @@ export interface CellState {
 
 const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [] };
 
+/**
+ * One undo/redo step. Per-cell edits (typing, notes, erase) are the hot
+ * path — one per keystroke — so they're recorded as a `patch`: just the
+ * touched cells' prior state, not the whole board. `undefined` means the
+ * cell had no entry at all (restoring it means deleting it, not setting it
+ * to an empty `CellState`, matching how `erase()` itself cleans up).
+ * `reset`/`loadProgress` replace the board wholesale and are rare, one-shot
+ * actions, so a `full` snapshot stays simplest there — diffing "every cell
+ * that could differ" wouldn't save anything on an operation that's already
+ * O(board size) by nature.
+ */
+type HistoryEntry =
+    | { kind: "patch"; patch: ReadonlyMap<CellId, CellState | undefined> }
+    | { kind: "full"; snapshot: string };
+
 const toggleSet = (notes: readonly number[], digit: number): number[] => {
     const set = new Set(notes);
     if (set.has(digit)) set.delete(digit);
@@ -60,8 +75,8 @@ export class PuzzleSession {
     checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
-    private past: string[] = [];
-    private futureStack: string[] = [];
+    private past: HistoryEntry[] = [];
+    private futureStack: HistoryEntry[] = [];
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
     private flaggedCells = new Set<CellId>();
@@ -305,7 +320,7 @@ export class PuzzleSession {
         if (cells.length === 0) return;
         if (!this.puzzle.domain.includes(digit)) return;
 
-        this.pushHistory();
+        this.pushPatch(cells);
         for (const cell of cells) this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
         this.markDirty(cells);
         this.emit();
@@ -346,7 +361,7 @@ export class PuzzleSession {
         if (cells.length === 0) return;
         if (!this.puzzle.domain.includes(digit)) return;
 
-        this.pushHistory();
+        this.pushPatch(cells);
         for (const cell of cells) {
             const current = this.board.get(cell) ?? EMPTY_CELL;
             if (current.value !== null) continue;
@@ -370,7 +385,7 @@ export class PuzzleSession {
         });
         if (!hasContent) return;
 
-        this.pushHistory();
+        this.pushPatch(cells);
         for (const cell of cells) {
             const current = this.board.get(cell);
             if (!current) continue;
@@ -386,28 +401,24 @@ export class PuzzleSession {
     }
 
     undo(): void {
-        const previous = this.past.pop();
-        if (previous === undefined) return;
-        this.futureStack.push(this.serializeBoard());
-        this.restoreBoard(previous);
+        const entry = this.past.pop();
+        if (!entry) return;
+        this.futureStack.push(this.applyEntry(entry));
         this.flaggedCells.clear();
-        this.invalidateEvaluation();
         this.emit();
     }
 
     redo(): void {
-        const next = this.futureStack.pop();
-        if (next === undefined) return;
-        this.past.push(this.serializeBoard());
-        this.restoreBoard(next);
+        const entry = this.futureStack.pop();
+        if (!entry) return;
+        this.past.push(this.applyEntry(entry));
         this.flaggedCells.clear();
-        this.invalidateEvaluation();
         this.emit();
     }
 
     reset(): void {
         if (this.board.size === 0) return;
-        this.pushHistory();
+        this.pushFullSnapshot();
         this.board.clear();
         this.flaggedCells.clear();
         this.invalidateEvaluation();
@@ -432,7 +443,7 @@ export class PuzzleSession {
     }
 
     loadProgress(snapshot: ProgressSnapshot): void {
-        this.pushHistory();
+        this.pushFullSnapshot();
         this.applyProgress(snapshot);
         this.flaggedCells.clear();
         this.invalidateEvaluation();
@@ -470,10 +481,47 @@ export class PuzzleSession {
 
     // --- history internals -------------------------------------------
 
-    private pushHistory(): void {
-        this.past.push(this.serializeBoard());
+    /** Records just the given cells' *current* (pre-edit) state as the undo step. */
+    private pushPatch(cells: readonly CellId[]): void {
+        const patch = new Map<CellId, CellState | undefined>();
+        for (const cell of cells) patch.set(cell, this.board.get(cell));
+        this.pushEntry({ kind: "patch", patch });
+    }
+
+    private pushFullSnapshot(): void {
+        this.pushEntry({ kind: "full", snapshot: this.serializeBoard() });
+    }
+
+    private pushEntry(entry: HistoryEntry): void {
+        this.past.push(entry);
         if (this.past.length > 200) this.past.shift();
         this.futureStack = [];
+    }
+
+    /**
+     * Applies a history entry (either direction — undo and redo are the same
+     * operation on opposite stacks) and returns its inverse, to push onto the
+     * other stack. A `patch` only dirties the cells it actually touched, so
+     * undo/redo gets the same cheap incremental re-evaluation as a normal
+     * edit; a `full` snapshot can't know what changed without a full board
+     * diff, so it falls back to invalidating everything, same as before.
+     */
+    private applyEntry(entry: HistoryEntry): HistoryEntry {
+        if (entry.kind === "full") {
+            const inverse: HistoryEntry = { kind: "full", snapshot: this.serializeBoard() };
+            this.restoreBoard(entry.snapshot);
+            this.invalidateEvaluation();
+            return inverse;
+        }
+
+        const inverse = new Map<CellId, CellState | undefined>();
+        for (const [cell, state] of entry.patch) {
+            inverse.set(cell, this.board.get(cell));
+            if (state === undefined) this.board.delete(cell);
+            else this.board.set(cell, state);
+        }
+        this.markDirty(entry.patch.keys());
+        return { kind: "patch", patch: inverse };
     }
 
     private serializeBoard(): string {
