@@ -79,13 +79,19 @@ describe("<PuzzlePlayer />", () => {
 
     it("hides the constraint panel by default, revealed via a toggle", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
-        expect(container.querySelector(".constraint-panel")).toBeNull();
+        expect(container.querySelector(".cp-groups")).toBeNull();
 
-        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
-        expect(container.querySelector(".constraint-panel")).not.toBeNull();
+        // The toggle button doubles as the status line once open, so its
+        // accessible name changes (e.g. to "In progress — n/m cells") —
+        // hold the node rather than re-querying by the "show/hide" label.
+        const toggle = screen.getByRole("button", { name: /show constraints/i });
+        fireEvent.click(toggle);
+        expect(container.querySelector(".cp-groups")).not.toBeNull();
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
-        fireEvent.click(screen.getByRole("button", { name: /hide constraints/i }));
-        expect(container.querySelector(".constraint-panel")).toBeNull();
+        fireEvent.click(toggle);
+        expect(container.querySelector(".cp-groups")).toBeNull();
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
     });
 
     it("reflects a broken constraint in the panel", () => {
@@ -334,13 +340,13 @@ describe("<PuzzlePlayer />", () => {
 
     it("hides the keyboard shortcut legend by default, revealed via a toggle", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
-        expect(container.querySelector(".hotkey-legend")).toBeNull();
+        expect(container.querySelector(".hk-row")).toBeNull();
 
         fireEvent.click(screen.getByRole("button", { name: /keyboard shortcuts/i }));
-        expect(container.querySelector(".hotkey-legend")).not.toBeNull();
+        expect(container.querySelector(".hk-row")).not.toBeNull();
 
         fireEvent.click(screen.getByRole("button", { name: /hide shortcuts/i }));
-        expect(container.querySelector(".hotkey-legend")).toBeNull();
+        expect(container.querySelector(".hk-row")).toBeNull();
     });
 
     it("types a multi-digit value for domains past 1-9, each keystroke showing immediately", () => {

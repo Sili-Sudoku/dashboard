@@ -1,5 +1,5 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Keyboard, ListChecks, PartyPopper, ShieldAlert } from "lucide-react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { PartyPopper, ShieldAlert } from "lucide-react";
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -20,8 +20,6 @@ interface Props {
 
 export default function PuzzlePlayer({ puzzle }: Props) {
     const session = usePuzzleSession(puzzle);
-    const [showConstraints, setShowConstraints] = useState(false);
-    const [showHotkeys, setShowHotkeys] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const boardColRef = useRef<HTMLDivElement>(null);
 
@@ -132,23 +130,9 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     </button>
                 )}
 
-                <button
-                    className="pp-toggle"
-                    aria-expanded={showConstraints}
-                    onClick={() => setShowConstraints((v) => !v)}
-                >
-                    <ListChecks size={15} /> {showConstraints ? "Hide constraints" : "Show constraints"}
-                </button>
-                {showConstraints && <ConstraintPanel evaluation={evaluation} />}
+                <ConstraintPanel evaluation={evaluation} />
 
-                <button
-                    className="pp-toggle"
-                    aria-expanded={showHotkeys}
-                    onClick={() => setShowHotkeys((v) => !v)}
-                >
-                    <Keyboard size={15} /> {showHotkeys ? "Hide shortcuts" : "Keyboard shortcuts"}
-                </button>
-                {showHotkeys && <HotkeyLegend />}
+                <HotkeyLegend />
             </aside>
         </div>
     );

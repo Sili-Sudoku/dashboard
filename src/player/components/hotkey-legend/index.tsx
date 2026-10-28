@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Keyboard } from "lucide-react";
+
 import "./style.css";
 
 const SHORTCUTS: { keys: string; action: string }[] = [
@@ -17,16 +20,32 @@ const SHORTCUTS: { keys: string; action: string }[] = [
 ];
 
 export default function HotkeyLegend() {
+    // Collapsed to just the toggle button by default — this *is* the
+    // "Show/Hide shortcuts" control, not a separate button sitting above a
+    // second collapsible section (same pattern as ConstraintPanel).
+    const [open, setOpen] = useState(false);
+
     return (
-        <section className="hotkey-legend">
-            <dl>
-                {SHORTCUTS.map((s) => (
-                    <div className="hk-row" key={s.keys}>
-                        <dt>{s.keys}</dt>
-                        <dd>{s.action}</dd>
-                    </div>
-                ))}
-            </dl>
+        <section className={`hotkey-legend ${open ? "hk-open" : ""}`}>
+            <button
+                type="button"
+                className="pp-toggle hk-toggle"
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <Keyboard size={15} /> {open ? "Hide shortcuts" : "Keyboard shortcuts"}
+            </button>
+
+            {open && (
+                <dl>
+                    {SHORTCUTS.map((s) => (
+                        <div className="hk-row" key={s.keys}>
+                            <dt>{s.keys}</dt>
+                            <dd>{s.action}</dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
         </section>
     );
 }

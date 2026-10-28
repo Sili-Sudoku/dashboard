@@ -1,24 +1,52 @@
 .constraint-panel {
+    font-size: 0.85rem;
+    width: 100%;
+    max-width: 340px;
+    /* .pp-side (player.css) is a flex column with its own max-height +
+       overflow-y:auto — the one place that should ever scroll/clip the
+       sidebar. Without this, flexbox's default shrink-to-fit can squash this
+       section (and HotkeyLegend next to it) down below their actual content
+       height when both are open at once, instead of letting .pp-side grow
+       and scroll — which read as the two panels overlapping. Fixed-size
+       content, sized by what's actually in it, not by division of leftover
+       flex space. */
+    flex-shrink: 0;
+}
+
+/* The bordered box look only applies once there's content under the toggle
+   button to frame — collapsed, the panel is just that button, styled like
+   any other sidebar toggle (.pp-toggle, from player.css). */
+.constraint-panel.cp-open {
     border: 1px solid var(--line);
     border-radius: 0.6rem;
     background: var(--surface);
     overflow: hidden;
-    font-size: 0.85rem;
-    width: 100%;
-    max-width: 340px;
 }
 
-.cp-status {
-    padding: 0.6rem 0.8rem;
+/* Open, the toggle doubles as the status line (see the `label` logic in
+   index.tsx) — one row reading e.g. "In progress — 3/9 cells" that's also
+   the "click to hide" control, instead of a toggle row plus a separate
+   status row underneath it. */
+.constraint-panel.cp-open .cp-toggle {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    justify-content: flex-start;
     font-weight: 600;
 }
-.cp-status.cp-valid {
+.constraint-panel.cp-open .cp-toggle.cp-valid {
     background: var(--brand-tint);
     color: var(--brand-hover);
 }
-.cp-status.cp-invalid {
+.constraint-panel.cp-open .cp-toggle.cp-invalid {
     background: var(--violated);
     color: var(--violated-line);
+}
+/* The status color above has higher specificity than player.css's generic
+   .pp-toggle:hover, so it needs its own hover — otherwise this header bar
+   (unlike every other sidebar toggle) wouldn't visibly react to hover at all. */
+.constraint-panel.cp-open .cp-toggle:hover {
+    filter: brightness(0.96);
 }
 
 .cp-groups,
@@ -36,9 +64,22 @@
 .cp-group-head {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
+    width: 100%;
     text-transform: capitalize;
     font-weight: 600;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.cp-group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .cp-counts {
