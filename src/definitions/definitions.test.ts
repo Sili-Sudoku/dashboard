@@ -101,6 +101,19 @@ describe("arrow definition", () => {
             ["+", ["*", 10, ["value", "r1c1"]], ["value", "r1c2"]],
         ]);
     });
+
+    it("uses the puzzle's own domain as the positional base, not a hardcoded 10", () => {
+        const wideDomain: CompileContext = { ...ctx(), domain: Array.from({ length: 25 }, (_, i) => i + 1) };
+        const out = arrow({ bulb: ["r1c1", "r1c2"], cells: ["r2c1", "r2c2"] }, wideDomain);
+        if (out instanceof Error) throw out;
+        // base 26 (max domain value 25, plus one), not base 10 — otherwise a
+        // bulb cell holding e.g. 12 would collide with the ones column.
+        expect(out.constraints[0].expr).toEqual([
+            "==",
+            ["sum", ["cells", ["r2c1", "r2c2"]]],
+            ["+", ["*", 26, ["value", "r1c1"]], ["value", "r1c2"]],
+        ]);
+    });
 });
 
 describe("kropki dot definitions", () => {

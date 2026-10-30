@@ -20,7 +20,7 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
         if (!ctx.geometry.has(c)) return new Error(`arrow: invalid bulb cell ${JSON.stringify(c)}`);
     }
 
-    const bulbValue: Expr = bulbNumberExpr(bulbCells as CellId[]);
+    const bulbValue: Expr = bulbNumberExpr(bulbCells as CellId[], ctx.domain);
     const shaftSum: Expr = ["sum", ["cells", [...path]]];
 
     const objects: VisualObject[] = [
@@ -49,11 +49,15 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
     };
 };
 
-const bulbNumberExpr = (bulbCells: readonly CellId[]): Expr => {
+const bulbNumberExpr = (bulbCells: readonly CellId[], domain: readonly number[]): Expr => {
     if (bulbCells.length === 1) return ["value", bulbCells[0]];
+    // Positional notation in the base of the puzzle's own domain (base 10 for
+    // classic 1-9 sudoku) rather than a hardcoded base 10, which breaks the
+    // moment a cell's own value can exceed 9 (e.g. a 1-25 domain).
+    const base = Math.max(...domain) + 1;
     // most-significant digit first
     const terms: Expr[] = bulbCells.map((cell, i) => {
-        const place = Math.pow(10, bulbCells.length - 1 - i);
+        const place = Math.pow(base, bulbCells.length - 1 - i);
         return place === 1 ? ["value", cell] : ["*", place, ["value", cell]];
     });
     return ["+", ...terms];
