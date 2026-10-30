@@ -1,7 +1,7 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { AlertTriangle, BadgeCheck, PartyPopper, ShieldAlert } from "lucide-react";
 
-import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
+import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import Board from "@/renderer/Board.tsx";
 import { buildScene } from "@/renderer/scene.ts";
@@ -16,10 +16,49 @@ import "./player.css";
 
 interface Props {
     puzzle: CompiledPuzzle;
+    /** Reports the board's own selection on every change (same Set the normal
+     *  click/drag/shift-click digit-entry flow already maintains) — lets a
+     *  caller like the Author page's visual builder (#54) read "what's
+     *  currently selected" without needing a second, separate board just for
+     *  picking cells. Selection/typing behavior itself is unaffected either
+     *  way; this is a read-only mirror. */
+    onSelectionChange?: (selection: ReadonlySet<CellId>) => void;
+    /** Fires when a click/drag gesture on the board finishes (pointer up or
+     *  leave) — lets the visual builder commit a constraint the moment a
+     *  drag places it, with no separate "Add" click. */
+    onSelectionEnd?: () => void;
+    /** Extra visual objects drawn as if they were part of the puzzle, without
+     *  touching the puzzle or session — lets the visual builder (#54) show an
+     *  in-progress constraint's own graphics (e.g. a thermometer's line)
+     *  growing live as cells are dragged, before it's actually committed. */
+    previewObjects?: readonly VisualObject[];
+    /** Compiled constraint ids to draw in red instead of hiding the whole
+     *  preview — e.g. the Author page's visual builder, when a constraint the
+     *  author just placed conflicts with the puzzle's own declared solution
+     *  (see `compile.ts`'s `solutionViolations`). Purely visual. */
+    invalidConstraintIds?: ReadonlySet<string>;
+    /** Shows the puzzle's own declared solution filled in instead of the
+     *  player's/session's actual board state — a display override only,
+     *  doesn't touch the session, so toggling it back off reveals whatever
+     *  was really entered, untouched. No-op on a puzzle with no solution. */
+    showSolution?: boolean;
 }
 
-export default function PuzzlePlayer({ puzzle }: Props) {
+export default function PuzzlePlayer({
+    puzzle,
+    onSelectionChange,
+    onSelectionEnd,
+    previewObjects,
+    invalidConstraintIds,
+    showSolution,
+}: Props) {
     const { session, checkToast, check } = usePuzzleSession(puzzle);
+
+    useEffect(() => {
+        onSelectionChange?.(session.getSelection());
+        // session.revision (not session itself) is the actual change signal —
+        // same dependency the scene recompute below relies on.
+    }, [session, session.revision, onSelectionChange]);
     const rootRef = useRef<HTMLDivElement>(null);
     const boardColRef = useRef<HTMLDivElement>(null);
 
@@ -52,8 +91,9 @@ export default function PuzzlePlayer({ puzzle }: Props) {
     const scene = useMemo(
         () =>
             buildScene({
-                puzzle,
-                valueOf: (c) => session.displayState(c).value,
+                puzzle: previewObjects?.length ? { ...puzzle, objects: [...puzzle.objects, ...previewObjects] } : puzzle,
+                valueOf: (c) =>
+                    showSolution && puzzle.solution?.[c] !== undefined ? puzzle.solution[c] : session.displayState(c).value,
                 notesOf: (c) => session.displayState(c).notes,
                 centerNotesOf: (c) => session.displayState(c).centerNotes,
                 flaggedCells: session.getFlaggedCells(),
@@ -63,10 +103,11 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                 cursor: session.getCursor(),
                 evaluation: session.evaluation,
                 hiddenCells: session.getHiddenCells(),
+                invalidConstraintIds,
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [puzzle, session, session.revision],
+        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution],
     );
 
     const onPaintStart = useCallback(
@@ -92,7 +133,7 @@ export default function PuzzlePlayer({ puzzle }: Props) {
                     scene={scene}
                     onPaintStart={onPaintStart}
                     onPaintMove={onPaintMove}
-                    onPaintEnd={() => undefined}
+                    onPaintEnd={() => onSelectionEnd?.()}
                     onClearSelection={() => session.selectNone()}
                 />
                 <p className="pp-hint">Click / drag to select · digits to enter · see keyboard shortcuts below</p>

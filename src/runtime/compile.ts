@@ -31,6 +31,7 @@ import type { CompileContext, DefinitionRegistry } from "@/definitions/types.ts"
 export const compilePuzzle = (
     def: PuzzleDefinition,
     registry: DefinitionRegistry = {},
+    options?: { validateSolution?: boolean },
 ): CompiledPuzzle | Error => {
     if (def.version !== PUZZLE_FORMAT_VERSION) {
         return new Error(`unsupported puzzle format version: ${String(def.version)}`);
@@ -104,6 +105,11 @@ export const compilePuzzle = (
         const expanded = expandSpec(spec, registry, compileCtx);
         if (expanded instanceof Error) return expanded;
 
+        // Collected so this spec's own objects (below) can be tagged with the
+        // constraint id(s) they belong to — lets a caller that tolerates a
+        // solution/constraint mismatch (see validateSolution below) still
+        // point at exactly which shape on the board is the violator.
+        const specConstraintIds: string[] = [];
         for (const emitted of expanded.constraints) {
             try {
                 staticCheckExpr(emitted.expr);
@@ -125,8 +131,10 @@ export const compilePuzzle = (
             }
 
             const n = (counters[expanded.source] = (counters[expanded.source] ?? 0) + 1);
+            const id = `${expanded.source}#${n}`;
+            specConstraintIds.push(id);
             constraints.push({
-                id: `${expanded.source}#${n}`,
+                id,
                 expr: emitted.expr,
                 cells,
                 source: expanded.source,
@@ -137,7 +145,7 @@ export const compilePuzzle = (
         if (expanded.objects) {
             const objectsError = validateObjects(expanded.objects, geometry);
             if (objectsError) return objectsError;
-            objects.push(...expanded.objects);
+            objects.push(...expanded.objects.map((o) => (o.id ? o : { ...o, id: specConstraintIds.join(",") })));
         }
     }
 
@@ -154,16 +162,27 @@ export const compilePuzzle = (
         presentation: def.presentation ?? {},
     };
 
-    if (def.solution) {
-        const result = evaluate(compiled, lookupFromRecord(def.solution));
-        const violated = result.constraints.filter((c) => c.status === "violated");
-        if (violated.length > 0) {
-            const ids = violated.map((c) => c.id).join(", ");
-            return new Error(`declared solution violates constraint(s): ${ids}`);
+    if (def.solution && options?.validateSolution !== false) {
+        const ids = [...solutionViolations(compiled)];
+        if (ids.length > 0) {
+            return new Error(`declared solution violates constraint(s): ${ids.join(", ")}`);
         }
     }
 
     return compiled;
+};
+
+/** Which compiled constraint ids the puzzle's own declared solution fails,
+ *  if any — the same check `compilePuzzle` normally rejects on (see
+ *  `validateSolution` above). Exposed separately so a tolerant caller (e.g.
+ *  the Author page's visual builder, mid-placement) can still get a
+ *  renderable puzzle and highlight just the offending constraint(s) instead
+ *  of losing the whole preview to one bad placement. Empty if the puzzle has
+ *  no declared solution. */
+export const solutionViolations = (compiled: CompiledPuzzle): ReadonlySet<string> => {
+    if (!compiled.solution) return new Set();
+    const result = evaluate(compiled, lookupFromRecord(compiled.solution));
+    return new Set(result.constraints.filter((c) => c.status === "violated").map((c) => c.id));
 };
 
 interface ExpandedSpec {

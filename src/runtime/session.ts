@@ -178,7 +178,11 @@ export class PuzzleSession {
     };
 
     getSelection(): ReadonlySet<CellId> {
-        return this.selection;
+        // A copy, not the live Set: `select(cell, "add")` mutates `this.selection`
+        // in place, so handing out the same reference on every call would make a
+        // consumer's React state setter (Object.is-equal to its previous value)
+        // silently skip re-rendering mid-drag even though membership changed.
+        return new Set(this.selection);
     }
 
     getCursor(): CellId | null {

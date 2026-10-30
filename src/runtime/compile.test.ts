@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compilePuzzle } from "@/runtime/compile.ts";
+import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import type { DefinitionRegistry } from "@/definitions/types.ts";
 
@@ -102,6 +102,42 @@ describe("compilePuzzle", () => {
             solution: { r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 },
         });
         expect(result).not.toBeInstanceOf(Error);
+    });
+
+    it("with validateSolution: false, compiles anyway and reports the violation via solutionViolations instead", () => {
+        const result = compilePuzzle(
+            {
+                ...base,
+                constraints: [["allDifferent", ["cells", "row:0"]]],
+                solution: { r1c1: 1, r1c2: 1, r1c3: 3, r1c4: 4 },
+            },
+            {},
+            { validateSolution: false },
+        );
+        expect(result).not.toBeInstanceOf(Error);
+        expect([...solutionViolations(result as Exclude<typeof result, Error>)]).toEqual(["primitive#1"]);
+    });
+
+    it("solutionViolations is empty for a puzzle with no declared solution, or one that's satisfied", () => {
+        const noSolution = compilePuzzle({ ...base, constraints: [["allDifferent", ["cells", "row:0"]]] });
+        expect(solutionViolations(noSolution as Exclude<typeof noSolution, Error>).size).toBe(0);
+
+        const satisfied = compilePuzzle({
+            ...base,
+            constraints: [["allDifferent", ["cells", "row:0"]]],
+            solution: { r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 },
+        });
+        expect(solutionViolations(satisfied as Exclude<typeof satisfied, Error>).size).toBe(0);
+    });
+
+    it("tags a constraint's visual objects with its own compiled id", () => {
+        const result = compilePuzzle({
+            ...base,
+            constraints: [{ use: "demo" }],
+        }, fakeRegistry);
+        expect(result).not.toBeInstanceOf(Error);
+        const objects = (result as Exclude<typeof result, Error>).objects;
+        expect(objects).toEqual([{ kind: "region", cells: ["r1c1"], id: "demo#1" }]);
     });
 
     it("rejects fog.hidden referencing an unknown cell", () => {

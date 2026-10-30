@@ -165,4 +165,42 @@ describe("buildScene", () => {
         expect(scene.cells.find((c) => c.cell === "r1c2")?.hidden).toBe(false);
         expect(scene.cells.find((c) => c.cell === "r1c1")?.hidden).toBe(true);
     });
+
+    it("recolors a constraint's shape when its id is flagged invalid", () => {
+        const scene = buildScene({
+            puzzle: { ...puzzle, objects: [{ kind: "path", cells: ["r1c1", "r1c2"], id: "thermometer#2" }] },
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, () => null),
+            invalidConstraintIds: new Set(["thermometer#2"]),
+        });
+        const shape = scene.shapes.find((s) => s.kind === "polyline");
+        expect(shape?.style.stroke).toBe("var(--violated-line)");
+    });
+
+    it("leaves a shape's styling alone when its id isn't in invalidConstraintIds", () => {
+        const scene = buildScene({
+            puzzle: { ...puzzle, objects: [{ kind: "path", cells: ["r1c1", "r1c2"], id: "thermometer#1" }] },
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, () => null),
+            invalidConstraintIds: new Set(["thermometer#2"]),
+        });
+        const shape = scene.shapes.find((s) => s.kind === "polyline");
+        expect(shape?.style.stroke).not.toBe("var(--violated-line)");
+    });
 });

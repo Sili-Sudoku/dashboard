@@ -1,7 +1,7 @@
 import { useMemo, useState, type FocusEvent, type WheelEvent } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
-import { compilePuzzle } from "@/runtime/compile.ts";
+import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import { GridGeometry } from "@/runtime/geometry.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
@@ -9,6 +9,9 @@ import { solve, type SolveResult } from "@/runtime/solver.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+import VisualBuilder from "@/features/author/VisualBuilder.tsx";
+import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
+import type { CellId } from "@/runtime/geometry.ts";
 import { encodeFPuzzlesShareLink, encodeSudokuPadShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
 import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker } from "@/interop/sudokumaker.ts";
 import { usePageHeader } from "@/app/page_header.ts";
@@ -140,6 +143,7 @@ export default function Author() {
     // than clearing it from every call site that can change `submitted`.
     const [solveResult, setSolveResult] = useState<{ for: string; result: SolveResult; ms: number } | undefined>();
     const [solving, setSolving] = useState(false);
+    const [editorMode, setEditorMode] = useState<"json" | "visual">("json");
     usePageHeader(
         "Author a puzzle",
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
@@ -165,7 +169,12 @@ export default function Author() {
     const liveDef = liveParsed instanceof Error ? undefined : liveParsed;
     const liveError = useMemo(() => {
         if (liveParsed instanceof Error) return liveParsed.message;
-        const compiled = compilePuzzle(liveParsed, definitions);
+        // validateSolution: false here too -- a constraint that conflicts with
+        // the declared solution shouldn't withhold the whole edit from ever
+        // reaching the preview (see `result` below, which highlights it in red
+        // instead); only a *structural* problem should still block submission
+        // and keep showing the last-good preview.
+        const compiled = compilePuzzle(liveParsed, definitions, { validateSolution: false });
         return compiled instanceof Error ? compiled.message : undefined;
     }, [liveParsed]);
 
@@ -197,13 +206,34 @@ export default function Author() {
         setSubmitted(json);
     };
 
+    const handleVisualChange = (next: PuzzleDefinition) => {
+        const json = JSON.stringify(next, null, 2);
+        setText(json);
+        setSubmitted(json);
+    };
+
     const result = useMemo(() => {
         const parsed = parsePuzzle(submitted);
         if (parsed instanceof Error) return { error: parsed.message };
-        const compiled = compilePuzzle(parsed, definitions);
+        // A declared solution that conflicts with a constraint is still worth
+        // surfacing, but not by blanking out the whole preview over it (that's
+        // especially rough mid-drag in the visual builder, where the thing you
+        // were just dragging would simply vanish) — validateSolution: false
+        // compiles anyway, and invalidConstraintIds (below) highlights exactly
+        // which constraint(s) conflict instead.
+        const compiled = compilePuzzle(parsed, definitions, { validateSolution: false });
         if (compiled instanceof Error) return { error: compiled.message, parsed };
         return { compiled, parsed };
     }, [submitted]);
+
+    const invalidConstraintIds = useMemo(
+        () => ("compiled" in result && result.compiled ? solutionViolations(result.compiled) : new Set<string>()),
+        [result],
+    );
+
+    const [boardSelection, setBoardSelection] = useState<ReadonlySet<CellId>>(new Set());
+    const visualState = useVisualBuilder("parsed" in result ? result.parsed : undefined, boardSelection, handleVisualChange);
+    const [showSolution, setShowSolution] = useState(false);
 
     const runSolve = async () => {
         if (!("compiled" in result) || !result.compiled || solving) return;
@@ -410,12 +440,36 @@ export default function Author() {
                             </div>
                         </fieldset>
                     </div>
-                    <textarea
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        spellCheck={false}
-                        className={liveError ? "invalid" : undefined}
-                    />
+                    <div className="author-mode-tabs" role="tablist">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={editorMode === "json"}
+                            className={editorMode === "json" ? "active" : "secondary"}
+                            onClick={() => setEditorMode("json")}
+                        >
+                            JSON
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={editorMode === "visual"}
+                            className={editorMode === "visual" ? "active" : "secondary"}
+                            onClick={() => setEditorMode("visual")}
+                        >
+                            Visual
+                        </button>
+                    </div>
+                    {editorMode === "json" ? (
+                        <textarea
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            spellCheck={false}
+                            className={liveError ? "invalid" : undefined}
+                        />
+                    ) : (
+                        <VisualBuilder def={"parsed" in result ? result.parsed : undefined} state={visualState} />
+                    )}
                     <div className="author-actions">
                         {"compiled" in result && result.compiled && (
                             <button className="secondary" onClick={runSolve} disabled={solving}>
@@ -530,7 +584,32 @@ export default function Author() {
 
                 <div className="author-preview">
                     {"compiled" in result && result.compiled ? (
-                        <PuzzlePlayer key={result.compiled.metadata.id + submitted.length} puzzle={result.compiled} />
+                        <>
+                            {result.compiled.solution && (
+                                <button
+                                    type="button"
+                                    className={`pp-toggle ${showSolution ? "active" : ""}`}
+                                    aria-pressed={showSolution}
+                                    onClick={() => setShowSolution(!showSolution)}
+                                >
+                                    Show solution
+                                </button>
+                            )}
+                            {invalidConstraintIds.size > 0 && (
+                                <p className="author-notice">
+                                    Conflicts with the declared solution (shown in red): {[...invalidConstraintIds].join(", ")}
+                                </p>
+                            )}
+                            <PuzzlePlayer
+                                key={result.compiled.metadata.id + submitted.length}
+                                puzzle={result.compiled}
+                                onSelectionChange={setBoardSelection}
+                                onSelectionEnd={visualState.onBoardSelectionEnd}
+                                previewObjects={visualState.previewObjects}
+                                invalidConstraintIds={invalidConstraintIds}
+                                showSolution={showSolution}
+                            />
+                        </>
                     ) : (
                         <p className="author-hint">Fix the errors on the left to see a preview.</p>
                     )}

@@ -63,6 +63,26 @@ describe("<PuzzlePlayer />", () => {
         expect(screen.getAllByText("1").filter((n) => n.classList.contains("given"))).toHaveLength(4);
     });
 
+    it("showSolution fills in the declared solution as a display-only overlay, reversible with no effect on the real board", () => {
+        const puzzle = compiled();
+        const { container, rerender } = render(<PuzzlePlayer puzzle={puzzle} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]); // r1c2, empty in mini sudoku
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        expect(container.querySelectorAll(".digit")).toHaveLength(5); // 4 givens + the one just entered
+
+        rerender(<PuzzlePlayer puzzle={puzzle} showSolution />);
+        // Every cell now shows a digit (solution is a full board); the real
+        // entry made above is masked, not overwritten -- confirmed below.
+        expect(container.querySelectorAll(".digit")).toHaveLength(16);
+        expect(container.querySelectorAll(".digit.given")).toHaveLength(4);
+
+        rerender(<PuzzlePlayer puzzle={puzzle} showSolution={false} />);
+        const entered = container.querySelectorAll(".digit.entered");
+        expect(entered).toHaveLength(1);
+        expect(entered[0].textContent).toBe("3");
+    });
+
     it("enters a digit into a selected empty cell via the number pad", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");

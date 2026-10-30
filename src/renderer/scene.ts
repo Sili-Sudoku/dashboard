@@ -34,6 +34,11 @@ export interface SceneInput {
     evaluation: EvaluationResult;
     /** Cells still hidden by fog — see `runtime/fog.ts`. */
     hiddenCells: ReadonlySet<CellId>;
+    /** Compiled constraint ids (see `compile.ts`'s `solutionViolations`) to draw
+     *  in red instead of their normal style — e.g. the Author page's visual
+     *  builder, showing a constraint that conflicts with the puzzle's own
+     *  declared solution rather than hiding it entirely. */
+    invalidConstraintIds?: ReadonlySet<string>;
 }
 
 export type CellTone = "normal" | "violated" | "invalid";
@@ -130,8 +135,13 @@ export const buildScene = (input: SceneInput): Scene => {
         };
     });
 
+    const invalidIds = input.invalidConstraintIds;
     const shapes = [...input.puzzle.objects]
-        .flatMap((obj) => describeObject(obj, geometry, cellSize))
+        .flatMap((obj) => {
+            const shapes = describeObject(obj, geometry, cellSize);
+            const invalid = invalidIds && obj.id?.split(",").some((id) => invalidIds.has(id));
+            return invalid ? shapes.map(markInvalid) : shapes;
+        })
         .sort((a, b2) => a.style.z - b2.style.z);
 
     return {
@@ -161,6 +171,14 @@ const ring = (cell: CellId, cursor: CellId | null, selected: ReadonlySet<CellId>
     if (selected.has(cell)) return "selected";
     return null;
 };
+
+/** Recolors a shape to the same red used elsewhere for "this breaks a rule"
+ *  (--violated-line) — stroke always, fill too unless it was already "none"
+ *  (a filled shape like a thermometer's bulb should still read as filled). */
+const markInvalid = (shape: Shape): Shape => ({
+    ...shape,
+    style: { ...shape.style, stroke: "var(--violated-line)", fill: shape.style.fill === "none" ? "none" : "var(--violated-line)" },
+});
 
 export const resolveStyle = (style: VisualStyle | undefined, fallback: Partial<ResolvedStyle> = {}): ResolvedStyle => ({
     stroke: style?.stroke ?? fallback.stroke ?? "var(--ink)",

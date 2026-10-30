@@ -37,6 +37,68 @@ describe("Author", () => {
         expect(textarea.className).not.toContain("invalid");
     });
 
+    it("keeps showing the preview (with the offending constraint in red) when the declared solution conflicts with a constraint", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+        const bad = {
+            version: 1,
+            metadata: { id: "bad-solution", title: "Bad solution" },
+            geometry: { type: "grid", width: 4, height: 4 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [{ use: "thermometer", cells: ["r1c1", "r1c2"] }],
+            solution: { r1c1: 3, r1c2: 1 },
+        };
+        fireEvent.change(textarea, { target: { value: JSON.stringify(bad) } });
+
+        // No blocking JSON error, and the board itself still renders -- a bad
+        // declared solution doesn't blank out the whole preview any more.
+        expect(container.querySelector(".author-error")).toBeNull();
+        expect(screen.queryByText(/fix the errors on the left/i)).toBeNull();
+        expect(container.querySelector("svg.board")).not.toBeNull();
+        expect(screen.getByText(/conflicts with the declared solution/i)).toBeTruthy();
+        expect(screen.getByText(/thermometer#1/)).toBeTruthy();
+    });
+
+    it("offers a 'Show solution' toggle for a puzzle with a declared solution, filling it in without touching the real board", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const toggle = screen.getByRole("button", { name: "Show solution" }) as HTMLButtonElement;
+        const before = container.querySelectorAll(".digit").length;
+
+        fireEvent.click(toggle);
+        // demo_mixed's solution is a full board -- every cell now shows a digit.
+        expect(container.querySelectorAll(".digit").length).toBe(81);
+
+        fireEvent.click(toggle);
+        expect(container.querySelectorAll(".digit").length).toBe(before);
+    });
+
+    it("hides the 'Show solution' toggle for a puzzle with no declared solution", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+        const noSolution = {
+            version: 1,
+            metadata: { id: "no-solution", title: "No solution" },
+            geometry: { type: "grid", width: 4, height: 4 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [],
+        };
+        fireEvent.change(textarea, { target: { value: JSON.stringify(noSolution) } });
+
+        expect(screen.queryByRole("button", { name: "Show solution" })).toBeNull();
+    });
+
     it("shows the actual resolved box size, not just what's in the JSON", () => {
         // demo_mixed is a 9x9 grid with no explicit boxWidth/boxHeight — the UI
         // should show the real sqrt-based default (3x3), not leave it blank.
