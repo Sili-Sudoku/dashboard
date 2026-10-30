@@ -1,0 +1,335 @@
+/* The landing page runs its own warm "ink & paper" palette rather than the
+   app shell's cool blue-indigo theme — deliberately distinct, on purpose, so
+   the page that's meant to sell the product doesn't read as a generic
+   dashboard screen. Still answers the light/dark toggle, just with its own
+   hues instead of reusing --brand/--accent. */
+.landing {
+    --lp-paper: #f6efe0;
+    --lp-paper-edge: #e4d6b4;
+    --lp-ink: #211a10;
+    --lp-ink-soft: #6b5c40;
+    --lp-pen: #bd3b28;
+    --lp-pen-dark: #8c2a1c;
+    --lp-line: #cdbb8d;
+    --lp-moss: #3c6e52;
+
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    color: var(--lp-ink);
+    background: var(--lp-paper);
+}
+
+:root[data-theme="dark"] .landing {
+    --lp-paper: #1b170f;
+    --lp-paper-edge: #2c2415;
+    --lp-ink: #f1e8d3;
+    --lp-ink-soft: #c2b08a;
+    --lp-pen: #e8705a;
+    --lp-pen-dark: #c9532e;
+    --lp-line: #45392296;
+    --lp-moss: #63b08a;
+}
+
+.landing h1,
+.landing h2 {
+    font-family: inherit;
+    letter-spacing: -0.01em;
+}
+
+.landing em {
+    font-style: normal;
+    color: var(--lp-pen);
+    text-decoration: underline;
+    text-decoration-style: solid;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.12em;
+}
+
+/* --- hero ---------------------------------------------------------- */
+
+.lp-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    align-items: center;
+    gap: 3rem;
+    padding: 4.5rem 3rem 4rem;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.lp-kicker {
+    margin: 0 0 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    color: var(--lp-moss);
+}
+
+.lp-hero h1 {
+    margin: 0 0 1.1rem;
+    font-size: clamp(2.6rem, 5vw, 4.2rem);
+    line-height: 1.05;
+}
+
+.lp-lede {
+    max-width: 44ch;
+    font-size: 1.08rem;
+    line-height: 1.55;
+    color: var(--lp-ink-soft);
+}
+
+.lp-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 1.6rem;
+}
+
+/* "Rubber stamp" buttons: hard edges, a flat offset shadow instead of blur,
+   and a press-down shift on hover — picked specifically to avoid the soft
+   rounded/gradient CTA look most generated SaaS landing pages default to. */
+.lp-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.4rem;
+    border: 2px solid var(--lp-ink);
+    border-radius: 2px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 4px 4px 0 var(--lp-pen);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.lp-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--lp-pen);
+}
+
+.lp-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--lp-pen);
+}
+
+.lp-btn-fill {
+    background: var(--lp-ink);
+    color: var(--lp-paper);
+}
+
+.lp-btn-line {
+    background: transparent;
+    color: var(--lp-ink);
+}
+
+/* --- hero art: a little stack of puzzle sheets, fanned and pinned ------ */
+
+.lp-hero-art {
+    position: relative;
+    aspect-ratio: 1;
+    justify-self: center;
+    width: 100%;
+    max-width: 320px;
+}
+
+.lp-sheet {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--lp-ink);
+    border-radius: 4px;
+}
+
+.lp-sheet-back {
+    background: var(--lp-paper-edge);
+    transform: rotate(-7deg);
+}
+
+.lp-sheet-mid {
+    background: var(--lp-paper);
+    transform: rotate(4deg);
+}
+
+.lp-sheet-front {
+    background: var(--lp-paper);
+    transform: rotate(-2deg);
+    box-shadow: 6px 6px 0 var(--lp-pen-dark);
+    overflow: visible;
+}
+
+.lp-grid-paper {
+    fill: var(--lp-paper);
+}
+
+.lp-grid-line {
+    stroke: var(--lp-line);
+    stroke-width: 1;
+}
+
+.lp-cage {
+    fill: none;
+    stroke: var(--lp-moss);
+    stroke-width: 2.5;
+    stroke-dasharray: 5 4;
+}
+
+.lp-thermo-stem {
+    stroke: var(--lp-pen);
+    stroke-width: 7;
+    stroke-linecap: round;
+    opacity: 0.75;
+}
+
+.lp-thermo-bulb {
+    fill: var(--lp-pen);
+    opacity: 0.85;
+}
+
+.lp-kropki {
+    fill: var(--lp-ink);
+}
+
+.lp-digit {
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    font-size: 22px;
+    fill: var(--lp-ink);
+    text-anchor: middle;
+}
+
+/* --- manifesto ------------------------------------------------------ */
+
+.lp-manifesto {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1rem 3rem 4rem;
+    border-top: 1px solid var(--lp-line);
+}
+
+.lp-manifesto article {
+    padding-top: 1.6rem;
+}
+
+.lp-num {
+    display: block;
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: var(--lp-pen);
+    opacity: 0.45;
+    margin-bottom: 0.2rem;
+}
+
+.lp-manifesto h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+}
+
+.lp-manifesto p {
+    margin: 0;
+    color: var(--lp-ink-soft);
+    line-height: 1.5;
+}
+
+/* --- roadmap ----------------------------------------------------------- */
+
+.lp-roadmap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 3rem 4rem;
+}
+
+.lp-roadmap h2 {
+    margin: 0 0 1.2rem;
+    font-size: 1.4rem;
+}
+
+.lp-roadmap-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lp-roadmap-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px dashed var(--lp-line);
+    color: var(--lp-ink-soft);
+}
+
+.lp-roadmap-list li:first-child {
+    border-top: 1px dashed var(--lp-line);
+}
+
+.lp-stamp {
+    flex: 0 0 auto;
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.5rem;
+    border: 1.5px solid var(--lp-moss);
+    border-radius: 3px;
+    color: var(--lp-moss);
+    transform: rotate(-4deg);
+}
+
+@media (max-width: 860px) {
+    .lp-roadmap {
+        padding: 0 1.4rem 3rem;
+    }
+}
+
+/* --- closer ----------------------------------------------------------- */
+
+.lp-closer {
+    background: var(--lp-ink);
+    color: var(--lp-paper);
+    padding: 3.5rem 3rem;
+    text-align: center;
+}
+
+.lp-closer h2 {
+    margin: 0 0 1.4rem;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.lp-closer .lp-ctas {
+    justify-content: center;
+    margin-top: 0;
+}
+
+.lp-closer .lp-btn-fill {
+    background: var(--lp-paper);
+    color: var(--lp-ink);
+    border-color: var(--lp-paper);
+}
+
+.lp-closer .lp-btn-line {
+    color: var(--lp-paper);
+    border-color: var(--lp-paper);
+}
+
+@media (max-width: 860px) {
+    .lp-hero {
+        grid-template-columns: 1fr;
+        padding: 3rem 1.4rem 2.5rem;
+        gap: 2.5rem;
+    }
+
+    .lp-hero-art {
+        max-width: 240px;
+        margin: 0 auto;
+    }
+
+    .lp-manifesto {
+        grid-template-columns: 1fr;
+        padding: 1rem 1.4rem 3rem;
+        gap: 2rem;
+    }
+
+    .lp-closer {
+        padding: 2.5rem 1.4rem;
+    }
+}

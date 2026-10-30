@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 
-import Home from "@/features/home";
+import Landing from "@/features/landing";
+import PuzzleList from "@/features/puzzles";
 import Play from "@/features/play";
 import Author from "@/features/author";
 import { useTheme } from "@/app/use_theme.ts";
@@ -25,6 +26,10 @@ export default function AppRouter() {
     // layout) on anything that lacks it.
     const pathname = useLocation().pathname;
     const isBoardRoute = pathname.startsWith("/p/") || pathname === "/new";
+    // The landing page runs its own full-bleed sections (hero/manifesto/closer
+    // bands) with their own palette and padding — the centered 1100px column
+    // below is specifically for the app's working pages, not this one.
+    const isLandingRoute = pathname === "/";
 
     return (
         <PageActionsContext.Provider value={actionsSlot}>
@@ -56,7 +61,7 @@ export default function AppRouter() {
                             page_header.ts) instead of rendering its own row. */}
                         <span className="app-header-actions" ref={setActionsSlot} />
                         <nav>
-                            <Link to="/">Puzzles</Link>
+                            <Link to="/puzzles">Puzzles</Link>
                             <Link to="/new">Author</Link>
                             <button
                                 type="button"
@@ -69,9 +74,14 @@ export default function AppRouter() {
                         </nav>
                     </header>
 
-                    <main className={`app-main${isBoardRoute ? " app-main--board" : ""}`}>
+                    <main
+                        className={`app-main${isBoardRoute ? " app-main--board" : ""}${
+                            isLandingRoute ? " app-main--landing" : ""
+                        }`}
+                    >
                         <Routes>
-                            <Route path="/" element={<Home />} />
+                            <Route path="/" element={<Landing />} />
+                            <Route path="/puzzles" element={<PuzzleList />} />
                             <Route path="/p/:ref" element={<Play />} />
                             <Route path="/new" element={<Author />} />
                         </Routes>

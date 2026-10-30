@@ -1,0 +1,77 @@
+.puzzles-intro {
+    max-width: 60ch;
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+}
+
+.puzzles-intro h1 {
+    margin-bottom: 0.4rem;
+    color: var(--chrome-ink);
+}
+
+.puzzles-intro p {
+    color: var(--ink-soft);
+}
+
+.puzzles-list {
+    margin-top: 1.6rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.2rem;
+}
+
+/* Matches the landing page's "stamp" cards (#67/#139): hard edges, a flat
+   offset shadow instead of a blurred one, and a small press-down shift on
+   hover rather than a color fade — the same identity, carried one page in. */
+.puzzle-card {
+    display: block;
+    padding: 1rem;
+    border: 2px solid var(--chrome-ink);
+    border-radius: 3px;
+    background: var(--chrome-paper);
+    color: var(--chrome-ink);
+    text-decoration: none;
+    box-shadow: 3px 3px 0 var(--chrome-line);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.puzzle-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--chrome-pen);
+}
+
+.pc-title {
+    font-weight: 700;
+}
+
+.pc-desc {
+    font-size: 0.85rem;
+    color: var(--chrome-ink-soft);
+    margin: 0.3rem 0 0.6rem;
+}
+
+.pc-meta {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    color: var(--chrome-ink-soft);
+    text-transform: capitalize;
+}
+
+.pc-sources {
+    margin-top: 0.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.pc-chip {
+    font-size: 0.68rem;
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    padding: 0.1rem 0.45rem;
+    border: 1px solid var(--chrome-moss);
+    border-radius: 3px;
+    background: var(--chrome-moss-tint);
+    color: var(--chrome-moss);
+    text-transform: capitalize;
+}

@@ -38,6 +38,22 @@
        these into unreadable white-on-light-lavender blocks. */
     --code-bg: #0a0b14;
     --code-ink: #e9ecff;
+
+    /* The "ink & paper" identity established on the landing page (#67),
+       progressively extended to shell chrome and non-solving pages. Kept
+       separate from --bg/--surface/--ink above rather than replacing them —
+       those still back the puzzle-solving surfaces, whose --thermo/--cage/
+       --violated/etc. colors above are tuned against them and haven't been
+       re-audited against this warmer palette yet (see kanban board). */
+    --chrome-paper: #f6efe0;
+    --chrome-paper-edge: #e4d6b4;
+    --chrome-ink: #211a10;
+    --chrome-ink-soft: #6b5c40;
+    --chrome-pen: #bd3b28;
+    --chrome-pen-dark: #8c2a1c;
+    --chrome-line: #cdbb8d;
+    --chrome-moss: #3c6e52;
+    --chrome-moss-tint: #e3ecdf;
 }
 
 :root[data-theme="dark"] {
@@ -79,6 +95,16 @@
 
     --code-bg: #0a0b14;
     --code-ink: #e9ecff;
+
+    --chrome-paper: #1b170f;
+    --chrome-paper-edge: #2c2415;
+    --chrome-ink: #f1e8d3;
+    --chrome-ink-soft: #c2b08a;
+    --chrome-pen: #e8705a;
+    --chrome-pen-dark: #c9532e;
+    --chrome-line: #453922;
+    --chrome-moss: #63b08a;
+    --chrome-moss-tint: #1f2c24;
 }
 
 * {
@@ -137,25 +163,32 @@ code, pre {
     scrollbar-gutter: stable;
 }
 
+/* Shell chrome runs the same warm "ink & paper" identity as the landing page
+   (#67/#139) instead of the cool blue-indigo --surface/--ink tokens — it's a
+   thin strip with no puzzle-state semantics to clash with, so it was safe to
+   move first. */
 .app-header {
     display: flex;
     align-items: baseline;
     gap: 1rem;
     padding: 0.9rem 1.4rem;
-    border-bottom: 1px solid var(--line);
-    background: var(--surface);
+    border-bottom: 2px solid var(--chrome-ink);
+    background: var(--chrome-paper);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
 }
 
 .app-header .logo {
     font-weight: 700;
     letter-spacing: -0.02em;
     text-decoration: none;
-    color: var(--ink);
+    color: var(--chrome-ink);
 }
 
 .app-header .tagline {
-    color: var(--ink-soft);
-    font-size: 0.85rem;
+    color: var(--chrome-ink-soft);
+    font-size: 0.8rem;
+    font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+    letter-spacing: 0.02em;
 }
 
 /* Play/Author's registered page title (see app/page_header.ts) — stands in
@@ -167,7 +200,7 @@ code, pre {
     min-width: 0;
     display: inline-flex;
     align-items: baseline;
-    color: var(--ink);
+    color: var(--chrome-ink);
     font-weight: 600;
     font-size: 0.95rem;
     white-space: nowrap;
@@ -178,13 +211,13 @@ code, pre {
 
 .app-header-sep {
     margin-right: 0.5rem;
-    color: var(--ink-soft);
+    color: var(--chrome-ink-soft);
     font-weight: 400;
 }
 
 .app-header-byline {
     margin-left: 0.5rem;
-    color: var(--ink-soft);
+    color: var(--chrome-ink-soft);
     font-weight: 400;
     font-size: 0.82rem;
 }
@@ -205,6 +238,16 @@ code, pre {
 .app-header nav {
     display: flex;
     gap: 1rem;
+}
+
+.app-header nav a {
+    color: var(--chrome-ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.app-header nav a:hover {
+    color: var(--chrome-pen);
 }
 
 .app-main {
@@ -232,6 +275,16 @@ code, pre {
     min-height: 0;
 }
 
+/* Landing (/) runs its own full-bleed sections (features/landing/style.css) —
+   drop the centered column/padding so its hero/manifesto/closer bands can
+   each run edge-to-edge and manage their own spacing. */
+.app-main.app-main--landing {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 button {
     font: inherit;
 }
@@ -248,14 +301,14 @@ button:focus-visible {
     width: 2rem;
     height: 2rem;
     padding: 0;
-    border: 1px solid var(--line);
-    border-radius: 0.4rem;
-    background: var(--surface-alt);
-    color: var(--ink-soft);
+    border: 1.5px solid var(--chrome-ink);
+    border-radius: 3px;
+    background: var(--chrome-paper-edge);
+    color: var(--chrome-ink-soft);
     cursor: pointer;
 }
 
 .theme-toggle:hover {
-    color: var(--ink);
-    border-color: var(--line-strong);
+    color: var(--chrome-pen);
+    border-color: var(--chrome-pen);
 }

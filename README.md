@@ -59,6 +59,9 @@ notes, undo/redo    satisfied /          (polyline, circle, cage,
 - [`docs/PUZZLE_FORMAT.md`](docs/PUZZLE_FORMAT.md) — the artifact JSON and the
   constraint language reference.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — decisions and tradeoffs.
+- [`docs/DESIGN.md`](docs/DESIGN.md) — the visual identity: what's migrated to
+  the warm "ink & paper" look, what's deliberately still on the original
+  theme, and why.
 
 ## URL sharing
 

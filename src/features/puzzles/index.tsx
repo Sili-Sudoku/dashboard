@@ -6,22 +6,21 @@ import { definitions } from "@/definitions/index.ts";
 
 import "./style.css";
 
-export default function Home() {
+export default function PuzzleList() {
     const puzzles = listPuzzles();
 
     return (
-        <div className="home">
-            <section className="home-intro">
-                <h1>A generic constraint puzzle runtime</h1>
+        <div className="puzzles-page">
+            <section className="puzzles-intro">
+                <h1>Puzzles</h1>
                 <p>
-                    The engine understands cells, regions, values, sums, ordering, counting, logic and
-                    adjacency. It does <strong>not</strong> understand &ldquo;thermometer&rdquo; or
-                    &ldquo;killer cage&rdquo;. Those are <Link to="/new">definitions</Link> — small packages that
-                    compile to the same primitive constraints you could write by hand.
+                    Classic Sudoku plus variants — thermometers, killer cages, arrows, and kropki dots — all
+                    on the same board. Already have a puzzle from f-puzzles, SudokuPad, or SudokuMaker?{" "}
+                    <Link to="/new">Bring it in</Link> and solve it here instead.
                 </p>
             </section>
 
-            <section className="home-list">
+            <section className="puzzles-list">
                 {puzzles.map((p) => {
                     const compiled = compilePuzzle(p, definitions);
                     const sources = compiled instanceof Error ? [] : uniqueSources(compiled.constraints);
