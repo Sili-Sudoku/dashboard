@@ -658,4 +658,17 @@ export class PuzzleSession {
 
 export const progressStorageKey = (puzzleId: string): string => `cpr:progress:${puzzleId}`;
 
+/** Local, per-puzzle solve-timer stats (#68) — distinct from community
+ *  leaderboards (#58, needs accounts+backend). Just "how long did that take,
+ *  on this device". */
+export interface PuzzleStats {
+    /** The current attempt's accumulated active solving time, ms. */
+    elapsedMs: number;
+    /** The fastest *completed* solve recorded for this puzzle, ms — kept
+     *  across resets/retries, only ever lowered. */
+    bestElapsedMs?: number;
+}
+
+export const statsStorageKey = (puzzleId: string): string => `cpr:stats:${puzzleId}`;
+
 export { lookupFromRecord };

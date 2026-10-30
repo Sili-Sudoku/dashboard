@@ -83,6 +83,22 @@
     color: #fff;
 }
 
+.pp-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    align-self: flex-start;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.pp-timer-best {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+}
+
 .pp-complete {
     display: flex;
     align-items: center;

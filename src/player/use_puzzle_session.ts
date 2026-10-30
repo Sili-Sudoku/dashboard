@@ -8,7 +8,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
-import { PuzzleSession, progressStorageKey, type InputMode, type ProgressSnapshot } from "@/runtime/session.ts";
+import {
+    PuzzleSession,
+    progressStorageKey,
+    statsStorageKey,
+    type InputMode,
+    type ProgressSnapshot,
+    type PuzzleStats,
+} from "@/runtime/session.ts";
 
 const readProgress = (id: string): ProgressSnapshot | undefined => {
     try {
@@ -24,6 +31,23 @@ const writeProgress = (id: string, snapshot: ProgressSnapshot): void => {
         localStorage.setItem(progressStorageKey(id), JSON.stringify(snapshot));
     } catch {
         // storage unavailable (private mode etc.) — progress just isn't persisted
+    }
+};
+
+const readStats = (id: string): PuzzleStats | undefined => {
+    try {
+        const raw = localStorage.getItem(statsStorageKey(id));
+        return raw ? (JSON.parse(raw) as PuzzleStats) : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const writeStats = (id: string, stats: PuzzleStats): void => {
+    try {
+        localStorage.setItem(statsStorageKey(id), JSON.stringify(stats));
+    } catch {
+        // storage unavailable — stats just aren't persisted
     }
 };
 
@@ -96,6 +120,76 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             }, 150);
         });
     }, [session, puzzle.metadata.id]);
+
+    // Solve timer (#68): a plain stopwatch, running while the puzzle isn't
+    // complete. Driven entirely from the interval/subscribe callbacks and
+    // effect cleanup below (never from the render body itself, and never
+    // from a ref read during render) — both react-hooks rules this project
+    // lints against. `elapsedBase`/`runningTimer` are plain mutable
+    // bookkeeping, not render input: `elapsedBase` is the running total as
+    // of the last pause (tick stop, completion, or a manual reset);
+    // `runningTimer` tells a stale cleanup (firing after `resetTimer`
+    // already zeroed everything) not to re-fold a leftover delta on top of
+    // the fresh zero. Completion is detected via `session.subscribe`, not by
+    // polling `evaluation.complete` once a second in the interval tick — a
+    // poll would let the clock run up to a second past the actual solve
+    // before noticing, inflating the recorded time by that much.
+    const initialStats = useMemo(() => readStats(puzzle.metadata.id), [puzzle.metadata.id]);
+    const [elapsedMs, setElapsedMs] = useState(() => initialStats?.elapsedMs ?? 0);
+    const [bestElapsedMs, setBestElapsedMs] = useState(() => initialStats?.bestElapsedMs);
+    const elapsedBase = useRef(initialStats?.elapsedMs ?? 0);
+    const resumedAt = useRef(0);
+    const runningTimer = useRef(false);
+    const [tickGeneration, setTickGeneration] = useState(0);
+
+    useEffect(() => {
+        if (session.evaluation.complete) return; // already solved — nothing to tick
+        resumedAt.current = Date.now();
+        runningTimer.current = true;
+
+        const finish = () => {
+            window.clearInterval(id);
+            unsubscribe();
+            runningTimer.current = false;
+            elapsedBase.current += Date.now() - resumedAt.current;
+            const finalElapsed = elapsedBase.current;
+            setElapsedMs(finalElapsed);
+            setBestElapsedMs((prev) => {
+                const best = prev === undefined ? finalElapsed : Math.min(prev, finalElapsed);
+                writeStats(puzzle.metadata.id, { elapsedMs: finalElapsed, bestElapsedMs: best });
+                return best;
+            });
+        };
+
+        const id = window.setInterval(() => {
+            const current = elapsedBase.current + (Date.now() - resumedAt.current);
+            setElapsedMs(current);
+            // `bestElapsedMs` only ever changes at completion, which stops this
+            // interval — so the value closed over here stays accurate for as
+            // long as this interval keeps running.
+            writeStats(puzzle.metadata.id, { elapsedMs: current, bestElapsedMs });
+        }, 1000);
+
+        const unsubscribe = session.subscribe(() => {
+            if (session.evaluation.complete) finish();
+        });
+
+        return () => {
+            window.clearInterval(id);
+            unsubscribe();
+            if (runningTimer.current) {
+                runningTimer.current = false;
+                elapsedBase.current += Date.now() - resumedAt.current;
+            }
+        };
+    }, [session, puzzle.metadata.id, tickGeneration, bestElapsedMs]);
+
+    const resetTimer = useCallback(() => {
+        runningTimer.current = false;
+        elapsedBase.current = 0;
+        setElapsedMs(0);
+        setTickGeneration((g) => g + 1);
+    }, []);
 
     // Keyboard interaction.
     // While Shift/Ctrl/Cmd is held on its own (no other key yet), the number
@@ -339,5 +433,5 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         };
     }, [session, puzzle.domain, check]);
 
-    return { session, checkToast, check };
+    return { session, checkToast, check, elapsedMs, bestElapsedMs, resetTimer };
 };

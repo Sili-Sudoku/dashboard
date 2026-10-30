@@ -22,8 +22,10 @@ export * from "@/runtime/evaluate.ts";
 export {
     PuzzleSession,
     progressStorageKey,
+    statsStorageKey,
     type CellState,
     type ProgressSnapshot,
+    type PuzzleStats,
     type SelectMode,
     type SessionOptions,
 } from "@/runtime/session.ts";

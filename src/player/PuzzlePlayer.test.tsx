@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { definitions } from "@/definitions/index.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
+import { statsStorageKey, type PuzzleStats } from "@/runtime/session.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 
 const compiled = () => {
@@ -513,5 +514,81 @@ describe("<PuzzlePlayer />", () => {
         });
 
         expect(screen.getByText("Solved!")).toBeTruthy();
+    });
+
+    it("the solve timer ticks up once a second while the puzzle is open", () => {
+        vi.useFakeTimers();
+        try {
+            render(<PuzzlePlayer puzzle={compiled()} />);
+            expect(screen.getByText("0:00")).toBeTruthy();
+            act(() => {
+                vi.advanceTimersByTime(3000);
+            });
+            expect(screen.getByText("0:03")).toBeTruthy();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("freezes the timer and records a personal best the moment the puzzle is solved", () => {
+        vi.useFakeTimers();
+        try {
+            const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+            act(() => {
+                vi.advanceTimersByTime(5000);
+            });
+
+            const solution = miniSudoku.solution as Record<string, number>;
+            const cellEls = container.querySelectorAll<SVGRectElement>(".cell-bg");
+            cellEls.forEach((el, i) => {
+                const cell = `r${Math.floor(i / 4) + 1}c${(i % 4) + 1}`;
+                if (cell in (miniSudoku.givens ?? {})) return;
+                fireEvent.pointerDown(el);
+                fireEvent.click(screen.getByRole("button", { name: String(solution[cell]) }));
+            });
+
+            expect(screen.getByText("0:05")).toBeTruthy();
+            expect(screen.getByText("best 0:05")).toBeTruthy();
+
+            // Further ticks don't move it — the timer is stopped, not just paused.
+            act(() => {
+                vi.advanceTimersByTime(5000);
+            });
+            expect(screen.getByText("0:05")).toBeTruthy();
+
+            const stats = JSON.parse(localStorage.getItem(statsStorageKey("mini-sudoku")) ?? "{}") as PuzzleStats;
+            expect(stats.elapsedMs).toBe(5000);
+            expect(stats.bestElapsedMs).toBe(5000);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("resumes a persisted elapsed time instead of restarting at zero", () => {
+        localStorage.setItem(statsStorageKey("mini-sudoku"), JSON.stringify({ elapsedMs: 42_000 } satisfies PuzzleStats));
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(screen.getByText("0:42")).toBeTruthy();
+    });
+
+    it("Reset restarts the timer at zero and it keeps ticking afterward", () => {
+        vi.useFakeTimers();
+        try {
+            const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+            act(() => {
+                vi.advanceTimersByTime(7000);
+            });
+            expect(screen.getByText("0:07")).toBeTruthy();
+
+            fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
+            fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+            expect(screen.getByText("0:00")).toBeTruthy();
+
+            act(() => {
+                vi.advanceTimersByTime(2000);
+            });
+            expect(screen.getByText("0:02")).toBeTruthy();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

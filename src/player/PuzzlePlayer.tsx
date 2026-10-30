@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { AlertTriangle, BadgeCheck, PartyPopper, ShieldAlert } from "lucide-react";
+import { AlertTriangle, BadgeCheck, PartyPopper, ShieldAlert, Timer } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -13,6 +13,17 @@ import ConstraintPanel from "@/player/components/constraint-panel";
 import HotkeyLegend from "@/player/components/hotkey-legend";
 
 import "./player.css";
+
+/** mm:ss, growing to h:mm:ss past an hour — plenty for a casual solve timer. */
+const formatElapsed = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const mm = hours > 0 ? String(minutes).padStart(2, "0") : String(minutes);
+    const ss = String(seconds).padStart(2, "0");
+    return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+};
 
 interface Props {
     puzzle: CompiledPuzzle;
@@ -52,7 +63,7 @@ export default function PuzzlePlayer({
     invalidConstraintIds,
     showSolution,
 }: Props) {
-    const { session, checkToast, check } = usePuzzleSession(puzzle);
+    const { session, checkToast, check, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(puzzle);
 
     useEffect(() => {
         onSelectionChange?.(session.getSelection());
@@ -140,6 +151,14 @@ export default function PuzzlePlayer({
             </div>
 
             <aside className="pp-side">
+                <div className="pp-timer">
+                    <Timer size={15} />
+                    {formatElapsed(elapsedMs)}
+                    {bestElapsedMs !== undefined && (
+                        <span className="pp-timer-best">best {formatElapsed(bestElapsedMs)}</span>
+                    )}
+                </div>
+
                 {evaluation.complete && (
                     <div className="pp-complete">
                         <PartyPopper size={18} /> Solved!
@@ -159,7 +178,10 @@ export default function PuzzlePlayer({
                     canRedo={session.canRedo}
                     onUndo={() => session.undo()}
                     onRedo={() => session.redo()}
-                    onReset={() => session.reset()}
+                    onReset={() => {
+                        session.reset();
+                        resetTimer();
+                    }}
                     onCheck={puzzle.solution ? check : undefined}
                 />
 
