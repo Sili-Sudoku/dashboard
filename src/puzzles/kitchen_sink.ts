@@ -69,6 +69,7 @@ export const kitchenSink: PuzzleDefinition = {
             "xv",
             "sandwich",
             "betweenline",
+            "negative",
             "showcase",
         ],
     },
@@ -116,6 +117,12 @@ export const kitchenSink: PuzzleDefinition = {
         { use: "sandwich", cells: col9, sum: 17 },
 
         { use: "betweenline", cells: ["r5c7", "r5c8", "r5c9"] },
+
+        // "Negative" global exclusions, excluding the pairs already explicitly
+        // dotted/marked above — see src/definitions/negative.ts.
+        { use: "negativeDifference", excludePairs: [["r1c7", "r1c8"]] },
+        { use: "negativeRatio", excludePairs: [["r7c5", "r7c6"]] },
+        { use: "negativeXV", excludePairs: [["r4c6", "r4c7"]] },
     ],
     presentation: { cellSize: 64 },
 };

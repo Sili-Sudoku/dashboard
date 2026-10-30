@@ -21,6 +21,7 @@ import { minimum, maximum } from "@/definitions/minmax.ts";
 import { xv } from "@/definitions/xv.ts";
 import { sandwich } from "@/definitions/sandwich.ts";
 import { betweenline } from "@/definitions/betweenline.ts";
+import { negativeRatio, negativeDifference, negativeXV } from "@/definitions/negative.ts";
 import { definitions } from "@/definitions/index.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 
@@ -194,6 +195,46 @@ describe("nonconsecutive definition", () => {
         if (out instanceof Error) throw out;
         expect(out.constraints).toHaveLength(4);
         for (const c of out.constraints) expect(Array.isArray(c.expr) && c.expr[0]).toBe("and");
+    });
+});
+
+describe("negative definitions", () => {
+    it("negativeRatio emits one deduped constraint per adjacency, minus excluded pairs", () => {
+        const out = negativeRatio({ excludePairs: [["r1c1", "r1c2"]] }, ctx(2, 2));
+        if (out instanceof Error) throw out;
+        expect(out.constraints).toHaveLength(3);
+        for (const c of out.constraints) expect(Array.isArray(c.expr) && c.expr[0]).toBe("and");
+    });
+
+    it("negativeRatio is violated once a pair lands in a 2:1 ratio", () => {
+        const puzzle: PuzzleDefinition = {
+            version: 1,
+            metadata: { id: "p", title: "p" },
+            geometry: { type: "grid", width: 1, height: 2 },
+            domain: { values: [1, 2, 3, 4, 6] },
+            constraints: [{ use: "negativeRatio" }],
+        };
+        const compiled = compilePuzzle(puzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        const result = evaluate(compiled, lookupFromRecord({ r1c1: 2, r2c1: 4 }));
+        expect(result.status).toBe("invalid");
+    });
+
+    it("negativeDifference excludes pairs already carrying an explicit kropki dot", () => {
+        const out = negativeDifference({ excludePairs: [["r1c1", "r1c2"], ["r1c2", "r1c1"]] }, ctx(2, 1));
+        if (out instanceof Error) throw out;
+        expect(out.constraints).toHaveLength(0);
+    });
+
+    it("negativeXV forbids both the X and V sums for every unmarked adjacency", () => {
+        const out = negativeXV({}, ctx(2, 1));
+        if (out instanceof Error) throw out;
+        expect(out.constraints).toHaveLength(1);
+        expect(out.constraints[0].expr).toEqual([
+            "and",
+            ["!=", ["+", ["value", "r1c1"], ["value", "r1c2"]], 5],
+            ["!=", ["+", ["value", "r1c1"], ["value", "r1c2"]], 10],
+        ]);
     });
 });
 

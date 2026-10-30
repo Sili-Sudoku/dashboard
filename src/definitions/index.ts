@@ -25,6 +25,7 @@ import { minimum, maximum } from "@/definitions/minmax.ts";
 import { xv } from "@/definitions/xv.ts";
 import { sandwich } from "@/definitions/sandwich.ts";
 import { betweenline } from "@/definitions/betweenline.ts";
+import { negativeRatio, negativeDifference, negativeXV } from "@/definitions/negative.ts";
 
 export const definitions: DefinitionRegistry = {
     sudoku,
@@ -47,6 +48,9 @@ export const definitions: DefinitionRegistry = {
     xv,
     sandwich,
     betweenline,
+    negativeRatio,
+    negativeDifference,
+    negativeXV,
 };
 
 export {
@@ -70,5 +74,8 @@ export {
     xv,
     sandwich,
     betweenline,
+    negativeRatio,
+    negativeDifference,
+    negativeXV,
 };
 export type { ConstraintDefinition, DefinitionRegistry, CompileContext } from "@/definitions/types.ts";

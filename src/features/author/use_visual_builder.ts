@@ -45,7 +45,7 @@ const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<Cel
         return first;
     }
     const cells = [...selection];
-    return field.max !== undefined ? cells.slice(0, field.max) : cells;
+    return field.kind === "cells" && field.max !== undefined ? cells.slice(0, field.max) : cells;
 };
 
 /** All the state/logic behind the visual builder (#54): pick a definition from

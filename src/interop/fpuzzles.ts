@@ -15,10 +15,11 @@
  * regions and diagonals), givens, killer cages (and little killer sums),
  * thermometers, arrows, kropki dots (difference/ratio), xv, odd/even and
  * minimum/maximum markers, palindrome/between lines, clones, quadruples,
- * sandwich sums, and the antiknight/antiking/nonconsecutive/disjointgroups
- * global flags. Still not covered: "negative" (see kanban). Anything else
- * present in the source is reported as a warning, never silently dropped —
- * same for any supported clue whose cells don't resolve.
+ * sandwich sums, the antiknight/antiking/nonconsecutive/disjointgroups
+ * global flags, and the "negative" global ratio/difference/xv exclusion
+ * flags. Anything else present in the source is reported as a warning,
+ * never silently dropped — same for any supported clue whose cells don't
+ * resolve.
  *
  * sandwichsum/littlekillersum are NOT a resolved-cells list like the other
  * clue types — confirmed the hard way, via a real f-puzzles.com import
@@ -109,6 +110,7 @@ export interface FPuzzlesExport {
     littlekillersum?: FPuzzlesLittleKillerClue[];
     sandwichsum?: FPuzzlesOutsideClue[];
     betweenline?: FPuzzlesLinesClue[];
+    negative?: string[];
 }
 
 export interface ImportResult {
@@ -150,7 +152,19 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "littlekillersum",
     "sandwichsum",
     "betweenline",
+    "negative",
 ]);
+
+/** The "negative" array's entries vary by exporter -- fold the synonyms seen
+ *  in the wild onto the canonical kind that already has its own importer
+ *  branch (kropki difference, kropki ratio, xv) before looking up its pairs. */
+const NEGATIVE_KIND_ALIASES: Record<string, "difference" | "ratio" | "xv"> = {
+    difference: "difference",
+    differentpair: "difference",
+    nonconsecutive: "difference",
+    ratio: "ratio",
+    xv: "xv",
+};
 
 const toProjectCell = (cell: string): CellId | undefined => {
     const m = /^[Rr](\d+)[Cc](\d+)$/.exec(cell);
@@ -511,19 +525,26 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         }
     }
 
-    const importDot = (use: "kropkiDifference" | "kropkiRatio", clues: readonly FPuzzlesCellsClue[] | undefined) => {
+    const explicitDifferencePairs: CellId[][] = [];
+    const explicitRatioPairs: CellId[][] = [];
+    const importDot = (
+        use: "kropkiDifference" | "kropkiRatio",
+        clues: readonly FPuzzlesCellsClue[] | undefined,
+        explicitPairs: CellId[][],
+    ) => {
         for (const clue of clues ?? []) {
             const cells = mapCells(clue.cells);
             if (!cells || cells.length !== 2) {
                 warnings.push(`${use} dot with unexpected cells was skipped`);
                 continue;
             }
+            explicitPairs.push(cells);
             const value = typeof clue.value === "string" ? Number(clue.value) : clue.value;
             constraints.push({ use, cells, ...(typeof value === "number" && Number.isFinite(value) && value > 0 ? { value } : {}) });
         }
     };
-    importDot("kropkiDifference", src.difference as FPuzzlesCellsClue[] | undefined);
-    importDot("kropkiRatio", src.ratio as FPuzzlesCellsClue[] | undefined);
+    importDot("kropkiDifference", src.difference as FPuzzlesCellsClue[] | undefined, explicitDifferencePairs);
+    importDot("kropkiRatio", src.ratio as FPuzzlesCellsClue[] | undefined, explicitRatioPairs);
 
     const importCellMarker = (
         use: "odd" | "even" | "minimum" | "maximum",
@@ -615,6 +636,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         constraints.push({ use: "quadruple", cells, values: clue.values });
     }
 
+    const explicitXVPairs: CellId[][] = [];
     for (const clue of (src.xv as FPuzzlesCellsClue[] | undefined) ?? []) {
         const cells = mapCells(clue.cells);
         const target = clue.value === "X" ? 10 : clue.value === "V" ? 5 : undefined;
@@ -622,7 +644,30 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             warnings.push("xv marker with unrecognized cells or marker was skipped");
             continue;
         }
+        explicitXVPairs.push(cells);
         constraints.push({ use: "xv", cells, target });
+    }
+
+    const negativeKindsSeen = new Set<"difference" | "ratio" | "xv">();
+    for (const raw of (src.negative as unknown[] | undefined) ?? []) {
+        if (typeof raw !== "string") {
+            warnings.push(`"negative" entry ${JSON.stringify(raw)} was ignored (not a string)`);
+            continue;
+        }
+        const kind = NEGATIVE_KIND_ALIASES[raw.toLowerCase()];
+        if (!kind) {
+            warnings.push(`"negative" entry "${raw}" is not a recognized kind and was ignored`);
+            continue;
+        }
+        if (negativeKindsSeen.has(kind)) continue;
+        negativeKindsSeen.add(kind);
+        if (kind === "difference") {
+            constraints.push({ use: "negativeDifference", excludePairs: explicitDifferencePairs });
+        } else if (kind === "ratio") {
+            constraints.push({ use: "negativeRatio", excludePairs: explicitRatioPairs });
+        } else {
+            constraints.push({ use: "negativeXV", excludePairs: explicitXVPairs });
+        }
     }
 
     for (const key of Object.keys(src)) {
@@ -734,6 +779,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
     let antikingFlag = false;
     let nonconsecutiveFlag = false;
     let disjointgroupsFlag = false;
+    const negativeKinds = new Set<"difference" | "ratio" | "xv">();
 
     const exportCells = (cells: readonly CellId[]): string[] | undefined => {
         const out: string[] = [];
@@ -866,6 +912,8 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 continue;
             }
             betweenlineLines.push({ lines: [cells] });
+        } else if (use === "negativeDifference" || use === "negativeRatio" || use === "negativeXV") {
+            negativeKinds.add(use === "negativeDifference" ? "difference" : use === "negativeRatio" ? "ratio" : "xv");
         } else {
             warnings.push(`constraint using definition "${use}" cannot be represented in f-puzzles export; dropped`);
         }
@@ -899,6 +947,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         ...(littlekillersumClues.length > 0 ? { littlekillersum: littlekillersumClues } : {}),
         ...(sandwichsumClues.length > 0 ? { sandwichsum: sandwichsumClues } : {}),
         ...(betweenlineLines.length > 0 ? { betweenline: betweenlineLines } : {}),
+        ...(negativeKinds.size > 0 ? { negative: [...negativeKinds] } : {}),
     };
 
     if (def.solution) {

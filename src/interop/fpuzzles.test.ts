@@ -71,14 +71,51 @@ describe("importFPuzzles", () => {
     });
 
     it("reports unsupported clue types as warnings instead of silently dropping them", () => {
-        // "negative" (a global "no unmarked adjacent pair satisfies this relation"
-        // flag) is deliberately deferred — see kanban card for it — so it's still
-        // a good stand-in for "a clue type this importer doesn't know about".
         const data = sampleFPuzzles() as unknown as Record<string, unknown>;
-        data.negative = ["ratio", "xv"];
+        data.someFutureClueType = [{ cells: ["R1C1"] }];
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
-        expect(result.warnings.some((w) => w.includes("negative"))).toBe(true);
+        expect(result.warnings.some((w) => w.includes("someFutureClueType"))).toBe(true);
+    });
+
+    it("negative: adds a global exclusion per recognized kind, excluding pairs already explicitly clued", () => {
+        const data = sampleFPuzzles() as unknown as Record<string, unknown>;
+        data.negative = ["ratio", "xv", "not-a-real-kind"];
+        const result = importFPuzzles(data);
+        if (result instanceof Error) throw result;
+
+        expect(result.warnings).toEqual([
+            '"negative" entry "not-a-real-kind" is not a recognized kind and was ignored',
+        ]);
+
+        const negativeRatioRef = result.puzzle.constraints.find(
+            (s) => isDefinitionRef(s) && s.use === "negativeRatio",
+        );
+        expect(negativeRatioRef && isDefinitionRef(negativeRatioRef) ? negativeRatioRef.excludePairs : undefined).toEqual([
+            ["r6c1", "r6c2"],
+        ]);
+        const negativeXVRef = result.puzzle.constraints.find((s) => isDefinitionRef(s) && s.use === "negativeXV");
+        expect(negativeXVRef && isDefinitionRef(negativeXVRef) ? negativeXVRef.excludePairs : undefined).toEqual([]);
+
+        const compiled = compilePuzzle(result.puzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        const sources = new Set(compiled.constraints.map((c) => c.source));
+        expect(sources.has("negativeRatio")).toBe(true);
+        expect(sources.has("negativeXV")).toBe(true);
+        expect(sources.has("negativeDifference")).toBe(false);
+    });
+
+    it("negative: synonyms ('differentpair'/'nonconsecutive') both resolve to negativeDifference, deduped", () => {
+        const data = sampleFPuzzles() as unknown as Record<string, unknown>;
+        data.negative = ["differentpair", "nonconsecutive"];
+        const result = importFPuzzles(data);
+        if (result instanceof Error) throw result;
+        expect(result.warnings).toEqual([]);
+
+        const negativeDifferenceRefs = result.puzzle.constraints.filter(
+            (s) => isDefinitionRef(s) && s.use === "negativeDifference",
+        );
+        expect(negativeDifferenceRefs).toHaveLength(1);
     });
 
     it("falls back to named jigsaw regions when boxes aren't a rectangular tiling", () => {
@@ -406,6 +443,9 @@ describe("exportFPuzzles: extended clue types", () => {
                     sum: 5,
                 },
                 { use: "betweenline", cells: ["r7c1", "r7c2", "r7c3"] },
+                { use: "negativeDifference" },
+                { use: "negativeRatio" },
+                { use: "negativeXV" },
             ],
         };
 
@@ -417,6 +457,7 @@ describe("exportFPuzzles: extended clue types", () => {
         expect(exported.data.antiknight).toBe(true);
         expect(exported.data.littlekillersum).toEqual([{ cell: "R4C0", direction: "DR", value: "9" }]);
         expect(exported.data.sandwichsum).toEqual([{ cell: "R6C0", value: "5" }]);
+        expect(new Set(exported.data.negative)).toEqual(new Set(["difference", "ratio", "xv"]));
 
         const reimported = importFPuzzles(exported.data);
         if (reimported instanceof Error) throw reimported;
@@ -428,6 +469,7 @@ describe("exportFPuzzles: extended clue types", () => {
         for (const expected of [
             "sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups",
             "palindrome", "clone", "quadruple", "minimum", "maximum", "xv", "killer", "sandwich", "betweenline",
+            "negativeDifference", "negativeRatio", "negativeXV",
         ]) {
             expect(sources.has(expected)).toBe(true);
         }
