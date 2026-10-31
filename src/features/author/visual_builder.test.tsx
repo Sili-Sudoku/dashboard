@@ -76,6 +76,26 @@ describe("VisualBuilder", () => {
         expect(screen.queryByText(/Add Antiknight/)).toBeNull();
     });
 
+    it("doesn't add an already-present global rule a second time, and disables its palette button (#121)", () => {
+        const { onChange } = renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }] });
+
+        const button = screen.getByRole("button", { name: "Antiknight (global)" }) as HTMLButtonElement;
+        expect(button.disabled).toBe(true);
+        fireEvent.click(button);
+        expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("only offers Add for schemas that need typed input beyond a board drag (#119)", () => {
+        renderBuilder(basePuzzle);
+
+        fireEvent.click(screen.getByText("Thermometer"));
+        expect(screen.queryByText(/^Add /)).toBeNull();
+        expect(screen.getByText("Done")).toBeTruthy();
+
+        fireEvent.click(screen.getByText("XV"));
+        expect(screen.getByText(/^Add XV/)).toBeTruthy();
+    });
+
     it("places a single-cell constraint by dragging directly on the board, no Add click needed", () => {
         const { container, onChange } = renderBuilder(basePuzzle);
 

@@ -86,6 +86,18 @@ const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit 
     </div>
 );
 
+/** "antiking#56, antiking#73, thermometer#2" → "antiking ×2, thermometer#2" — a
+ *  global rule can violate at hundreds of cell pairs, so listing every id made
+ *  the notice a wall of text. */
+const summarizeConflicts = (ids: ReadonlySet<string>): string => {
+    const byKind = new Map<string, string[]>();
+    for (const id of ids) {
+        const kind = id.split("#")[0];
+        byKind.set(kind, [...(byKind.get(kind) ?? []), id]);
+    }
+    return [...byKind].map(([kind, list]) => (list.length > 1 ? `${kind} ×${list.length}` : list[0])).join(", ");
+};
+
 const BUILDER_EXAMPLE = `import { PuzzleBuilder } from "@/authoring/builder";
 
 // define puzzle + geometry
@@ -597,7 +609,7 @@ export default function Author() {
                             )}
                             {invalidConstraintIds.size > 0 && (
                                 <p className="author-notice">
-                                    Conflicts with the declared solution (shown in red): {[...invalidConstraintIds].join(", ")}
+                                    Conflicts with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
                                 </p>
                             )}
                             <PuzzlePlayer

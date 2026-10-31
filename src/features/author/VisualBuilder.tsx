@@ -1,6 +1,6 @@
 import { AUTHORING_SCHEMAS, isSchemaComplete, summarizeConstraint, type AuthoringField } from "@/authoring/schema.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
-import type { VisualBuilderState } from "@/features/author/use_visual_builder.ts";
+import { isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
 
 interface Props {
     def: PuzzleDefinition | undefined;
@@ -42,6 +42,8 @@ export default function VisualBuilder({ def, state }: Props) {
                         key={schema.name}
                         type="button"
                         className={`btn btn-sm ${activeSchema?.name === schema.name ? "active" : ""}`}
+                        disabled={isGlobalPlaced(def, schema)}
+                        title={isGlobalPlaced(def, schema) ? "Already added — remove it from the list below to change it" : undefined}
                         onClick={() => startPlacing(schema)}
                     >
                         {schema.label}
@@ -124,11 +126,20 @@ export default function VisualBuilder({ def, state }: Props) {
                         ))}
 
                     <div className="visual-builder-actions">
+                        {/* Dragging on the board places the constraint by itself; the Add button
+                            only exists for schemas that also need typed input (xv's sum, etc.). */}
+                        {activeSchema.fields.some((f) => f.kind === "number" || f.kind === "numberList") && (
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                onClick={addConstraint}
+                                disabled={!isSchemaComplete(activeSchema, fieldValues)}
+                            >
+                                Add {activeSchema.label}
+                            </button>
+                        )}
                         <button type="button" className="btn btn-sm" onClick={cancelPlacing}>
-                            Cancel
-                        </button>
-                        <button type="button" className="btn btn-sm btn-primary" onClick={addConstraint} disabled={!isSchemaComplete(activeSchema, fieldValues)}>
-                            Add {activeSchema.label}
+                            Done
                         </button>
                     </div>
                 </div>

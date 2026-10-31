@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";
-import type { PuzzleDefinition, VisualObject } from "@/runtime/puzzle.ts";
+import { isDefinitionRef, type PuzzleDefinition, type VisualObject } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import {
     buildConstraintParams,
@@ -63,6 +63,10 @@ const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<Cel
  *  maybe optional params with defaults). A definition with no fields at all
  *  (e.g. antiknight) commits the moment it's picked from the palette, same
  *  idea: picking it *is* placing it, nothing left to draw on the board. */
+/** True when `schema` takes no parameters and the puzzle already has it. */
+export const isGlobalPlaced = (def: PuzzleDefinition | undefined, schema: AuthoringSchema): boolean =>
+    schema.fields.length === 0 && !!def?.constraints.some((c) => isDefinitionRef(c) && c.use === schema.name);
+
 export const useVisualBuilder = (
     def: PuzzleDefinition | undefined,
     selection: ReadonlySet<CellId>,
@@ -108,7 +112,9 @@ export const useVisualBuilder = (
         setFieldValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
-            commit(schema, {});
+            // A global rule is either on or off — a second identical copy only
+            // multiplies its violations (#121).
+            if (!isGlobalPlaced(def, schema)) commit(schema, {});
             return;
         }
         setActiveSchema(schema);
