@@ -80,7 +80,17 @@ const DIGIT_COMMIT_DELAY_MS = 500;
 
 const CHECK_TOAST_KEY = "check";
 
-export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
+/** A second history the board's Undo/Redo falls back to once the board's own
+ *  (entered digits/notes) is exhausted — the Author page's edits to the puzzle
+ *  definition itself (#116), so one Undo/Redo control covers both. */
+export interface ExternalHistory {
+    canUndo: boolean;
+    canRedo: boolean;
+    undo: () => void;
+    redo: () => void;
+}
+
+export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: ExternalHistory) => {
     const session = useMemo(
         () =>
             new PuzzleSession(puzzle, {
@@ -111,6 +121,22 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         else if (outcome === "mistake-value")
             toast("At least 1 digit entered is wrong", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
         else toast("At least 1 note has eliminated the correct digit", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
+    }, [session]);
+
+    // Undo/redo: the board's own history first, then (if given) the external one.
+    // Through a ref so the keyboard handler below always sees the latest callbacks
+    // without re-registering on every render.
+    const externalRef = useRef(externalHistory);
+    useEffect(() => {
+        externalRef.current = externalHistory;
+    });
+    const undo = useCallback(() => {
+        if (session.canUndo) session.undo();
+        else if (externalRef.current?.canUndo) externalRef.current.undo();
+    }, [session]);
+    const redo = useCallback(() => {
+        if (session.canRedo) session.redo();
+        else if (externalRef.current?.canRedo) externalRef.current.redo();
     }, [session]);
 
     // Persist progress after each change.
@@ -390,13 +416,13 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
                 e.preventDefault();
-                if (e.shiftKey) session.redo();
-                else session.undo();
+                if (e.shiftKey) redo();
+                else undo();
                 return;
             }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
                 e.preventDefault();
-                session.redo();
+                redo();
                 return;
             }
             // SudokuPad's 'V' check (#52) — a no-op on PuzzleSession's side if
@@ -434,7 +460,17 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
             window.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
         };
-    }, [session, puzzle.domain, check]);
+    }, [session, puzzle.domain, check, undo, redo]);
 
-    return { session, check, elapsedMs, bestElapsedMs, resetTimer };
+    return {
+        session,
+        check,
+        undo,
+        redo,
+        canUndo: session.canUndo || !!externalHistory?.canUndo,
+        canRedo: session.canRedo || !!externalHistory?.canRedo,
+        elapsedMs,
+        bestElapsedMs,
+        resetTimer,
+    };
 };

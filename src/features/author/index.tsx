@@ -1,4 +1,4 @@
-import { useMemo, useState, type FocusEvent, type WheelEvent } from "react";
+import { useEffect, useMemo, useState, type FocusEvent, type WheelEvent } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
 import { toast } from "@/app/toast.ts";
@@ -107,6 +107,9 @@ const summarizeConflicts = (ids: ReadonlySet<string>): string => {
     return [...byKind].map(([kind, list]) => (list.length > 1 ? `${kind} ×${list.length}` : list[0])).join(", ");
 };
 
+/** Snapshots kept for author undo — each is a full JSON text, so keep it bounded. */
+const HISTORY_LIMIT = 100;
+
 const BUILDER_EXAMPLE = `import { PuzzleBuilder } from "@/authoring/builder";
 
 // define puzzle + geometry
@@ -170,12 +173,38 @@ export default function Author() {
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
     );
 
+    // Undo/redo for changes made *to the puzzle* — visual-builder placements,
+    // grid-size edits, imports, loading an example (#116). Surfaced through the
+    // board's own Undo/Redo (and Ctrl+Z) via PuzzlePlayer's externalHistory, which
+    // tries the board's entered digits first. Typing in the JSON box keeps the
+    // textarea's own native undo; the snapshots here are what that can't see,
+    // because they replace the text programmatically.
+    const [history, setHistory] = useState<{ past: readonly string[]; future: readonly string[] }>({ past: [], future: [] });
+    const applyText = (json: string) => {
+        if (json !== text) setHistory((h) => ({ past: [...h.past, text].slice(-HISTORY_LIMIT), future: [] }));
+        setText(json);
+        setSubmitted(json);
+    };
+    const undo = () => {
+        const prev = history.past[history.past.length - 1];
+        if (prev === undefined) return;
+        setHistory({ past: history.past.slice(0, -1), future: [text, ...history.future] });
+        setText(prev);
+        setSubmitted(prev);
+    };
+    const redo = () => {
+        const [next, ...rest] = history.future;
+        if (next === undefined) return;
+        setHistory({ past: [...history.past, text], future: rest });
+        setText(next);
+        setSubmitted(next);
+    };
+
     const loadExample = (id: string) => {
         const example = listPuzzles().find((p) => p.metadata.id === id);
         if (!example) return;
         const json = JSON.stringify(example, null, 2);
-        setText(json);
-        setSubmitted(json);
+        applyText(json);
     };
 
     // Parsed and compiled on every keystroke (both are sub-millisecond even for
@@ -223,14 +252,12 @@ export default function Author() {
         };
         if (boxChanged) delete updated.solution;
         const json = JSON.stringify(updated, null, 2);
-        setText(json);
-        setSubmitted(json);
+        applyText(json);
     };
 
     const handleVisualChange = (next: PuzzleDefinition) => {
         const json = JSON.stringify(next, null, 2);
-        setText(json);
-        setSubmitted(json);
+        applyText(json);
     };
 
     const result = useMemo(() => {
@@ -246,6 +273,32 @@ export default function Author() {
         if (compiled instanceof Error) return { error: compiled.message, parsed };
         return { compiled, parsed };
     }, [submitted]);
+
+    // While the puzzle doesn't compile there's no board, hence no Undo button or
+    // Ctrl+Z handler from the player — and an edit that broke the puzzle (a grid
+    // size it can't satisfy, say) is exactly when you want to step back. So the
+    // page answers Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y itself in that state, leaving
+    // text fields their native undo.
+    const hasBoard = "compiled" in result && !!result.compiled;
+    useEffect(() => {
+        if (hasBoard) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            const target = e.target as HTMLElement | null;
+            if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+            const key = e.key.toLowerCase();
+            if (key === "z") {
+                e.preventDefault();
+                if (e.shiftKey) redo();
+                else undo();
+            } else if (key === "y") {
+                e.preventDefault();
+                redo();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    });
 
     const invalidConstraintIds = useMemo(
         () => ("compiled" in result && result.compiled ? solutionViolations(result.compiled) : new Set<string>()),
@@ -291,8 +344,7 @@ export default function Author() {
             return;
         }
         const json = JSON.stringify(imported.puzzle, null, 2);
-        setText(json);
-        setSubmitted(json);
+        applyText(json);
         notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported f-puzzles JSON.");
     };
 
@@ -327,8 +379,7 @@ export default function Author() {
             return;
         }
         const json = JSON.stringify(imported.puzzle, null, 2);
-        setText(json);
-        setSubmitted(json);
+        applyText(json);
         notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported SudokuMaker JSON.");
     };
 
@@ -600,6 +651,12 @@ export default function Author() {
                                 key={result.compiled.metadata.id + submitted.length}
                                 puzzle={result.compiled}
                                 onSelectionChange={setBoardSelection}
+                                externalHistory={{
+                                    canUndo: history.past.length > 0,
+                                    canRedo: history.future.length > 0,
+                                    undo,
+                                    redo,
+                                }}
                                 onSelectionEnd={visualState.onBoardSelectionEnd}
                                 previewObjects={visualState.previewObjects}
                                 invalidConstraintIds={invalidConstraintIds}

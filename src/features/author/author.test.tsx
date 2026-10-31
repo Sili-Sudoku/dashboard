@@ -137,6 +137,65 @@ describe("Author", () => {
         expect((screen.getByLabelText("Box width") as HTMLInputElement).value).toBe("3");
     });
 
+    it("undoes and redoes changes to the puzzle made outside the JSON box (#116)", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const textarea = () => container.querySelector("textarea") as HTMLTextAreaElement;
+        const undo = () => screen.getByRole("button", { name: /^undo$/i }) as HTMLButtonElement;
+        const redo = () => screen.getByRole("button", { name: /^redo$/i }) as HTMLButtonElement;
+        const original = textarea().value;
+
+        expect(undo().disabled).toBe(true);
+        expect(redo().disabled).toBe(true);
+
+        fireEvent.change(screen.getByRole("combobox", { name: /load an example/i }), { target: { value: "classic-sudoku" } });
+        const changed = textarea().value;
+        expect(changed).not.toBe(original);
+        expect(undo().disabled).toBe(false);
+
+        fireEvent.click(undo());
+        expect(textarea().value).toBe(original);
+        expect(redo().disabled).toBe(false);
+
+        fireEvent.click(redo());
+        expect(textarea().value).toBe(changed);
+        expect(redo().disabled).toBe(true);
+    });
+
+    it("still undoes via Ctrl+Z when the edit left the puzzle uncompilable, so there's no board to hold a button", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const textarea = () => container.querySelector("textarea") as HTMLTextAreaElement;
+        const original = textarea().value;
+
+        // 6x6 with the demo's 1-9 domain and constraints doesn't compile.
+        fireEvent.change(screen.getByLabelText("Width"), { target: { value: "6" } });
+        expect(screen.queryByRole("button", { name: /^undo$/i })).toBeNull();
+
+        fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+        expect(textarea().value).toBe(original);
+    });
+
+    it("a new change after an undo discards the redo branch", () => {
+        render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const example = screen.getByRole("combobox", { name: /load an example/i });
+        fireEvent.change(example, { target: { value: "classic-sudoku" } });
+        fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
+        fireEvent.change(example, { target: { value: "mini-sudoku" } });
+
+        expect((screen.getByRole("button", { name: /^redo$/i }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
     it("changing box width drops the stale solution instead of erroring against it", () => {
         const { container } = render(
             <MemoryRouter>

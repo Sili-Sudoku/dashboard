@@ -6,7 +6,7 @@ import type { CellId } from "@/runtime/geometry.ts";
 import Board from "@/renderer/Board.tsx";
 import { buildScene } from "@/renderer/scene.ts";
 
-import { usePuzzleSession } from "@/player/use_puzzle_session.ts";
+import { usePuzzleSession, type ExternalHistory } from "@/player/use_puzzle_session.ts";
 import NumberPad from "@/player/components/number-pad";
 import Controls from "@/player/components/controls";
 import ConstraintPanel from "@/player/components/constraint-panel";
@@ -53,6 +53,8 @@ interface Props {
      *  doesn't touch the session, so toggling it back off reveals whatever
      *  was really entered, untouched. No-op on a puzzle with no solution. */
     showSolution?: boolean;
+    /** Undo/redo that continues past the board's own history — see ExternalHistory. */
+    externalHistory?: ExternalHistory;
 }
 
 export default function PuzzlePlayer({
@@ -62,8 +64,12 @@ export default function PuzzlePlayer({
     previewObjects,
     invalidConstraintIds,
     showSolution,
+    externalHistory,
 }: Props) {
-    const { session, check, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(puzzle);
+    const { session, check, undo, redo, canUndo, canRedo, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(
+        puzzle,
+        externalHistory,
+    );
 
     useEffect(() => {
         onSelectionChange?.(session.getSelection());
@@ -175,10 +181,10 @@ export default function PuzzlePlayer({
                     />
 
                     <Controls
-                        canUndo={session.canUndo}
-                        canRedo={session.canRedo}
-                        onUndo={() => session.undo()}
-                        onRedo={() => session.redo()}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        onUndo={undo}
+                        onRedo={redo}
                         onReset={() => {
                             session.reset();
                             resetTimer();
