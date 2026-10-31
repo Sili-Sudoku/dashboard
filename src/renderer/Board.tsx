@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Lock, Maximize, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
+import { useSettings } from "@/app/use_settings.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene, Shape } from "@/renderer/scene.ts";
 import {
@@ -80,7 +81,10 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     // Freezes the view's scale (wheel, +/-, slider, Fit, Actual size) while panning
     // still works — e.g. for a player who keeps nudging the zoom by accident while
     // just trying to scroll/pan around a puzzle they've already sized how they want.
-    const [zoomLocked, setZoomLocked] = useState(false);
+    // Defaults from (and persists to) Settings (#69) instead of always starting
+    // unlocked and forgetting the choice on reload.
+    const [settings, setSetting] = useSettings();
+    const zoomLocked = settings.zoomLocked;
     // The wrap/viewport box's own on-screen size (#77 follow-up) — a stable canvas
     // the view pans/zooms *within*, not something that visibly resizes every time
     // the player zooms, but it does track .board-measure's available space via a
@@ -458,7 +462,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     <button
                         type="button"
                         className={zoomLocked ? "active" : ""}
-                        onClick={() => setZoomLocked((v) => !v)}
+                        onClick={() => setSetting("zoomLocked", !zoomLocked)}
                         aria-pressed={zoomLocked}
                         aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
                     >

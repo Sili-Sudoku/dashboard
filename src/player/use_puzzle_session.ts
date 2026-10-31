@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import { getSettings } from "@/app/use_settings.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
 import {
@@ -78,7 +79,11 @@ const DIGIT_COMMIT_DELAY_MS = 500;
 
 export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     const session = useMemo(
-        () => new PuzzleSession(puzzle, { initialProgress: readProgress(puzzle.metadata.id) }),
+        () =>
+            new PuzzleSession(puzzle, {
+                initialProgress: readProgress(puzzle.metadata.id),
+                checkNotesOnLeave: getSettings().checkNotesOnLeave,
+            }),
         [puzzle],
     );
 

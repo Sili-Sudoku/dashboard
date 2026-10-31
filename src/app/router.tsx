@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 
 import Landing from "@/features/landing";
 import PuzzleList from "@/features/puzzles";
 import Play from "@/features/play";
 import Author from "@/features/author";
+import Settings from "@/features/settings";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
 
@@ -63,6 +64,9 @@ export default function AppRouter() {
                         <nav>
                             <Link to="/puzzles">Puzzles</Link>
                             <Link to="/new">Author</Link>
+                            <Link to="/settings" className="theme-toggle" aria-label="Settings">
+                                <SettingsIcon size={16} />
+                            </Link>
                             <button
                                 type="button"
                                 className="theme-toggle"
@@ -84,6 +88,7 @@ export default function AppRouter() {
                             <Route path="/puzzles" element={<PuzzleList />} />
                             <Route path="/p/:ref" element={<Play />} />
                             <Route path="/new" element={<Author />} />
+                            <Route path="/settings" element={<Settings />} />
                         </Routes>
                     </main>
                 </div>

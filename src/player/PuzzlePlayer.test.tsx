@@ -249,11 +249,6 @@ describe("<PuzzlePlayer />", () => {
         }
     });
 
-    it("hides the 'check notes on leave' toggle for puzzles with no declared solution", () => {
-        render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
-        expect(screen.queryByRole("button", { name: /check notes on leave/i })).toBeNull();
-    });
-
     it("'0' is a plain digit for domains that include it, separate from erase", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
@@ -332,24 +327,31 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
     });
 
-    it("flags a cell's remaining centre notes in red on leave, once 'check notes on leave' is enabled", () => {
+    it("leaves centre notes unflagged by default ('check notes on leave' is a Settings (#69) preference, off by default)", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
-        // off by default: a bad elimination on r1c2 (solution digit is '2') goes unflagged
+        // a bad elimination on r1c2 (solution digit is '2') goes unflagged
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
         fireEvent.click(screen.getByRole("button", { name: "1" }));
         fireEvent.click(screen.getByRole("button", { name: "3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
+    });
 
-        const checkToggle = screen.getByRole("button", { name: /check notes on leave/i });
-        fireEvent.click(checkToggle);
-        expect(checkToggle.getAttribute("aria-pressed")).toBe("true");
+    it("flags a cell's remaining centre notes in red on leave, once the Settings (#69) preference is on", () => {
+        // No in-page toggle anymore — this is a Settings-page preference, read
+        // once when the puzzle session is constructed.
+        localStorage.setItem("cpr:settings", JSON.stringify({ checkNotesOnLeave: true }));
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
-        fireEvent.pointerDown(cells[1]); // back on r1c2, candidates {1,3} still missing '2'
-        fireEvent.pointerDown(cells[2]); // leave again — now checked
+        fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
+        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
+        fireEvent.click(screen.getByRole("button", { name: "1" }));
+        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        fireEvent.pointerDown(cells[2]); // leave r1c2 — candidates {1,3} still missing '2'
         // Centre notes render as one joined <text>, unlike one-per-digit corner notes.
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(1);
 

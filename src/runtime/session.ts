@@ -58,6 +58,8 @@ export type SelectMode = "replace" | "add" | "toggle";
 export interface SessionOptions {
     onChange?: () => void;
     initialProgress?: ProgressSnapshot;
+    /** Seeds `checkNotesOnLeave` (default false) — the player-wide default lives in Settings (#69). */
+    checkNotesOnLeave?: boolean;
 }
 
 /**
@@ -113,6 +115,7 @@ export class PuzzleSession {
         this.cursor = this.geometry.cells[0] ?? null;
         if (options.onChange) this.listeners.add(options.onChange);
         if (options.initialProgress) this.applyProgress(options.initialProgress);
+        if (options.checkNotesOnLeave !== undefined) this.checkNotesOnLeave = options.checkNotesOnLeave;
     }
 
     // --- subscription -----------------------------------------------------

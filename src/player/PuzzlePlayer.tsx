@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { AlertTriangle, BadgeCheck, PartyPopper, ShieldAlert, Timer } from "lucide-react";
+import { AlertTriangle, BadgeCheck, PartyPopper, Timer } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -201,17 +201,6 @@ export default function PuzzlePlayer({
                     <div className="pp-complete pp-check-mistake">
                         <AlertTriangle size={18} /> At least 1 note has eliminated the correct digit
                     </div>
-                )}
-
-                {puzzle.solution && (
-                    <button
-                        className={`pp-toggle ${session.checkNotesOnLeave ? "active" : ""}`}
-                        aria-pressed={session.checkNotesOnLeave}
-                        onClick={() => session.setCheckNotesOnLeave(!session.checkNotesOnLeave)}
-                        title="When you move off a cell, flag it in red if its remaining centre notes no longer include the correct digit"
-                    >
-                        <ShieldAlert size={15} /> Check notes on leave
-                    </button>
                 )}
 
                 <ConstraintPanel evaluation={evaluation} />

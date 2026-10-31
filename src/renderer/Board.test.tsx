@@ -6,7 +6,10 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import Board from "@/renderer/Board.tsx";
 import type { CellShape, Scene } from "@/renderer/scene.ts";
 
-afterEach(cleanup);
+afterEach(() => {
+    cleanup();
+    localStorage.clear();
+});
 
 const noop = () => undefined;
 
