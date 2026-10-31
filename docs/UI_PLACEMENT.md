@@ -30,6 +30,17 @@ Debug/developer affordances (View JSON) are disclosure, never primary.
 | Disclosure / info | sidebar toggles (`ConstraintPanel`, `HotkeyLegend`); JSON view | SDK example, solution toggle |
 | Authoring action | — | `.author-actions`, `.author-interop`, visual-builder actions |
 
+### At phone width (≤600px)
+
+| Bucket | What it does |
+| --- | --- |
+| Primary action | Board pages: icon-only in the header (label hidden, `aria-label` set). Other pages: keeps its label. |
+| Solve action | Stays; the sidebar stacks under the board below 820px. |
+| View control | Icon-only (labels hidden); the zoom slider shrinks to fill the row. |
+| Setting | Unchanged — it's a page, not a toolbar. |
+| Disclosure / info | Stays collapsed by default; opens inline, never as a floating panel over the board. |
+| Authoring action | Editor stacks above the preview below 900px; rows wrap. |
+
 Not yet true: the player sidebar is still one flat stack rather than grouped by
 bucket (#133). Until then, add to the group closest to the bucket and keep it
 adjacent to its siblings — don't start a new top-level item.
@@ -37,14 +48,17 @@ adjacent to its siblings — don't start a new top-level item.
 ## Every control, regardless of bucket
 
 - Built from `.btn`; no new `button { … }` rules, no new hex colors.
-- Icon-only → `aria-label`. Toggle → `aria-pressed`. Don't remove the global
+- Icon-only → `aria-label` — including a button whose text label is hidden by
+  CSS at phone width (`display: none` removes the accessible name too).
+  Toggle → `aria-pressed` (`.btn` styles it as active by itself). Don't remove the global
   `:focus-visible` ring.
 - Reachable by keyboard; if it has a hotkey, add it to the hotkey legend.
 - Has a stated phone-width behavior (≤600px): stays, collapses to icon-only
   (hide the text label, keep the `aria-label`), or moves into its container's
   overflow/disclosure. "Overflows or wraps unpredictably" is not an answer.
-- Tap target ≥ 32px on the short side at phone width. (`.btn-sm` is currently
-  shorter than that — fixing the primitive is #138.)
+- Tap target ≥ 32px (`.btn` enforces a 2rem minimum; don't override it down).
+- Text on a `--brand` fill uses `--on-brand`, not `#fff` (white fails contrast in
+  the dark theme).
 - Errors/confirmations don't shift layout (floating toast once #122 lands).
 
 ## Checklist

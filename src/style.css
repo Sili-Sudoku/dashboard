@@ -10,6 +10,9 @@
     --brand: #5861bb;
     --brand-hover: #4a53a8;
     --brand-tint: #e6e8fb;
+    /* Text/icons on a --brand fill. White is 5.5:1 on the light brand but only
+       2.8:1 on the dark theme's lighter brand, so it flips there (7:1). */
+    --on-brand: #ffffff;
     --accent: #c572b7;
 
     --given: #0a0b14;
@@ -68,6 +71,7 @@
     --brand: #8b93ef;
     --brand-hover: #a3aaf5;
     --brand-tint: #272a4a;
+    --on-brand: #0a0b14;
     --accent: #d98fcb;
 
     --given: #f5f6fb;
@@ -381,7 +385,8 @@ button:focus-visible {
 
 /* The one shared button primitive (#136). Default look is the neutral
  * secondary; combine with a variant (.btn-primary), a shape (.btn-icon) or a
- * size (.btn-sm), and .active for a selected/toggled-on state. Colors go
+ * size (.btn-sm). A selected/toggled-on state is .active or, preferably,
+ * aria-pressed="true" — so the visual state can't drift from the announced one. Colors go
  * through --btn-* so re-theming (#139) means re-pointing these in one place.
  * Reuses the global button:focus-visible ring above. */
 .btn {
@@ -396,6 +401,10 @@ button:focus-visible {
     padding: var(--space-2) var(--space-3);
     font-size: 0.85rem;
     white-space: nowrap;
+    /* 2rem floor so even .btn-sm is a usable touch target (#138). */
+    min-height: 2rem;
+    min-width: 2rem;
+    touch-action: manipulation;
     border: 1px solid var(--btn-border);
     border-radius: var(--radius-md);
     background: var(--btn-bg);
@@ -413,10 +422,11 @@ button:focus-visible {
 }
 
 .btn-primary,
-.btn.active {
+.btn.active,
+.btn[aria-pressed="true"] {
     --btn-bg: var(--brand);
     --btn-bg-hover: var(--brand-hover);
-    --btn-fg: #fff;
+    --btn-fg: var(--on-brand);
     --btn-border: var(--brand);
 }
 
