@@ -75,10 +75,10 @@ const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit 
                 spellCheck={false}
             />
             <div className="author-dialog-actions">
-                <button className="secondary" onClick={onCancel}>
+                <button className="btn" onClick={onCancel}>
                     Cancel
                 </button>
-                <button onClick={onSubmit} disabled={!value.trim()}>
+                <button className="btn btn-primary" onClick={onSubmit} disabled={!value.trim()}>
                     Import
                 </button>
             </div>
@@ -445,7 +445,7 @@ export default function Author() {
                             type="button"
                             role="tab"
                             aria-selected={editorMode === "json"}
-                            className={editorMode === "json" ? "active" : "secondary"}
+                            className={`btn btn-sm ${editorMode === "json" ? "active" : ""}`}
                             onClick={() => setEditorMode("json")}
                         >
                             JSON
@@ -454,7 +454,7 @@ export default function Author() {
                             type="button"
                             role="tab"
                             aria-selected={editorMode === "visual"}
-                            className={editorMode === "visual" ? "active" : "secondary"}
+                            className={`btn btn-sm ${editorMode === "visual" ? "active" : ""}`}
                             onClick={() => setEditorMode("visual")}
                         >
                             Visual
@@ -472,13 +472,13 @@ export default function Author() {
                     )}
                     <div className="author-actions">
                         {"compiled" in result && result.compiled && (
-                            <button className="secondary" onClick={runSolve} disabled={solving}>
+                            <button className="btn" onClick={runSolve} disabled={solving}>
                                 {solving ? "Checking…" : "Check uniqueness"}
                             </button>
                         )}
                         {shareLink && (
                             <button
-                                className="secondary"
+                                className="btn"
                                 onClick={async () => {
                                     try {
                                         await navigator.clipboard.writeText(shareLink);
@@ -497,7 +497,7 @@ export default function Author() {
                                 <FPuzzlesIcon />
                             </span>
                             <button
-                                className="icon-button secondary"
+                                className="btn btn-icon"
                                 onClick={() => openImportDialog("fpuzzles")}
                                 aria-label="Import from f-puzzles"
                                 title="Import from f-puzzles"
@@ -506,7 +506,7 @@ export default function Author() {
                             </button>
                             {"parsed" in result && result.parsed && (
                                 <button
-                                    className="icon-button secondary"
+                                    className="btn btn-icon"
                                     onClick={handleExportFPuzzles}
                                     aria-label="Export to f-puzzles (opens in a new tab)"
                                     title="Export to f-puzzles (opens in a new tab)"
@@ -520,7 +520,7 @@ export default function Author() {
                                 <SudokuMakerIcon />
                             </span>
                             <button
-                                className="icon-button secondary"
+                                className="btn btn-icon"
                                 onClick={() => openImportDialog("sudokumaker")}
                                 aria-label="Import from SudokuMaker"
                                 title="Import from SudokuMaker"
@@ -529,7 +529,7 @@ export default function Author() {
                             </button>
                             {"parsed" in result && result.parsed && (
                                 <button
-                                    className="icon-button secondary"
+                                    className="btn btn-icon"
                                     onClick={handleExportSudokuMaker}
                                     aria-label="Export to SudokuMaker (opens in a new tab)"
                                     title="Export to SudokuMaker (opens in a new tab)"
@@ -543,7 +543,7 @@ export default function Author() {
                                 <SudokuPadIcon />
                             </span>
                             <button
-                                className="icon-button secondary"
+                                className="btn btn-icon"
                                 disabled
                                 aria-label="Import from SudokuPad (not supported yet)"
                                 title="Import from SudokuPad (not supported yet)"
@@ -552,7 +552,7 @@ export default function Author() {
                             </button>
                             {"parsed" in result && result.parsed && (
                                 <button
-                                    className="icon-button secondary"
+                                    className="btn btn-icon"
                                     onClick={handleExportSudokuPad}
                                     aria-label="Export to SudokuPad (opens in a new tab)"
                                     title="Export to SudokuPad (opens in a new tab)"

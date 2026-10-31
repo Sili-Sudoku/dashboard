@@ -197,43 +197,6 @@
     gap: 0.5rem;
 }
 
-.author-actions button,
-.author-interop button,
-.author-dialog-actions button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.5rem 0.9rem;
-    border: 1px solid var(--brand);
-    background: var(--brand);
-    color: #fff;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.82rem;
-    white-space: nowrap;
-}
-
-.author-actions button:hover,
-.author-interop button:hover,
-.author-dialog-actions button:hover {
-    background: var(--brand-hover);
-}
-
-.author-actions button.secondary,
-.author-interop button.secondary,
-.author-dialog-actions button.secondary {
-    background: var(--surface);
-    color: var(--brand);
-}
-
-.author-actions button.secondary:hover,
-.author-interop button.secondary:hover,
-.author-dialog-actions button.secondary:hover {
-    background: var(--surface-alt);
-    color: var(--brand);
-}
-
 /* Import/export pairs for each external format, visually set apart from the
  * core validate/share actions so the button row doesn't read as one
  * undifferentiated pile. Each format is a row; both rows share the same
@@ -262,13 +225,6 @@
     height: 1.6rem;
     border-radius: 0.4rem;
     background: var(--surface-alt);
-}
-
-.author-interop button.icon-button {
-    padding: 0.4rem;
-    width: 1.9rem;
-    height: 1.9rem;
-    justify-content: center;
 }
 
 .author-icon {
@@ -365,12 +321,6 @@
     gap: 0.5rem;
 }
 
-.author-dialog-actions button:disabled,
-.author-interop button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 /* Now a block inside the scrollable .author-editor sidebar, not a full-width
  * page section below the grid (see .author-grid's comment above for why) —
  * styled like .author-interop's divider rather than the old 2rem page gap. */
@@ -405,39 +355,6 @@
     display: flex;
     gap: 0.3rem;
     margin-bottom: 0.4rem;
-}
-
-.author-mode-tabs button,
-.visual-builder-palette button,
-.visual-builder-actions button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.75rem;
-    border: 1px solid var(--brand);
-    background: var(--brand);
-    color: #fff;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.78rem;
-}
-
-.author-mode-tabs button.secondary,
-.visual-builder-palette button.secondary {
-    background: var(--surface);
-    color: var(--brand);
-}
-
-.author-mode-tabs button.active,
-.visual-builder-palette button.active {
-    background: var(--brand-hover);
-    color: #fff;
-}
-
-.visual-builder-actions button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .visual-builder {
@@ -549,4 +466,12 @@
     color: var(--ink);
     border-radius: 0.4rem;
     cursor: pointer;
+}
+
+/* The interop grid's columns are a fixed 1.9rem, so its icon buttons are
+ * sized to fit them rather than to .btn-icon's default padding. */
+.author-interop .btn-icon {
+    padding: 0;
+    width: 1.9rem;
+    height: 1.9rem;
 }

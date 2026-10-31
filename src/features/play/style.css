@@ -95,25 +95,6 @@
     gap: 0.3rem;
 }
 
-.pj-bar button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.78rem;
-    border: 1px solid var(--line);
-    border-radius: 0.4rem;
-    background: var(--surface);
-    color: var(--ink-soft);
-    cursor: pointer;
-}
-
-.pj-tabs button.active {
-    background: var(--brand);
-    border-color: var(--brand);
-    color: #fff;
-}
-
 .pj-note {
     margin: 0;
     padding: 0.5rem 0.8rem 0;

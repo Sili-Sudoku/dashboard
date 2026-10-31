@@ -522,14 +522,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 <div className="board-zoom-toolbar" ref={toolbarRef}>
                     <button
                         type="button"
-                        className={zoomLocked ? "active" : ""}
+                        className={`btn btn-sm ${zoomLocked ? "active" : ""}`}
                         onClick={() => setSetting("zoomLocked", !zoomLocked)}
                         aria-pressed={zoomLocked}
                         aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
                     >
                         {zoomLocked ? <Lock size={16} /> : <Unlock size={16} />}
                     </button>
-                    <button type="button" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
+                    <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
                         <ZoomOut size={16} />
                     </button>
                     <input
@@ -544,14 +544,15 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         disabled={zoomLocked}
                     />
                     <span className="board-zoom-level">{zoomPct}%</span>
-                    <button type="button" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
+                    <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
                         <ZoomIn size={16} />
                     </button>
-                    <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
+                    <button type="button" className="btn btn-sm" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
                         <Maximize size={16} /> <span className="board-zoom-btn-label">Fit</span>
                     </button>
                     <button
                         type="button"
+                        className="btn btn-sm"
                         onClick={handleResetZoom}
                         aria-label="Reset to actual size (1 board unit per pixel)"
                         disabled={zoomLocked}

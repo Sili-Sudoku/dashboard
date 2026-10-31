@@ -41,7 +41,7 @@ export default function VisualBuilder({ def, state }: Props) {
                     <button
                         key={schema.name}
                         type="button"
-                        className={`secondary ${activeSchema?.name === schema.name ? "active" : ""}`}
+                        className={`btn btn-sm ${activeSchema?.name === schema.name ? "active" : ""}`}
                         onClick={() => startPlacing(schema)}
                     >
                         {schema.label}
@@ -124,10 +124,10 @@ export default function VisualBuilder({ def, state }: Props) {
                         ))}
 
                     <div className="visual-builder-actions">
-                        <button type="button" className="secondary" onClick={cancelPlacing}>
+                        <button type="button" className="btn btn-sm" onClick={cancelPlacing}>
                             Cancel
                         </button>
-                        <button type="button" onClick={addConstraint} disabled={!isSchemaComplete(activeSchema, fieldValues)}>
+                        <button type="button" className="btn btn-sm btn-primary" onClick={addConstraint} disabled={!isSchemaComplete(activeSchema, fieldValues)}>
                             Add {activeSchema.label}
                         </button>
                     </div>

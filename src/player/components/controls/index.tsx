@@ -16,18 +16,19 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
     return (
         <div className="controls">
             <div className="controls-row">
-                <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+                <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
                     <Undo2 size={16} /> Undo
                 </button>
-                <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
+                <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
                     <Redo2 size={16} /> Redo
                 </button>
-                <button onClick={onReset} title="Clear all entered values">
+                <button className="btn" onClick={onReset} title="Clear all entered values">
                     <RotateCcw size={16} /> Reset
                 </button>
             </div>
             {onCheck && (
                 <button
+                    className="btn"
                     onClick={onCheck}
                     title="Check against the solution (V) — a second press (with no edits in between) reveals exactly what's wrong"
                 >

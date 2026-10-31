@@ -97,23 +97,23 @@ export default function Play() {
                         <div className="pj-bar">
                             <div className="pj-tabs">
                                 <button
-                                    className={jsonView === "artifact" ? "active" : ""}
+                                    className={`btn btn-sm ${jsonView === "artifact" ? "active" : ""}`}
                                     onClick={() => setJsonView("artifact")}
                                 >
                                     Artifact (authored)
                                 </button>
                                 <button
-                                    className={jsonView === "compiled" ? "active" : ""}
+                                    className={`btn btn-sm ${jsonView === "compiled" ? "active" : ""}`}
                                     onClick={() => setJsonView("compiled")}
                                 >
                                     Compiled (primitives the runtime sees)
                                 </button>
                             </div>
                             <div className="pj-bar-right">
-                                <button onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
+                                <button className="btn btn-sm" onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
                                     <Copy size={14} /> {copied ? "Copied" : "Copy"}
                                 </button>
-                                <button onClick={() => setJsonView("off")} title="Close" aria-label="Close">
+                                <button className="btn btn-sm" onClick={() => setJsonView("off")} title="Close" aria-label="Close">
                                     <X size={14} />
                                 </button>
                             </div>
