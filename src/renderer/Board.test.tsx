@@ -351,6 +351,87 @@ describe("Board — large puzzles", () => {
         expect(afterPan.left).toBeLessThan(afterZoom.left); // dragged right -> view shifts left
     });
 
+    // jsdom has no PointerEvent constructor (see the comment above), and unlike
+    // MouseEventInit's standard button/clientX/clientY, pointerId/pointerType aren't
+    // part of it — so they're attached after construction instead.
+    const touchPointer = (
+        type: string,
+        pointerId: number,
+        x: number,
+        y: number,
+    ): MouseEvent => {
+        const e = new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
+        Object.defineProperty(e, "pointerId", { value: pointerId, configurable: true });
+        Object.defineProperty(e, "pointerType", { value: "touch", configurable: true });
+        return e;
+    };
+
+    it("pans and pinch-zooms on a two-finger touch drag, since touch has no middle/right button", () => {
+        const scene = bigScene(25, 20); // 500x500 board
+        const { container } = render(
+            <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+
+        const svg = container.querySelector("svg.board") as SVGSVGElement;
+        const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
+        const before = readViewBox(svg);
+
+        act(() => {
+            // Two fingers come down 20px apart, centered on (50, 50)...
+            viewport.dispatchEvent(touchPointer("pointerdown", 1, 40, 50));
+            viewport.dispatchEvent(touchPointer("pointerdown", 2, 60, 50));
+            // ...first move just establishes the anchor (no jump on gesture start)...
+            viewport.dispatchEvent(touchPointer("pointermove", 1, 40, 50));
+            viewport.dispatchEvent(touchPointer("pointermove", 2, 60, 50));
+            // ...then spread apart (pinch out -> zoom in) while also sliding right (pan).
+            viewport.dispatchEvent(touchPointer("pointermove", 1, 55, 50));
+            viewport.dispatchEvent(touchPointer("pointermove", 2, 95, 50));
+            viewport.dispatchEvent(touchPointer("pointerup", 1, 55, 50));
+            viewport.dispatchEvent(touchPointer("pointerup", 2, 95, 50));
+        });
+
+        const after = readViewBox(svg);
+        expect(after.width).toBeLessThan(before.width); // fingers spread apart -> zoomed in
+        expect(after.left).toBeGreaterThan(before.left); // midpoint slid right -> view shifts right
+    });
+
+    it("doesn't let a second finger landing on a cell also start/extend a selection drag", () => {
+        const scene = bigScene(25, 20); // 500x500 board
+        const onPaintStart = vi.fn();
+        const onPaintMove = vi.fn();
+        const { container } = render(
+            <Board scene={scene} onPaintStart={onPaintStart} onPaintMove={onPaintMove} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+
+        const cells = container.querySelectorAll(".cell-bg");
+        const firstCell = cells[0] as SVGRectElement;
+        const secondCell = cells[1] as SVGRectElement;
+        const thirdCell = cells[2] as SVGRectElement;
+
+        act(() => {
+            // First finger taps a cell -> normal single-touch selection starts...
+            firstCell.dispatchEvent(touchPointer("pointerdown", 1, 10, 10));
+        });
+        expect(onPaintStart).toHaveBeenCalledTimes(1);
+
+        act(() => {
+            // ...then a second finger comes down on another cell -> this is a
+            // pinch/pan gesture instead, not a second paint-start on that cell.
+            secondCell.dispatchEvent(touchPointer("pointerdown", 2, 60, 50));
+        });
+        expect(onPaintStart).toHaveBeenCalledTimes(1);
+
+        act(() => {
+            // The finger sliding into a third cell would normally extend the
+            // selection (handleCellEnter) — React's onPointerEnter is built on the
+            // native "pointerover" event, so that's what's dispatched here.
+            thirdCell.dispatchEvent(touchPointer("pointerover", 1, 15, 10));
+        });
+        // Selection painting was cancelled when the 2nd finger landed, so the 1st
+        // finger continuing to move doesn't extend the selection either.
+        expect(onPaintMove).not.toHaveBeenCalled();
+    });
+
     it("shows a zoom toolbar that zooms in/out, resets to 100%, and fits to screen", () => {
         const scene = bigScene(25, 20); // 500x500 board
         const { container, getByLabelText } = render(

@@ -4,6 +4,11 @@
     gap: 0.5rem;
     width: 100%;
     max-width: 260px;
+    /* .pp-side (player.css) is a flex column with the default align-items:stretch,
+       so without this the pad — capped at 260px so its buttons don't balloon on a
+       wide sidebar — just sits flush left with the leftover width as dead space
+       beside it instead of centered in it. */
+    margin: 0 auto;
 }
 
 .number-pad .pad-grid {

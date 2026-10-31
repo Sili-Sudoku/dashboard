@@ -76,10 +76,10 @@ export default function Play() {
                 aria-pressed={jsonView !== "off"}
                 onClick={() => setJsonView((v) => (v === "off" ? "artifact" : "off"))}
             >
-                <Braces size={15} /> {jsonView === "off" ? "View JSON" : "Hide JSON"}
+                <Braces size={15} /> <span className="play-btn-label">{jsonView === "off" ? "View JSON" : "Hide JSON"}</span>
             </button>
             <button className="play-btn" onClick={share}>
-                <Share2 size={15} /> {copied ? "Link copied" : "Share"}
+                <Share2 size={15} /> <span className="play-btn-label">{copied ? "Link copied" : "Share"}</span>
             </button>
         </div>
     );

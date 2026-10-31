@@ -47,6 +47,31 @@
     gap: 0.8rem;
 }
 
+/* Below this, the fixed 340px sidebar plus the board column's own 300px
+   floor no longer fit side by side (#70) — there's nothing left to shrink,
+   so they just overlap instead of one of them actually yielding. Drop the
+   sidebar out of fixed/floating mode and let it stack below the board like
+   a normal block instead. */
+@media (max-width: 820px) {
+    .pp-board-col {
+        min-width: 0;
+        margin-right: 0;
+    }
+    .pp-side {
+        position: static;
+        /* width:auto (a flex item with no flex-grow) shrink-wraps to its
+           narrowest child's content instead of filling the row it just wrapped
+           onto — left the number pad, controls, timer etc. all stuck flush left
+           with a wide stripe of dead space to their right. The row is already
+           full-width once wrapped (.pp-board-col is the only thing that was
+           sharing it), so just claiming 100% here is the fix, not a flex-grow
+           tug-of-war with a sibling that's no longer on the same line. */
+        width: 100%;
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+
 .pp-hint {
     margin-top: 0.6rem;
     font-size: 0.78rem;

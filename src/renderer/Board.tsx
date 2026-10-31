@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Lock, Maximize, Unlock, ZoomIn, ZoomOut } from "lucide-react";
+import { Lock, Maximize, Scan, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -70,6 +70,12 @@ const centerNoteFontFactor = (charCount: number): number =>
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
+    // Two-finger touch pan/zoom (#70 follow-up): a touchscreen has no middle/right
+    // button for the desktop pan below, and a single finger is already claimed by
+    // cell-selection drag (handleCellDown) — so this follows the same convention as
+    // maps/photo viewers, where a second finger is what pans/pinch-zooms instead.
+    const activeTouches = useRef(new Map<number, { x: number; y: number }>());
+    const pinchAnchor = useRef<{ x: number; y: number; dist: number } | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement>(null);
@@ -259,6 +265,61 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
     const stopPanning = () => {
         panningFrom.current = null;
+    };
+
+    // Tracked at the container level (not per-cell) since the second finger usually
+    // lands on a cell — these *Capture handlers run during the capture phase, before
+    // that cell's own onPointerDown (bubble phase) below, so stopPropagation() here
+    // keeps a 2nd finger from also starting/extending a cell-selection drag.
+    const handleTouchDownCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (e.pointerType !== "touch") return;
+        activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activeTouches.current.size === 2) {
+            e.stopPropagation();
+            stopPainting();
+            pinchAnchor.current = null;
+        }
+    };
+
+    const handleTouchMoveCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (!activeTouches.current.has(e.pointerId)) return;
+        activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activeTouches.current.size < 2) return;
+        e.stopPropagation();
+        const el = containerRef.current;
+        const anchor = pinchAnchor.current;
+        const [a, b] = [...activeTouches.current.values()];
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (!el || !anchor) {
+            pinchAnchor.current = { x: mid.x, y: mid.y, dist };
+            return;
+        }
+        const rect = el.getBoundingClientRect();
+        const factor = zoomLocked || anchor.dist === 0 ? 1 : dist / anchor.dist;
+        const fracX = (mid.x - rect.left) / rect.width;
+        const fracY = (mid.y - rect.top) / rect.height;
+        // Reads the *pending* view via the updater form, not the `view` closed over
+        // at render time — two fingers' pointermove events routinely land in the same
+        // synchronous burst (no render in between), and a second setView in that burst
+        // computing from the same stale `view` would silently clobber the first.
+        setView((v) => {
+            if (!v) return v;
+            const dx = ((mid.x - anchor.x) / rect.width) * v.width;
+            const dy = ((mid.y - anchor.y) / rect.height) * v.height;
+            const panned = panView(v, scene.width, scene.height, -dx, -dy);
+            const next =
+                factor === 1 ? panned : zoomViewAt(panned, scene.width, scene.height, rect.width, fracX, fracY, factor);
+            setZoomPct(Math.round((scene.width / next.width) * 100));
+            return next;
+        });
+        pinchAnchor.current = { x: mid.x, y: mid.y, dist };
+    };
+
+    const handleTouchUpCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (e.pointerType !== "touch") return;
+        activeTouches.current.delete(e.pointerId);
+        if (activeTouches.current.size < 2) pinchAnchor.current = null;
     };
 
     const handleCellDown = (cell: CellId) => (e: ReactPointerEvent) => {
@@ -487,7 +548,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         <ZoomIn size={16} />
                     </button>
                     <button type="button" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
-                        <Maximize size={16} /> Fit
+                        <Maximize size={16} /> <span className="board-zoom-btn-label">Fit</span>
                     </button>
                     <button
                         type="button"
@@ -495,7 +556,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         aria-label="Reset to actual size (1 board unit per pixel)"
                         disabled={zoomLocked}
                     >
-                        Actual size
+                        <Scan size={16} /> <span className="board-zoom-btn-label">Actual size</span>
                     </button>
                 </div>
                 <div
@@ -506,6 +567,10 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     onPointerMove={handleContainerPointerMove}
                     onPointerUp={stopPanning}
                     onPointerLeave={stopPanning}
+                    onPointerDownCapture={handleTouchDownCapture}
+                    onPointerMoveCapture={handleTouchMoveCapture}
+                    onPointerUpCapture={handleTouchUpCapture}
+                    onPointerCancelCapture={handleTouchUpCapture}
                     onContextMenu={(e) => e.preventDefault()}
                 >
                     {svg}
