@@ -30,7 +30,12 @@ export default function NumberPad({ values, mode, onInput, onErase, onModeChange
         <div className="number-pad">
             <div className="pad-grid" style={{ gridTemplateColumns: `repeat(${padColumns(values.length)}, 1fr)` }}>
                 {values.map((v) => (
-                    <button key={v} className={`pad-key pad-key-${mode}`} onClick={() => onInput(v)}>
+                    <button
+                        key={v}
+                        className={`pad-key pad-key-${mode}`}
+                        aria-label={mode === "digit" ? String(v) : `${mode === "corner" ? "Corner" : "Center"} note ${v}`}
+                        onClick={() => onInput(v)}
+                    >
                         {mode === "corner" ? (
                             <span className="pad-key-preview" style={cornerPosition(v)}>
                                 {v}
@@ -41,7 +46,7 @@ export default function NumberPad({ values, mode, onInput, onErase, onModeChange
                     </button>
                 ))}
             </div>
-            <div className="pad-modes">
+            <div className="pad-modes" role="group" aria-label="Input mode">
                 {MODES.map(({ mode: m, label, icon: Icon }) => (
                     <button
                         key={m}

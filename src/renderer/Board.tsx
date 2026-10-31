@@ -39,6 +39,10 @@ interface Props {
     onPaintMove: (cell: CellId) => void;
     onPaintEnd: () => void;
     onClearSelection: () => void;
+    /** Accessible name for the board (the SVG has no per-cell DOM; see PuzzlePlayer's live region). */
+    label?: string;
+    /** Id of an element describing how to operate the board. */
+    describedBy?: string;
 }
 
 /** Culls scene.cells/gridLines/shapes to a margin around `viewport` — or returns `scene` as-is when `viewport` is null. */
@@ -67,7 +71,7 @@ const CENTER_NOTE_GLYPH_WIDTH_EM = 0.6;
 const centerNoteFontFactor = (charCount: number): number =>
     clamp(CENTER_NOTE_TARGET_WIDTH / (charCount * CENTER_NOTE_GLYPH_WIDTH_EM), 0.11, 0.3);
 
-export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection }: Props) {
+export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection, label, describedBy }: Props) {
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
     // Two-finger touch pan/zoom (#70 follow-up): a touchscreen has no middle/right
@@ -348,7 +352,9 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             viewBox={viewBox}
             width="100%"
             height="100%"
-            role="grid"
+            role="group"
+            aria-label={label}
+            aria-describedby={describedBy}
             onPointerUp={stopPainting}
             onPointerLeave={stopPainting}
         >

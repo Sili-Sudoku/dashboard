@@ -198,12 +198,12 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.click(cornerMode);
         expect(cornerMode.getAttribute("aria-pressed")).toBe("true");
-        fireEvent.click(screen.getByRole("button", { name: "2" }));
+        fireEvent.click(screen.getByRole("button", { name: "Corner note 2" }));
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
         expect(container.querySelectorAll(".note")).toHaveLength(1);
 
         fireEvent.click(centerMode);
-        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
         expect(container.querySelector(".note-center")?.textContent).toBe("3");
 
         fireEvent.click(digitMode);
@@ -219,9 +219,9 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]); // empty cell
 
         fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
-        fireEvent.click(screen.getByRole("button", { name: "1" }));
+        fireEvent.click(screen.getByRole("button", { name: "Corner note 1" }));
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
-        fireEvent.click(screen.getByRole("button", { name: "2" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 2" }));
 
         const erase = screen.getByRole("button", { name: /erase/i });
 
@@ -337,8 +337,8 @@ describe("<PuzzlePlayer />", () => {
         // a bad elimination on r1c2 (solution digit is '2') goes unflagged
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
-        fireEvent.click(screen.getByRole("button", { name: "1" }));
-        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
     });
@@ -352,15 +352,15 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
-        fireEvent.click(screen.getByRole("button", { name: "1" }));
-        fireEvent.click(screen.getByRole("button", { name: "3" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2 — candidates {1,3} still missing '2'
         // Centre notes render as one joined <text>, unlike one-per-digit corner notes.
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(1);
 
         // fixing the candidates (adding the correct digit back) clears the flag on next leave
         fireEvent.pointerDown(cells[1]);
-        fireEvent.click(screen.getByRole("button", { name: "2" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 2" }));
         fireEvent.pointerDown(cells[2]);
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
     });
@@ -407,6 +407,14 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(1);
     });
 
+    it("announces the cursor cell in a live region, since the SVG board has no per-cell DOM (#64)", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        fireEvent.pointerDown(cells[1]);
+        const region = container.querySelector('[aria-live="polite"]') as HTMLElement;
+        expect(region.textContent).toMatch(/^Row 1, column 2: /);
+    });
+
     it("Check reports 'everything is correct' when the board has no mistakes", () => {
         render((
             <>
@@ -429,8 +437,8 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
-        fireEvent.click(screen.getByRole("button", { name: "1" }));
-        fireEvent.click(screen.getByRole("button", { name: "3" })); // candidates {1,3} — missing '2'
+        fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
+        fireEvent.click(screen.getByRole("button", { name: "Center note 3" })); // candidates {1,3} — missing '2'
 
         fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
         expect(screen.queryByText(/eliminated the correct digit/i)).not.toBeNull();

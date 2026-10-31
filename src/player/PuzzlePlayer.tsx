@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
 import { PartyPopper, Timer } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
@@ -6,6 +6,7 @@ import type { CellId } from "@/runtime/geometry.ts";
 import Board from "@/renderer/Board.tsx";
 import { buildScene } from "@/renderer/scene.ts";
 
+import { describeCell } from "@/player/describe_cell.ts";
 import { usePuzzleSession, type ExternalHistory } from "@/player/use_puzzle_session.ts";
 import NumberPad from "@/player/components/number-pad";
 import Controls from "@/player/components/controls";
@@ -143,20 +144,34 @@ export default function PuzzlePlayer({
 
     const evaluation = session.evaluation;
 
+    const hintId = useId();
+    const cursorCell = scene.cells.find((c) => c.ring === "cursor");
+    const selectedCount = scene.cells.filter((c) => c.ring !== null).length;
+    const cursorAnnouncement = cursorCell
+        ? describeCell(cursorCell) + (selectedCount > 1 ? ` — ${selectedCount} cells selected` : "")
+        : "";
+
     return (
         <div className="puzzle-player" ref={rootRef}>
             <div className="pp-board-col" ref={boardColRef}>
                 <Board
+                    label={`${puzzle.metadata.title}, puzzle board`}
+                    describedBy={hintId}
                     scene={scene}
                     onPaintStart={onPaintStart}
                     onPaintMove={onPaintMove}
                     onPaintEnd={() => onSelectionEnd?.()}
                     onClearSelection={() => session.selectNone()}
                 />
-                <p className="pp-hint">Click / drag to select · digits to enter · see keyboard shortcuts below</p>
+                <p className="pp-hint" id={hintId}>Click / drag to select · digits to enter · see keyboard shortcuts below</p>
             </div>
 
             <aside className="pp-side">
+                {/* The board is an SVG without per-cell DOM, so this is how a screen
+                    reader learns where the cursor is and what's in the cell. */}
+                <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                    {cursorAnnouncement}
+                </div>
                 <div className="pp-timer">
                     <Timer size={15} />
                     {formatElapsed(elapsedMs)}
@@ -166,7 +181,7 @@ export default function PuzzlePlayer({
                 </div>
 
                 {evaluation.complete && (
-                    <div className="pp-complete">
+                    <div className="pp-complete" role="status">
                         <PartyPopper size={18} /> Solved!
                     </div>
                 )}
