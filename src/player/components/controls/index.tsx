@@ -15,17 +15,15 @@ interface Props {
 export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck }: Props) {
     return (
         <div className="controls">
-            <div className="controls-row">
-                <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-                    <Undo2 size={16} /> Undo
-                </button>
-                <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
-                    <Redo2 size={16} /> Redo
-                </button>
-                <button className="btn" onClick={onReset} title="Clear all entered values">
-                    <RotateCcw size={16} /> Reset
-                </button>
-            </div>
+            <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+                <Undo2 size={16} /> Undo
+            </button>
+            <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
+                <Redo2 size={16} /> Redo
+            </button>
+            <button className="btn" onClick={onReset} title="Clear all entered values">
+                <RotateCcw size={16} /> Reset
+            </button>
             {onCheck && (
                 <button
                     className="btn"

@@ -165,47 +165,50 @@ export default function PuzzlePlayer({
                     </div>
                 )}
 
-                <NumberPad
-                    values={puzzle.domain}
-                    mode={session.inputMode}
-                    onInput={(v) => session.input(v)}
-                    onErase={() => session.erase()}
-                    onModeChange={(m) => session.setInputMode(m)}
-                />
+                <section className="pp-group pp-solve" aria-label="Solving controls">
+                    <NumberPad
+                        values={puzzle.domain}
+                        mode={session.inputMode}
+                        onInput={(v) => session.input(v)}
+                        onErase={() => session.erase()}
+                        onModeChange={(m) => session.setInputMode(m)}
+                    />
 
-                <Controls
-                    canUndo={session.canUndo}
-                    canRedo={session.canRedo}
-                    onUndo={() => session.undo()}
-                    onRedo={() => session.redo()}
-                    onReset={() => {
-                        session.reset();
-                        resetTimer();
-                    }}
-                    onCheck={puzzle.solution ? check : undefined}
-                />
+                    <Controls
+                        canUndo={session.canUndo}
+                        canRedo={session.canRedo}
+                        onUndo={() => session.undo()}
+                        onRedo={() => session.redo()}
+                        onReset={() => {
+                            session.reset();
+                            resetTimer();
+                        }}
+                        onCheck={puzzle.solution ? check : undefined}
+                    />
 
-                {checkToast === "clean" && (
-                    <div className="pp-complete pp-check-clean">
-                        <BadgeCheck size={18} /> Everything is correct
-                    </div>
-                )}
+                    {checkToast === "clean" && (
+                        <div className="pp-complete pp-check-clean">
+                            <BadgeCheck size={18} /> Everything is correct
+                        </div>
+                    )}
 
-                {checkToast === "mistake-value" && (
-                    <div className="pp-complete pp-check-mistake">
-                        <AlertTriangle size={18} /> At least 1 digit entered is wrong
-                    </div>
-                )}
+                    {checkToast === "mistake-value" && (
+                        <div className="pp-complete pp-check-mistake">
+                            <AlertTriangle size={18} /> At least 1 digit entered is wrong
+                        </div>
+                    )}
 
-                {checkToast === "mistake-notes" && (
-                    <div className="pp-complete pp-check-mistake">
-                        <AlertTriangle size={18} /> At least 1 note has eliminated the correct digit
-                    </div>
-                )}
+                    {checkToast === "mistake-notes" && (
+                        <div className="pp-complete pp-check-mistake">
+                            <AlertTriangle size={18} /> At least 1 note has eliminated the correct digit
+                        </div>
+                    )}
+                </section>
 
-                <ConstraintPanel evaluation={evaluation} />
-
-                <HotkeyLegend />
+                <section className="pp-group pp-reference" aria-label="Reference">
+                    <ConstraintPanel evaluation={evaluation} />
+                    <HotkeyLegend />
+                </section>
             </aside>
         </div>
     );

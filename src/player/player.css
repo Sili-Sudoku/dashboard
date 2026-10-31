@@ -47,6 +47,39 @@
     gap: 0.8rem;
 }
 
+/* Sidebar groups (#133), by purpose: the status strip (timer/solved) sits
+   bare on top; the solving controls are the visually primary, boxed group;
+   reference disclosures (constraints, shortcuts) sit below a labelled rule so
+   they read as secondary. New controls go in the group matching their bucket
+   (docs/UI_PLACEMENT.md). */
+.pp-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.pp-solve {
+    padding: var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+}
+
+.pp-reference {
+    gap: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--line);
+}
+
+.pp-reference::before {
+    content: "Reference";
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
 /* Below this, the fixed 340px sidebar plus the board column's own 300px
    floor no longer fit side by side (#70) — there's nothing left to shrink,
    so they just overlap instead of one of them actually yielding. Drop the
