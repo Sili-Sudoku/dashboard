@@ -26,6 +26,13 @@ export interface Bounds {
     maxY: number;
 }
 
+/** One line of the board's visible structure, in geometry units. */
+export interface BoardLine {
+    points: readonly Point[];
+    /** True for region boundaries (a sudoku's box edges and outer border); false for plain cell dividers. */
+    major: boolean;
+}
+
 export interface Geometry {
     /** Every cell that can hold a value, in a stable order. */
     readonly cells: readonly CellId[];
@@ -62,6 +69,14 @@ export interface Geometry {
 
     /** Overall bounds in geometry units. */
     bounds(): Bounds;
+
+    /**
+     * The lines that give the board its structure: cell dividers plus the
+     * heavier region boundaries. Owned by the geometry because only it knows
+     * what its regions look like (boxes on a grid, hexes on a hex board) — the
+     * renderer just styles `major` vs not and scales to pixels.
+     */
+    boardLines(): readonly BoardLine[];
 
     /** Direction stepping for keyboard navigation. Returns undefined at edges. */
     step(cell: CellId, dir: Direction): CellId | undefined;
@@ -244,6 +259,29 @@ export class GridGeometry implements Geometry {
 
     bounds(): Bounds {
         return { minX: 0, minY: 0, maxX: this.width, maxY: this.height };
+    }
+
+    boardLines(): readonly BoardLine[] {
+        const lines: BoardLine[] = [];
+        for (let x = 0; x <= this.width; x++) {
+            lines.push({
+                points: [
+                    { x, y: 0 },
+                    { x, y: this.height },
+                ],
+                major: x % this.boxWidth === 0,
+            });
+        }
+        for (let y = 0; y <= this.height; y++) {
+            lines.push({
+                points: [
+                    { x: 0, y },
+                    { x: this.width, y },
+                ],
+                major: y % this.boxHeight === 0,
+            });
+        }
+        return lines;
     }
 
     step(cell: CellId, dir: Direction): CellId | undefined {

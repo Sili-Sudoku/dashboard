@@ -7,7 +7,7 @@
  * "path", "circle", "line", "cage" (an outline around a cell set), and so on.
  */
 
-import type { Bounds, CellId, Geometry, Point } from "@/runtime/geometry.ts";
+import type { CellId, Geometry, Point } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
 import type { EvaluationResult } from "@/runtime/evaluate.ts";
@@ -150,7 +150,7 @@ export const buildScene = (input: SceneInput): Scene => {
         viewBox: `0 0 ${width} ${height}`,
         cellSize,
         cells,
-        gridLines: gridLines(geometry, cellSize, b),
+        gridLines: gridLines(geometry, cellSize),
         shapes,
     };
 };
@@ -311,36 +311,9 @@ const cageLabelAnchor = (cells: readonly CellId[], geometry: Geometry): Point | 
     return best ? { x: best.p.x + INSET + 0.02, y: best.p.y + INSET + 0.18 } : undefined;
 };
 
-const gridLines = (
-    geometry: Geometry,
-    cellSize: number,
-    bounds: Bounds,
-): { points: Point[]; weight: number }[] => {
-    const lines: { points: Point[]; weight: number }[] = [];
-    // Only grid geometry exposes box structure; fall back to an outer border otherwise.
-    const grid = geometry as Geometry & { width?: number; height?: number; boxWidth?: number; boxHeight?: number };
-    const w = grid.width ?? bounds.maxX;
-    const h = grid.height ?? bounds.maxY;
-    const bw = grid.boxWidth ?? w;
-    const bh = grid.boxHeight ?? h;
-
-    for (let x = 0; x <= w; x++) {
-        lines.push({
-            points: [
-                { x: x * cellSize, y: 0 },
-                { x: x * cellSize, y: h * cellSize },
-            ],
-            weight: x % bw === 0 ? 3 : 1,
-        });
-    }
-    for (let y = 0; y <= h; y++) {
-        lines.push({
-            points: [
-                { x: 0, y: y * cellSize },
-                { x: w * cellSize, y: y * cellSize },
-            ],
-            weight: y % bh === 0 ? 3 : 1,
-        });
-    }
-    return lines;
-};
+/** Major (region boundary) lines draw heavier than plain cell dividers. */
+const gridLines = (geometry: Geometry, cellSize: number): { points: Point[]; weight: number }[] =>
+    geometry.boardLines().map((l) => ({
+        points: l.points.map((p) => scalePoint(p, cellSize)),
+        weight: l.major ? 3 : 1,
+    }));

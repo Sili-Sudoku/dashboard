@@ -78,3 +78,22 @@ describe("GridGeometry", () => {
         expect(parseGridCellId("bogus")).toBeUndefined();
     });
 });
+
+describe("GridGeometry.boardLines", () => {
+    it("emits a divider per grid line, marking box boundaries and the outer border major", () => {
+        const lines = new GridGeometry({ type: "grid", width: 9, height: 9 }).boardLines();
+        const vertical = lines.filter((l) => l.points[0].x === l.points[1].x);
+        expect(lines).toHaveLength(20);
+        expect(vertical.filter((l) => l.major).map((l) => l.points[0].x)).toEqual([0, 3, 6, 9]);
+        expect(vertical[0].points).toEqual([
+            { x: 0, y: 0 },
+            { x: 0, y: 9 },
+        ]);
+    });
+
+    it("honours non-square boxes", () => {
+        const lines = new GridGeometry({ type: "grid", width: 6, height: 4, boxWidth: 3, boxHeight: 2 }).boardLines();
+        const horizontal = lines.filter((l) => l.points[0].y === l.points[1].y);
+        expect(horizontal.filter((l) => l.major).map((l) => l.points[0].y)).toEqual([0, 2, 4]);
+    });
+});

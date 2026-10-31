@@ -67,9 +67,9 @@ SudokuCon-scale world would be new `Geometry` implementations (plus, for very
 large boards, a viewport/culling layer in the renderer) — no change to the
 evaluator, session, definitions, or format.
 
-Tradeoff: `scene.ts`'s `gridLines` still special-cases box lines by
-duck-typing `GridGeometry`. That's renderer chrome, not a runtime concept, and
-isolated to one function.
+Board structure lines (cell dividers plus heavier region boundaries) come from
+`Geometry.boardLines()`, so a new geometry draws its own regions; the renderer
+only styles `major` vs minor and scales to pixels.
 
 ## 6. State is a framework-agnostic class
 
