@@ -8,6 +8,8 @@ import { definitions } from "@/definitions/index.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 import { statsStorageKey, type PuzzleStats } from "@/runtime/session.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+import { ToastViewport } from "@/app/toast_viewport.tsx";
+import { clearToasts } from "@/app/toast.ts";
 
 const compiled = () => {
     const result = compilePuzzle(miniSudoku, definitions);
@@ -49,6 +51,7 @@ const compiledWithLargeDomain = () => {
 
 afterEach(() => {
     cleanup();
+    clearToasts();
     localStorage.clear();
 });
 
@@ -368,7 +371,12 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("clicking Check first just reports a mistake, a second press reveals it, and fixing it clears the flag", () => {
-        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const { container } = render((
+            <>
+                <PuzzlePlayer puzzle={compiled()} />
+                <ToastViewport />
+            </>
+        ));
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         const checkButton = () => screen.getByRole("button", { name: /^check$/i });
 
@@ -400,13 +408,23 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("Check reports 'everything is correct' when the board has no mistakes", () => {
-        render(<PuzzlePlayer puzzle={compiled()} />);
+        render((
+            <>
+                <PuzzlePlayer puzzle={compiled()} />
+                <ToastViewport />
+            </>
+        ));
         fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
         expect(screen.queryByText(/everything is correct/i)).not.toBeNull();
     });
 
     it("reports a note mistake separately from a wrong value, and doesn't mention 'digit entered'", () => {
-        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const { container } = render((
+            <>
+                <PuzzlePlayer puzzle={compiled()} />
+                <ToastViewport />
+            </>
+        ));
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
         fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'

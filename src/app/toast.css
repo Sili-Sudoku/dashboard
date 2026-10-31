@@ -1,0 +1,75 @@
+/* Floats over everything and ignores the pointer except on the toasts
+   themselves, so it never blocks the board underneath. */
+.toast-viewport {
+    position: fixed;
+    left: 50%;
+    bottom: var(--space-4);
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: min(32rem, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.toast {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+    font-size: 0.85rem;
+    pointer-events: auto;
+}
+
+.toast-message {
+    flex: 1;
+    padding-top: 0.15rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.toast-success {
+    background: var(--satisfied-tint);
+    border-color: var(--satisfied-border);
+    color: var(--satisfied);
+}
+
+.toast-error {
+    background: var(--violated);
+    border-color: var(--invalid);
+    color: var(--violated-line);
+}
+
+/* Countdown bar along the bottom edge: drains left-to-right over the toast's
+   lifetime, and holds while the toast is hovered or has focus (the store
+   pauses the real timer on the same events). */
+.toast-timer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background: currentColor;
+    opacity: 0.45;
+    transform-origin: left;
+    animation: toast-drain linear forwards;
+}
+
+.toast:hover .toast-timer,
+.toast:focus-within .toast-timer {
+    animation-play-state: paused;
+}
+
+@keyframes toast-drain {
+    to {
+        transform: scaleX(0);
+    }
+}

@@ -412,6 +412,11 @@ button:focus-visible {
     cursor: pointer;
 }
 
+/* Icons keep their size when a crowded row squeezes the button's text. */
+.btn svg {
+    flex: none;
+}
+
 .btn:hover:not(:disabled) {
     background: var(--btn-bg-hover);
 }

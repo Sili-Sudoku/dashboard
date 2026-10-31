@@ -79,6 +79,7 @@
 .board-zoom-toolbar {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.4rem;
     /* Safety net for the rare short-window case where the app shell's
        overflow-y:auto scroll actually kicks in — the controls stay put instead

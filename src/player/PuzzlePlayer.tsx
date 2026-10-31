@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { AlertTriangle, BadgeCheck, PartyPopper, Timer } from "lucide-react";
+import { PartyPopper, Timer } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import type { CellId } from "@/runtime/geometry.ts";
@@ -63,7 +63,7 @@ export default function PuzzlePlayer({
     invalidConstraintIds,
     showSolution,
 }: Props) {
-    const { session, checkToast, check, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(puzzle);
+    const { session, check, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(puzzle);
 
     useEffect(() => {
         onSelectionChange?.(session.getSelection());
@@ -185,24 +185,6 @@ export default function PuzzlePlayer({
                         }}
                         onCheck={puzzle.solution ? check : undefined}
                     />
-
-                    {checkToast === "clean" && (
-                        <div className="pp-complete pp-check-clean">
-                            <BadgeCheck size={18} /> Everything is correct
-                        </div>
-                    )}
-
-                    {checkToast === "mistake-value" && (
-                        <div className="pp-complete pp-check-mistake">
-                            <AlertTriangle size={18} /> At least 1 digit entered is wrong
-                        </div>
-                    )}
-
-                    {checkToast === "mistake-notes" && (
-                        <div className="pp-complete pp-check-mistake">
-                            <AlertTriangle size={18} /> At least 1 note has eliminated the correct digit
-                        </div>
-                    )}
                 </section>
 
                 <section className="pp-group pp-reference" aria-label="Reference">

@@ -41,9 +41,9 @@ Debug/developer affordances (View JSON) are disclosure, never primary.
 | Disclosure / info | Stays collapsed by default; opens inline, never as a floating panel over the board. |
 | Authoring action | Editor stacks above the preview below 900px; rows wrap. |
 
-Not yet true: the player sidebar is still one flat stack rather than grouped by
-bucket (#133). Until then, add to the group closest to the bucket and keep it
-adjacent to its siblings — don't start a new top-level item.
+The player sidebar is grouped to match: status strip, `.pp-solve` (solving
+controls), `.pp-reference` (disclosures). Add a control to the group for its
+bucket — don't start a new top-level item.
 
 ## Every control, regardless of bucket
 
@@ -59,7 +59,10 @@ adjacent to its siblings — don't start a new top-level item.
 - Tap target ≥ 32px (`.btn` enforces a 2rem minimum; don't override it down).
 - Text on a `--brand` fill uses `--on-brand`, not `#fff` (white fails contrast in
   the dark theme).
-- Errors/confirmations don't shift layout (floating toast once #122 lands).
+- Feedback to an action the user just took (check result, import/export outcome)
+  is a `toast()` from `src/app/toast.ts` — it floats and never shifts layout.
+  Feedback about *current state* (a JSON parse error, "Solved!", a missing
+  puzzle) stays inline until its cause is fixed.
 
 ## Checklist
 

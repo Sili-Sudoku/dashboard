@@ -1,6 +1,7 @@
 import { useMemo, useState, type FocusEvent, type WheelEvent } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
+import { toast } from "@/app/toast.ts";
 import { useSettings } from "@/app/use_settings.ts";
 import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import { GridGeometry } from "@/runtime/geometry.ts";
@@ -87,6 +88,13 @@ const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit 
     </div>
 );
 
+/** Import/export outcome toast. One key, so a second action replaces the first
+ *  instead of stacking; warning lists are long, so they linger. */
+const notifyInterop = (warningCount: number, withWarnings: string, plain: string): void =>
+    warningCount > 0
+        ? toast(withWarnings, { key: "interop", duration: 12000 })
+        : toast(plain, { kind: "success", key: "interop" });
+
 /** "antiking#56, antiking#73, thermometer#2" → "antiking ×2, thermometer#2" — a
  *  global rule can violate at hundreds of cell pairs, so listing every id made
  *  the notice a wall of text. */
@@ -148,13 +156,11 @@ type ImportFormat = "fpuzzles" | "sudokumaker";
 export default function Author() {
     const [text, setText] = useState(() => JSON.stringify(demoMixed, null, 2));
     const [submitted, setSubmitted] = useState(text);
-    const [interopNotice, setInteropNotice] = useState<string | undefined>();
     const [importDialog, setImportDialog] = useState<ImportFormat | undefined>();
     const [importDraft, setImportDraft] = useState("");
     // Tagged with the `submitted` string it was computed for, so a stale result
     // from a previous puzzle never shows for whatever is loaded now — simpler
     // than clearing it from every call site that can change `submitted`.
-    const [solveResult, setSolveResult] = useState<{ for: string; result: SolveResult; ms: number } | undefined>();
     const [solving, setSolving] = useState(false);
     const [settings, setSetting] = useSettings();
     const editorMode = settings.authorEditorMode;
@@ -254,12 +260,15 @@ export default function Author() {
         if (!("compiled" in result) || !result.compiled || solving) return;
         setSolving(true);
         const puzzle = result.compiled;
-        const target = submitted;
         const t0 = performance.now();
         // solve() yields back to the event loop periodically, so this await
         // doesn't freeze the page even for a multi-second search.
         const solved = await solve(puzzle);
-        setSolveResult({ for: target, result: solved, ms: Math.round(performance.now() - t0) });
+        const ms = Math.round(performance.now() - t0);
+        toast(
+            `${SOLVE_STATUS_LABEL[solved.status]}\n(${ms}ms, ${solved.probes} oracle probe${solved.probes === 1 ? "" : "s"})`,
+            { kind: solved.status === "unique" ? "success" : solved.status === "unknown" ? "info" : "error", key: "solve" },
+        );
         setSolving(false);
     };
 
@@ -278,65 +287,49 @@ export default function Author() {
     const runImportFPuzzles = (pasted: string) => {
         const imported = importFPuzzles(pasted);
         if (imported instanceof Error) {
-            setInteropNotice(`Import failed: ${imported.message}`);
+            toast(`Import failed: ${imported.message}`, { kind: "error", key: "interop" });
             return;
         }
         const json = JSON.stringify(imported.puzzle, null, 2);
         setText(json);
         setSubmitted(json);
-        setInteropNotice(
-            imported.warnings.length > 0
-                ? `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`
-                : "Imported f-puzzles JSON.",
-        );
+        notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported f-puzzles JSON.");
     };
 
     const handleExportFPuzzles = () => {
         if (!("parsed" in result) || !result.parsed) return;
         const exported = exportFPuzzles(result.parsed);
         if (exported instanceof Error) {
-            setInteropNotice(`Export failed: ${exported.message}`);
+            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
             return;
         }
         const link = encodeFPuzzlesShareLink(exported.data);
         window.open(link, "_blank", "noopener,noreferrer");
-        setInteropNotice(
-            exported.warnings.length > 0
-                ? `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
-                : "Opened f-puzzles share link in a new tab.",
-        );
+        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened f-puzzles share link in a new tab.");
     };
 
     const handleExportSudokuPad = () => {
         if (!("parsed" in result) || !result.parsed) return;
         const exported = exportFPuzzles(result.parsed);
         if (exported instanceof Error) {
-            setInteropNotice(`Export failed: ${exported.message}`);
+            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
             return;
         }
         const link = encodeSudokuPadShareLink(exported.data);
         window.open(link, "_blank", "noopener,noreferrer");
-        setInteropNotice(
-            exported.warnings.length > 0
-                ? `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
-                : "Opened SudokuPad share link in a new tab.",
-        );
+        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened SudokuPad share link in a new tab.");
     };
 
     const runImportSudokuMaker = (pasted: string) => {
         const imported = importSudokuMaker(pasted);
         if (imported instanceof Error) {
-            setInteropNotice(`Import failed: ${imported.message}`);
+            toast(`Import failed: ${imported.message}`, { kind: "error", key: "interop" });
             return;
         }
         const json = JSON.stringify(imported.puzzle, null, 2);
         setText(json);
         setSubmitted(json);
-        setInteropNotice(
-            imported.warnings.length > 0
-                ? `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`
-                : "Imported SudokuMaker JSON.",
-        );
+        notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported SudokuMaker JSON.");
     };
 
     const IMPORT_DIALOGS: Record<ImportFormat, { title: string; placeholder: string; run: (pasted: string) => void }> = {
@@ -372,16 +365,12 @@ export default function Author() {
         if (!("parsed" in result) || !result.parsed) return;
         const exported = exportSudokuMaker(result.parsed);
         if (exported instanceof Error) {
-            setInteropNotice(`Export failed: ${exported.message}`);
+            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
             return;
         }
         const link = encodeSudokuMakerShareLink(exported.data);
         window.open(link, "_blank", "noopener,noreferrer");
-        setInteropNotice(
-            exported.warnings.length > 0
-                ? `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`
-                : "Opened SudokuMaker share link in a new tab.",
-        );
+        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened SudokuMaker share link in a new tab.");
     };
 
     return (
@@ -578,14 +567,6 @@ export default function Author() {
                         </div>
                     </div>
                     {liveError && <pre className="author-error">{liveError}</pre>}
-                    {interopNotice && <pre className="author-notice">{interopNotice}</pre>}
-                    {solveResult && solveResult.for === submitted && (
-                        <pre className="author-notice">
-                            {SOLVE_STATUS_LABEL[solveResult.result.status]}
-                            {"\n"}({solveResult.ms}ms, {solveResult.result.probes} oracle probe
-                            {solveResult.result.probes === 1 ? "" : "s"})
-                        </pre>
-                    )}
 
                     <section className="author-sdk">
                         <h2>…or build it in code</h2>

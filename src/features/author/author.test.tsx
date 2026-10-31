@@ -5,9 +5,12 @@ import { MemoryRouter } from "react-router-dom";
 
 import Author from "@/features/author/index.tsx";
 import { demoMixed } from "@/puzzles/index.ts";
+import { ToastViewport } from "@/app/toast_viewport.tsx";
+import { clearToasts } from "@/app/toast.ts";
 
 afterEach(() => {
     cleanup();
+    clearToasts();
 });
 
 /** Opens an import dialog, fills its textarea, and submits — the in-app
@@ -23,6 +26,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         expect(container.querySelector(".author-error")).toBeNull();
@@ -41,6 +45,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
@@ -67,6 +72,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         const toggle = screen.getByRole("button", { name: "Show solution" }) as HTMLButtonElement;
@@ -84,6 +90,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
@@ -105,6 +112,7 @@ describe("Author", () => {
         render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         expect((screen.getByLabelText("Box width") as HTMLInputElement).value).toBe("3");
@@ -115,6 +123,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.change(screen.getByLabelText("Width"), { target: { value: "6" } });
@@ -132,6 +141,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.change(screen.getByLabelText("Box width"), { target: { value: "4" } });
@@ -147,6 +157,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.change(screen.getByLabelText("Height"), { target: { value: "12" } });
@@ -162,6 +173,7 @@ describe("Author", () => {
         render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
@@ -179,6 +191,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from f-puzzles/i, /paste f-puzzles json/i, fpuzzles);
@@ -192,6 +205,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from f-puzzles/i, /paste f-puzzles json/i, shareLink);
@@ -202,14 +216,15 @@ describe("Author", () => {
         expect(container.querySelector(".author-error")).toBeNull();
     });
 
-    it("shows an import error inline instead of throwing on malformed input", () => {
+    it("shows an import error as a toast instead of throwing on malformed input", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from f-puzzles/i, /paste f-puzzles json/i, "not json");
-        expect(container.querySelector(".author-notice")?.textContent).toMatch(/import failed/i);
+        expect(container.querySelector(".toast-message")?.textContent).toMatch(/import failed/i);
     });
 
     it("exports to f-puzzles by opening a share link in a new tab", () => {
@@ -217,6 +232,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.click(screen.getByRole("button", { name: /export to f-puzzles/i }));
@@ -225,7 +241,7 @@ describe("Author", () => {
             "_blank",
             "noopener,noreferrer",
         );
-        expect(container.querySelector(".author-notice")?.textContent).toMatch(/opened/i);
+        expect(container.querySelector(".toast-message")?.textContent).toMatch(/opened/i);
     });
 
     it("imports SudokuMaker JSON entered via the import dialog", () => {
@@ -253,6 +269,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from sudokumaker/i, /paste sudokumaker json/i, sudokumaker);
@@ -266,6 +283,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from sudokumaker/i, /paste sudokumaker json/i, shareLink);
@@ -275,14 +293,15 @@ describe("Author", () => {
         expect(container.querySelector(".author-error")).toBeNull();
     });
 
-    it("shows a SudokuMaker import error inline instead of throwing on malformed input", () => {
+    it("shows a SudokuMaker import error as a toast instead of throwing on malformed input", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         importViaDialog(/import from sudokumaker/i, /paste sudokumaker json/i, "not json");
-        expect(container.querySelector(".author-notice")?.textContent).toMatch(/import failed/i);
+        expect(container.querySelector(".toast-message")?.textContent).toMatch(/import failed/i);
     });
 
     it("exports to SudokuMaker by opening a share link in a new tab", () => {
@@ -290,6 +309,7 @@ describe("Author", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         fireEvent.click(screen.getByRole("button", { name: /export to sudokumaker/i }));
@@ -298,13 +318,14 @@ describe("Author", () => {
             "_blank",
             "noopener,noreferrer",
         );
-        expect(container.querySelector(".author-notice")?.textContent).toMatch(/opened/i);
+        expect(container.querySelector(".toast-message")?.textContent).toMatch(/opened/i);
     });
 
     it("cancelling the import dialog leaves the puzzle untouched", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
+                <ToastViewport />
             </MemoryRouter>,
         );
         const before = (container.querySelector("textarea") as HTMLTextAreaElement).value;

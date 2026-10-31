@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { getSettings } from "@/app/use_settings.ts";
+import { dismissToastByKey, toast } from "@/app/toast.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
 import {
@@ -77,6 +78,8 @@ const hasLongerMatch = (domain: readonly number[], prefix: string): boolean =>
  * deliberate second keystroke, short enough not to feel like a stuck key. */
 const DIGIT_COMMIT_DELAY_MS = 500;
 
+const CHECK_TOAST_KEY = "check";
+
 export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
     const session = useMemo(
         () =>
@@ -92,28 +95,23 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         () => session.revision,
     );
 
-    // The "clean" / "mistake-value" / "mistake-notes" results are transient
-    // toasts, not board state — a *revealed* mistake stays visibly red/
-    // flagged until fixed, but a plain confirmation (before anything's been
-    // revealed) has nothing to keep showing, so it fades after a few
-    // seconds instead of sitting in the sidebar forever. Lives here, not in
-    // the component, so the Check button and the 'V' hotkey below both
-    // drive the exact same feedback — the keyboard is just a shortcut for
-    // the same action.
-    const [checkToast, setCheckToast] = useState<"clean" | "mistake-value" | "mistake-notes" | null>(null);
-    const toastTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    // The check result is a transient toast, not board state — a *revealed*
+    // mistake stays visibly red/flagged until fixed, but a plain confirmation
+    // has nothing to keep showing. Lives here, not in the component, so the
+    // Check button and the 'V' hotkey below both drive the exact same
+    // feedback — the keyboard is just a shortcut for the same action.
     const check = useCallback(() => {
-        clearTimeout(toastTimeout.current);
         const outcome = session.checkAgainstSolution();
         if (outcome === "revealed") {
             // No toast — the highlighted cells are the feedback.
-            setCheckToast(null);
+            dismissToastByKey(CHECK_TOAST_KEY);
             return;
         }
-        setCheckToast(outcome);
-        toastTimeout.current = setTimeout(() => setCheckToast(null), 2500);
+        if (outcome === "clean") toast("Everything is correct", { kind: "success", key: CHECK_TOAST_KEY, duration: 2500 });
+        else if (outcome === "mistake-value")
+            toast("At least 1 digit entered is wrong", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
+        else toast("At least 1 note has eliminated the correct digit", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
     }, [session]);
-    useEffect(() => () => clearTimeout(toastTimeout.current), []);
 
     // Persist progress after each change.
     const saveTimer = useRef<number | undefined>(undefined);
@@ -438,5 +436,5 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle) => {
         };
     }, [session, puzzle.domain, check]);
 
-    return { session, checkToast, check, elapsedMs, bestElapsedMs, resetTimer };
+    return { session, check, elapsedMs, bestElapsedMs, resetTimer };
 };

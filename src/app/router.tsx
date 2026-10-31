@@ -7,6 +7,7 @@ import PuzzleList from "@/features/puzzles";
 import Play from "@/features/play";
 import Author from "@/features/author";
 import Settings from "@/features/settings";
+import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
 
@@ -91,6 +92,7 @@ export default function AppRouter() {
                             <Route path="/settings" element={<Settings />} />
                         </Routes>
                     </main>
+                    <ToastViewport />
                 </div>
             </PageHeaderContext.Provider>
         </PageActionsContext.Provider>
