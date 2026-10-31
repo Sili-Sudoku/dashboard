@@ -11,11 +11,22 @@ export interface Settings {
     checkNotesOnLeave: boolean;
     /** Board: keep the zoom/pan toolbar's lock engaged (ignore wheel/pinch/fit) across puzzles and reloads. */
     zoomLocked: boolean;
+    /* Remembered view state (#125): where the user left these open/closed. Not
+     * preferences to configure, so — unlike the two above — no Settings-page
+     * control. Deliberately NOT remembered: input mode (a note mode carried
+     * over from last puzzle would surprise), zoom/pan position, show-solution,
+     * JSON view — those are per-session by nature. */
+    constraintPanelOpen: boolean;
+    hotkeyLegendOpen: boolean;
+    authorEditorMode: "json" | "visual";
 }
 
 const DEFAULT_SETTINGS: Settings = {
     checkNotesOnLeave: false,
     zoomLocked: false,
+    constraintPanelOpen: false,
+    hotkeyLegendOpen: false,
+    authorEditorMode: "json",
 };
 
 const SETTINGS_KEY = "cpr:settings";

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleAlert, CircleDashed, ListChecks } from "lucide-react";
 
+import { useSettings } from "@/app/use_settings.ts";
 import type { ConstraintEvaluation, EvaluationResult } from "@/runtime/evaluate.ts";
 
 import "./style.css";
@@ -22,7 +23,9 @@ export default function ConstraintPanel({ evaluation }: Props) {
     // The whole panel is collapsed to just its toggle button by default — this
     // *is* the "Show/Hide constraints" control now, not a separate button that
     // sits above a second collapsible section.
-    const [open, setOpen] = useState(false);
+    const [settings, setSetting] = useSettings();
+    const open = settings.constraintPanelOpen;
+    const setOpen = (next: boolean) => setSetting("constraintPanelOpen", next);
     // Per-group collapse, independent of the panel-level toggle above.
     // Collapsed by default — tracking which groups were opened (rather than
     // which were closed) means a group newly appearing in `groups` starts
@@ -53,7 +56,7 @@ export default function ConstraintPanel({ evaluation }: Props) {
                 type="button"
                 className={`pp-toggle cp-toggle ${open ? `cp-${evaluation.status}` : ""}`}
                 aria-expanded={open}
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => setOpen(!open)}
             >
                 <ListChecks size={15} /> {label}
             </button>

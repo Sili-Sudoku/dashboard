@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSettings } from "@/app/use_settings.ts";
 import { Keyboard } from "lucide-react";
 
 import "./style.css";
@@ -24,7 +24,8 @@ export default function HotkeyLegend() {
     // Collapsed to just the toggle button by default — this *is* the
     // "Show/Hide shortcuts" control, not a separate button sitting above a
     // second collapsible section (same pattern as ConstraintPanel).
-    const [open, setOpen] = useState(false);
+    const [settings, setSetting] = useSettings();
+    const open = settings.hotkeyLegendOpen;
 
     return (
         <section className={`hotkey-legend ${open ? "hk-open" : ""}`}>
@@ -32,7 +33,7 @@ export default function HotkeyLegend() {
                 type="button"
                 className="pp-toggle hk-toggle"
                 aria-expanded={open}
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => setSetting("hotkeyLegendOpen", !open)}
             >
                 <Keyboard size={15} /> {open ? "Hide shortcuts" : "Keyboard shortcuts"}
             </button>

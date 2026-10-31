@@ -1,6 +1,7 @@
 import { useMemo, useState, type FocusEvent, type WheelEvent } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
+import { useSettings } from "@/app/use_settings.ts";
 import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import { GridGeometry } from "@/runtime/geometry.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
@@ -155,7 +156,9 @@ export default function Author() {
     // than clearing it from every call site that can change `submitted`.
     const [solveResult, setSolveResult] = useState<{ for: string; result: SolveResult; ms: number } | undefined>();
     const [solving, setSolving] = useState(false);
-    const [editorMode, setEditorMode] = useState<"json" | "visual">("json");
+    const [settings, setSetting] = useSettings();
+    const editorMode = settings.authorEditorMode;
+    const setEditorMode = (mode: "json" | "visual") => setSetting("authorEditorMode", mode);
     usePageHeader(
         "Author a puzzle",
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
