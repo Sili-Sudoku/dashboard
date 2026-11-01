@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 
@@ -12,6 +12,18 @@ import NotFound from "@/app/not_found.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
+
+const APP_TITLE = "Constraint Puzzle Runtime";
+
+// Titles for routes that don't register their own via usePageHeader (Play and
+// Author do, so theirs wins). "/" and a not-yet-loaded puzzle fall back to
+// the bare app title.
+const ROUTE_TITLES: Record<string, string> = {
+    "/puzzles": "Puzzles",
+    "/new": "Author a puzzle",
+    "/settings": "Settings",
+};
+const KNOWN_PATHS = new Set(["/", ...Object.keys(ROUTE_TITLES)]);
 
 export default function AppRouter() {
     const { theme, toggleTheme } = useTheme();
@@ -34,6 +46,14 @@ export default function AppRouter() {
     // bands) with their own palette and padding — the centered 1100px column
     // below is specifically for the app's working pages, not this one.
     const isLandingRoute = pathname === "/";
+
+    const routeTitle =
+        pageHeader?.title ??
+        ROUTE_TITLES[pathname] ??
+        (KNOWN_PATHS.has(pathname) || pathname.startsWith("/p/") ? undefined : "Page not found");
+    useEffect(() => {
+        document.title = routeTitle ? `${routeTitle} · ${APP_TITLE}` : APP_TITLE;
+    }, [routeTitle]);
 
     return (
         <PageActionsContext.Provider value={actionsSlot}>

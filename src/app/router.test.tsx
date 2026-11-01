@@ -70,3 +70,32 @@ describe("AppRouter — board-route layout class", () => {
         expect(container.querySelector(".app-main.app-main--board")).not.toBeNull();
     });
 });
+
+describe("AppRouter — document title", () => {
+    const at = (path: string) =>
+        render(
+            <MemoryRouter initialEntries={[path]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+
+    it("uses the bare app title on the home route", () => {
+        at("/");
+        expect(document.title).toBe("Constraint Puzzle Runtime");
+    });
+
+    it("prefixes the route's name on pages without their own header", () => {
+        at("/settings");
+        expect(document.title).toBe("Settings · Constraint Puzzle Runtime");
+    });
+
+    it("names the not-found page", () => {
+        at("/nope");
+        expect(document.title).toBe("Page not found · Constraint Puzzle Runtime");
+    });
+
+    it("uses the title a page registers via usePageHeader (the author page's)", () => {
+        at("/new");
+        expect(document.title).toBe("Author a puzzle · Constraint Puzzle Runtime");
+    });
+});
