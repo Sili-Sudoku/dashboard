@@ -17,5 +17,16 @@ export default defineConfig({
         environment: "node",
         globals: true,
         include: ["src/**/*.test.{ts,tsx}"],
+        coverage: {
+            provider: "v8",
+            include: ["src/**/*.{ts,tsx}"],
+            exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.bench.ts", "src/main.tsx", "src/**/*.d.ts"],
+            reporter: ["text-summary", "html"],
+            reportsDirectory: "coverage",
+            // A floor just under where coverage sits today (92/85/91 in Nov 2026):
+            // not a target, a ratchet — it fails the run if coverage regresses
+            // noticeably. Raise it when coverage rises.
+            thresholds: { statements: 90, lines: 90, functions: 90, branches: 83 },
+        },
     },
 });

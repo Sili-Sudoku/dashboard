@@ -16,7 +16,7 @@ export type ExportTarget = "fpuzzles" | "sudokupad" | "sudokumaker";
 
 interface Converted<T> {
     value: T;
-    warnings: string[];
+    warnings: readonly string[];
 }
 
 /** Each import format: the dialog's copy, plus the parser and the label used in the success toast. */
@@ -26,7 +26,7 @@ const IMPORTS: Record<
         title: string;
         placeholder: string;
         noun: string;
-        parse: (pasted: string) => { puzzle: PuzzleDefinition; warnings: string[] } | Error;
+        parse: (input: unknown) => { puzzle: PuzzleDefinition; warnings: readonly string[] } | Error;
     }
 > = {
     fpuzzles: {
@@ -76,7 +76,7 @@ const EXPORTS: Record<ExportTarget, { name: string; link: (puzzle: PuzzleDefinit
 
 /** Import/export outcome toast. One key, so a second action replaces the first
  *  instead of stacking; warning lists are long, so they linger. */
-const notifyInterop = (warnings: string[], withWarnings: string, plain: string): void =>
+const notifyInterop = (warnings: readonly string[], withWarnings: string, plain: string): void =>
     warnings.length > 0
         ? toast(`${withWarnings}${warnings.length} warning(s):\n${warnings.join("\n")}`, {
               key: "interop",
