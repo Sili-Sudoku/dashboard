@@ -44,7 +44,16 @@ export type PointRef =
  * these it needs to express its own semantics visually.
  */
 export type VisualObject =
-    | { id?: string; kind: "line"; points: readonly PointRef[]; arrow?: boolean; style?: VisualStyle }
+    | {
+          id?: string;
+          kind: "line";
+          points: readonly PointRef[];
+          arrow?: boolean;
+          /** Cell units to cut off each end of the line, measured along it — e.g. so an arrow's
+           *  shaft starts at its bulb's rim and its head stops short of the last digit. */
+          trim?: { start?: number; end?: number };
+          style?: VisualStyle;
+      }
     | { id?: string; kind: "path"; cells: readonly CellId[]; style?: VisualStyle }
     | { id?: string; kind: "polygon"; points: readonly PointRef[]; style?: VisualStyle }
     | { id?: string; kind: "circle"; at: PointRef; r: number; style?: VisualStyle }

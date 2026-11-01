@@ -624,7 +624,9 @@ describe("<PuzzlePlayer />", () => {
             expect(screen.getByText("0:07")).toBeTruthy();
 
             fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
-            fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+            fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+            fireEvent.click(screen.getByRole("menuitem", { name: "Reset puzzle" }));
+            fireEvent.click(screen.getByRole("menuitem", { name: "Really clear everything?" }));
             expect(screen.getByText("0:00")).toBeTruthy();
 
             act(() => {
@@ -634,5 +636,54 @@ describe("<PuzzlePlayer />", () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe("<PuzzlePlayer /> stacked (phone) layout", () => {
+    const stubStacked = () =>
+        vi.stubGlobal("matchMedia", (query: string) => ({
+            matches: true,
+            media: query,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+        }));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("drops the row under the grid and offers the timer and zoom in the pad's menu", () => {
+        stubStacked();
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".board-footer")).toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+        expect(screen.getByRole("menuitem", { name: /^0:00/ })).toBeTruthy();
+        for (const name of ["Zoom in", "Zoom out", "Fit to screen", "Actual size", "Lock zoom", "Reset puzzle"]) {
+            expect(screen.getByRole("menuitem", { name })).toBeTruthy();
+        }
+    });
+
+    it("zoom items drive the board: Lock zoom flips to Unlock zoom", () => {
+        stubStacked();
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+        fireEvent.click(screen.getByRole("menuitem", { name: "Lock zoom" }));
+        fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+        expect(screen.getByRole("menuitem", { name: "Unlock zoom" })).toBeTruthy();
+    });
+
+    it("runs every zoom item from the menu without error", () => {
+        stubStacked();
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        for (const name of ["Zoom in", "Zoom out", "Fit to screen", "Actual size"]) {
+            fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+            fireEvent.click(screen.getByRole("menuitem", { name }));
+        }
+        expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
+    });
+
+    it("keeps the row under the grid (timer, hint, zoom) on a wide layout", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".board-footer")).not.toBeNull();
+        fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+        expect(screen.queryByRole("menuitem", { name: "Zoom in" })).toBeNull();
     });
 });

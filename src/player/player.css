@@ -39,6 +39,8 @@
     position: fixed;
     top: var(--pp-side-top, 0px);
     right: 1.2rem;
+    /* PuzzlePlayer.tsx sets this to just right of the grid; without it, flush right. */
+    left: var(--pp-side-left, auto);
     width: 340px;
     max-height: calc(100vh - var(--pp-side-top, 0px) - 1.6rem);
     overflow-y: auto;
@@ -58,12 +60,19 @@
     gap: var(--space-2);
 }
 
+/* Pad and action row share one width and centre in the box, so their edges line up. */
 .pp-solve {
+    align-items: center;
     padding: var(--space-3);
     border: 2px solid var(--ink);
     border-radius: var(--radius-lg);
     background: var(--surface);
     box-shadow: 4px 4px 0 var(--line);
+}
+
+.pp-solve > * {
+    width: 100%;
+    max-width: 320px;
 }
 
 .pp-reference {
@@ -87,12 +96,28 @@
    sidebar out of fixed/floating mode and let it stack below the board like
    a normal block instead. */
 @media (max-width: 820px) {
+    /* The hint is keyboard talk; a stacked (phone/tablet) layout has the shortcuts
+       disclosure and pinch/tap instead, and the pad needs the room. */
+    .pp-hint {
+        display: none;
+    }
+    /* Stacked, the board column's height comes from its own content, so the board's
+       fit has nothing to grow into and settles well short of the screen's width. Give
+       it a roughly square slot to fill instead. */
+    .pp-board-col .board-measure {
+        min-height: min(calc(100vw - 2.4rem), 75vh);
+    }
     .pp-board-col {
         min-width: 0;
         margin-right: 0;
     }
+    .puzzle-player {
+        gap: 0.8rem;
+    }
+
     .pp-side {
         position: static;
+        left: auto;
         /* width:auto (a flex item with no flex-grow) shrink-wraps to its
            narrowest child's content instead of filling the row it just wrapped
            onto — left the number pad, controls, timer etc. all stuck flush left
@@ -106,10 +131,18 @@
     }
 }
 
+/* Lives in the row under the grid (Board's footer), between the timer and the zoom button. */
 .pp-hint {
-    /* The board is centered in its column, so the hint sits on the same axis. */
+    flex: 1;
+    min-width: 0;
+    margin: 0;
     text-align: center;
-    margin-top: 0.6rem;
+    /* One line, ellipsized: the row's width follows the grid's, and its height is
+       subtracted from the grid's budget — a hint that wrapped as the grid shrank would
+       make the row taller and shrink the grid further. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 0.78rem;
     color: var(--ink-soft);
 }
@@ -130,7 +163,6 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    align-self: flex-start;
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--ink);

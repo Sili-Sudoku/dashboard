@@ -9,6 +9,8 @@ import type { CompiledPuzzle, PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import { getPuzzle } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
+import { OverflowMenu } from "@/app/overflow_menu.tsx";
+import { toast } from "@/app/toast.ts";
 import { usePageHeader, usePageActionsSlot } from "@/app/page_header.ts";
 
 import "./style.css";
@@ -49,7 +51,7 @@ export default function Play() {
     const share = async () => {
         if (!definition) return;
         const url = `${window.location.origin}/p/${encodePuzzle(definition)}`;
-        await copyText(url, setCopied);
+        await copyText(url, () => toast("Link copied", { kind: "success", key: "share" }));
     };
 
     if (error && !compiled) {
@@ -69,20 +71,19 @@ export default function Play() {
             ? JSON.stringify(compiled, null, 2)
             : JSON.stringify(definition, null, 2);
 
+    // Nothing here is part of solving, so the header carries one menu rather than two buttons.
     const actions = (
-        <div className="play-actions">
-            <button
-                className="btn btn-sm"
-                aria-label={jsonView === "off" ? "View JSON" : "Hide JSON"}
-                aria-pressed={jsonView !== "off"}
-                onClick={() => setJsonView((v) => (v === "off" ? "artifact" : "off"))}
-            >
-                <Braces size={15} /> <span className="play-btn-label">{jsonView === "off" ? "View JSON" : "Hide JSON"}</span>
-            </button>
-            <button className="btn btn-sm btn-primary" aria-label={copied ? "Link copied" : "Share"} onClick={share}>
-                <Share2 size={15} /> <span className="play-btn-label">{copied ? "Link copied" : "Share"}</span>
-            </button>
-        </div>
+        <OverflowMenu
+            label="Puzzle actions"
+            items={[
+                { label: "Share link", icon: <Share2 size={16} />, onSelect: share },
+                {
+                    label: jsonView === "off" ? "View JSON" : "Hide JSON",
+                    icon: <Braces size={16} />,
+                    onSelect: () => setJsonView((v) => (v === "off" ? "artifact" : "off")),
+                },
+            ]}
+        />
     );
 
     return (

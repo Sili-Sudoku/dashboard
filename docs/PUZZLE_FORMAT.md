@@ -202,7 +202,7 @@ need; the renderer never switches on "thermometer".
 
 ```jsonc
 { "kind": "path",    "cells": ["r1c1","r1c2"], "style": { "stroke": "…" } }
-{ "kind": "line",    "points": ["r4c9","r4c8","r5c9"], "arrow": true }
+{ "kind": "line",    "points": ["r4c9","r4c8","r5c9"], "arrow": true, "trim": { "start": 0.4, "end": 0.3 } }  // trim: cells cut off each end
 { "kind": "circle",  "at": "r1c1", "r": 0.4 }
 { "kind": "rect",    "at": { "cell": "r1c1", "corner": "tl" }, "w": 1, "h": 1 }
 { "kind": "polygon", "points": [{ "x": 0, "y": 0 }, { "x": 3, "y": 0 }] }

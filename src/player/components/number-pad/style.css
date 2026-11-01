@@ -3,7 +3,6 @@
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
-    max-width: 260px;
     /* .pp-side (player.css) is a flex column with the default align-items:stretch,
        so without this the pad — capped at 260px so its buttons don't balloon on a
        wide sidebar — just sits flush left with the leftover width as dead space
@@ -22,12 +21,16 @@
     gap: 0.4rem;
 }
 
-/* Four modes: two rows of two rather than four cramped columns. */
-.number-pad .pad-modes {
-    flex-wrap: wrap;
-}
+/* Four modes in one row, each a stacked icon over its label, so the pad stays short
+   enough for the Erase/Undo/Check rows to sit above a phone's fold. */
 .number-pad .pad-modes .pad-key.wide {
-    flex: 1 1 calc(50% - 0.2rem);
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.3rem 0;
+    font-size: 0.7rem;
 }
 
 /* Colour mode: the key *is* the swatch, so its digit is just the hotkey hint. The
@@ -47,7 +50,7 @@
 /* 0 sits beside Erase at the width of one digit column; Erase takes the rest. */
 .number-pad .pad-actions .pad-key-zero {
     flex: 1;
-    height: 2.7rem;
+    height: 44px;
 }
 .number-pad .pad-actions .pad-erase {
     flex: 2;
@@ -62,7 +65,7 @@
 /* Fixed height so switching the preview content (full digit / shrunk centre
    note / absolutely-positioned corner note) never changes the button's box. */
 .pad-grid .pad-key {
-    height: 2.7rem;
+    height: 44px;
 }
 
 /* Center mode: preview the compact, smaller, centred note style the digit
@@ -84,5 +87,8 @@
 .pad-key.wide {
     flex: 1;
     font-size: 0.85rem;
+}
+.number-pad .pad-actions .pad-key {
+    min-height: 44px;
 }
 

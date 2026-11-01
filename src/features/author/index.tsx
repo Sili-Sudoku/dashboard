@@ -1,5 +1,5 @@
+import { Eye, EyeOff, Redo2, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Import } from "lucide-react";
 
 import { toast } from "@/app/toast.ts";
 import { useSettings } from "@/app/use_settings.ts";
@@ -17,6 +17,7 @@ import ImportDialog from "@/features/author/import_dialog.tsx";
 import { useAuthorInterop } from "@/features/author/use_author_interop.ts";
 import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
 import type { CellId } from "@/runtime/geometry.ts";
+import { OverflowMenu, type MenuItem } from "@/app/overflow_menu.tsx";
 import { usePageHeader } from "@/app/page_header.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
 import sudokuPadIcon from "./sudokupad-icon.png";
@@ -29,9 +30,7 @@ const FPuzzlesIcon = () => (
     </span>
 );
 
-const SudokuMakerIcon = () => (
-    <img className="author-icon" src={sudokuMakerIcon} alt="" width={16} height={16} />
-);
+const SudokuMakerIcon = () => <img className="author-icon" src={sudokuMakerIcon} alt="" width={16} height={16} />;
 
 const SudokuPadIcon = () => <img className="author-icon" src={sudokuPadIcon} alt="" width={16} height={16} />;
 
@@ -115,7 +114,10 @@ export default function Author() {
     // tries the board's entered digits first. Typing in the JSON box keeps the
     // textarea's own native undo; the snapshots here are what that can't see,
     // because they replace the text programmatically.
-    const [history, setHistory] = useState<{ past: readonly string[]; future: readonly string[] }>({ past: [], future: [] });
+    const [history, setHistory] = useState<{ past: readonly string[]; future: readonly string[] }>({
+        past: [],
+        future: [],
+    });
     const applyText = (json: string) => {
         if (json !== text) setHistory((h) => ({ past: [...h.past, text].slice(-HISTORY_LIMIT), future: [] }));
         setText(json);
@@ -242,7 +244,11 @@ export default function Author() {
     );
 
     const [boardSelection, setBoardSelection] = useState<ReadonlySet<CellId>>(new Set());
-    const visualState = useVisualBuilder("parsed" in result ? result.parsed : undefined, boardSelection, handleVisualChange);
+    const visualState = useVisualBuilder(
+        "parsed" in result ? result.parsed : undefined,
+        boardSelection,
+        handleVisualChange,
+    );
     const [showSolution, setShowSolution] = useState(false);
     // "Test as solver": the preview becomes the plain player a solver would get — none
     // of the author extras (builder hooks, red conflict marking, solution overlay, the
@@ -260,7 +266,10 @@ export default function Author() {
         const ms = Math.round(performance.now() - t0);
         toast(
             `${SOLVE_STATUS_LABEL[solved.status]}\n(${ms}ms, ${solved.probes} oracle probe${solved.probes === 1 ? "" : "s"})`,
-            { kind: solved.status === "unique" ? "success" : solved.status === "unknown" ? "info" : "error", key: "solve" },
+            {
+                kind: solved.status === "unique" ? "success" : solved.status === "unknown" ? "info" : "error",
+                key: "solve",
+            },
         );
         setSolving(false);
     };
@@ -273,70 +282,165 @@ export default function Author() {
     };
 
     const shareLink =
-        "parsed" in result && result.parsed
-            ? `${window.location.origin}/p/${encodePuzzle(result.parsed)}`
-            : undefined;
+        "parsed" in result && result.parsed ? `${window.location.origin}/p/${encodePuzzle(result.parsed)}` : undefined;
 
     const interop = useAuthorInterop("parsed" in result ? result.parsed : undefined, applyText);
 
+    const exampleItems: MenuItem[] = listPuzzles().map((p) => ({
+        label: p.metadata.title,
+        onSelect: () => loadExample(p.metadata.id),
+    }));
+    const previewBar = (
+        <div className="author-preview-bar">
+            <span className="segmented" role="group" aria-label="Preview mode">
+                <button
+                    type="button"
+                    className={testing ? undefined : "active"}
+                    aria-pressed={!testing}
+                    onClick={() => setTesting(false)}
+                >
+                    Edit
+                </button>
+                <button
+                    type="button"
+                    className={testing ? "active" : undefined}
+                    aria-pressed={testing}
+                    onClick={() => setTesting(!testing)}
+                >
+                    Test as solver
+                </button>
+            </span>
+            {!testing && (
+                <span className="author-preview-history">
+                    <button
+                        type="button"
+                        className="btn btn-icon"
+                        aria-label="Undo puzzle edit"
+                        disabled={history.past.length === 0}
+                        onClick={undo}
+                    >
+                        <Undo2 size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-icon"
+                        aria-label="Redo puzzle edit"
+                        disabled={history.future.length === 0}
+                        onClick={redo}
+                    >
+                        <Redo2 size={16} />
+                    </button>
+                </span>
+            )}
+            {!testing && invalidConstraintIds.size > 0 && (
+                // Lives in the bar (one row that is always there) rather than as a paragraph
+                // above the board, so it appearing never pushes the board down.
+                <span className="author-conflict" role="status" tabIndex={0}>
+                    <TriangleAlert size={15} aria-hidden="true" />
+                    <span className="author-conflict-text">
+                        Conflicts with the solution: {summarizeConflicts(invalidConstraintIds)}
+                    </span>
+                    <span className="author-conflict-count">{invalidConstraintIds.size}</span>
+                    <span className="author-conflict-tip">
+                        Conflicts with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
+                    </span>
+                </span>
+            )}
+            {!testing && "compiled" in result && result.compiled?.solution && (
+                <button
+                    type="button"
+                    className={`btn btn-sm btn-ghost ${showSolution ? "active" : ""}`}
+                    aria-pressed={showSolution}
+                    aria-label="Show solution"
+                    onClick={() => setShowSolution(!showSolution)}
+                >
+                    {showSolution ? <EyeOff size={15} /> : <Eye size={15} />}
+                    <span className="author-bar-text">Show solution</span>
+                </button>
+            )}
+        </div>
+    );
+    const canExport = "parsed" in result && !!result.parsed;
+    const interopItems: MenuItem[] = [
+        { label: "Import from f-puzzles", icon: <FPuzzlesIcon />, onSelect: () => interop.openImport("fpuzzles") },
+        {
+            label: "Import from SudokuMaker",
+            icon: <SudokuMakerIcon />,
+            onSelect: () => interop.openImport("sudokumaker"),
+        },
+        ...(canExport
+            ? [
+                  { label: "Open in f-puzzles", icon: <FPuzzlesIcon />, onSelect: () => interop.exportTo("fpuzzles") },
+                  {
+                      label: "Open in SudokuPad",
+                      icon: <SudokuPadIcon />,
+                      onSelect: () => interop.exportTo("sudokupad"),
+                  },
+                  {
+                      label: "Open in SudokuMaker",
+                      icon: <SudokuMakerIcon />,
+                      onSelect: () => interop.exportTo("sudokumaker"),
+                  },
+              ]
+            : []),
+    ];
+
     return (
         <div className="author">
-            <div className="author-grid">
+            <div className={`author-grid${testing ? " author-grid--testing" : ""}`}>
                 <div className="author-editor">
-                    <label className="author-example">
-                        Load an example:{" "}
-                        <select defaultValue="" onChange={(e) => loadExample(e.target.value)}>
-                            <option value="" disabled>
-                                choose a puzzle…
-                            </option>
-                            {listPuzzles().map((p) => (
-                                <option key={p.metadata.id} value={p.metadata.id}>
-                                    {p.metadata.title}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
                     <div className="author-dims">
-                        <fieldset className="author-dims-group">
-                            <legend>Grid size</legend>
-                            <div className="author-dims-pair">
-                                <DimInput label="Width" value={dims.width} onCommit={(n) => setDims({ width: n })} />
-                                <span className="author-dims-x" aria-hidden="true">
-                                    ×
-                                </span>
-                                <DimInput label="Height" value={dims.height} onCommit={(n) => setDims({ height: n })} />
-                            </div>
-                        </fieldset>
-                        <fieldset className="author-dims-group">
-                            <legend>Box size</legend>
-                            <div className="author-dims-pair">
-                                <DimInput label="Box width" value={dims.boxWidth} onCommit={(n) => setDims({ boxWidth: n })} />
-                                <span className="author-dims-x" aria-hidden="true">
-                                    ×
-                                </span>
-                                <DimInput label="Box height" value={dims.boxHeight} onCommit={(n) => setDims({ boxHeight: n })} />
-                            </div>
-                        </fieldset>
+                        <div className="author-dims-group" role="group" aria-labelledby="author-dims-grid">
+                            <span id="author-dims-grid" className="author-dims-label">
+                                Grid
+                            </span>
+                            <DimInput label="Width" value={dims.width} onCommit={(n) => setDims({ width: n })} />
+                            <span className="author-dims-x" aria-hidden="true">
+                                ×
+                            </span>
+                            <DimInput label="Height" value={dims.height} onCommit={(n) => setDims({ height: n })} />
+                        </div>
+                        <div className="author-dims-group" role="group" aria-labelledby="author-dims-box">
+                            <span id="author-dims-box" className="author-dims-label">
+                                Box
+                            </span>
+                            <DimInput
+                                label="Box width"
+                                value={dims.boxWidth}
+                                onCommit={(n) => setDims({ boxWidth: n })}
+                            />
+                            <span className="author-dims-x" aria-hidden="true">
+                                ×
+                            </span>
+                            <DimInput
+                                label="Box height"
+                                value={dims.boxHeight}
+                                onCommit={(n) => setDims({ boxHeight: n })}
+                            />
+                        </div>
                     </div>
-                    <div className="author-mode-tabs" role="tablist">
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={editorMode === "json"}
-                            className={`btn btn-sm ${editorMode === "json" ? "active" : ""}`}
-                            onClick={() => setEditorMode("json")}
-                        >
-                            JSON
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={editorMode === "visual"}
-                            className={`btn btn-sm ${editorMode === "visual" ? "active" : ""}`}
-                            onClick={() => setEditorMode("visual")}
-                        >
-                            Visual
-                        </button>
+                    <div className="author-mode-bar">
+                        <div className="segmented" role="tablist">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={editorMode === "json"}
+                                className={editorMode === "json" ? "active" : undefined}
+                                onClick={() => setEditorMode("json")}
+                            >
+                                JSON
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={editorMode === "visual"}
+                                className={editorMode === "visual" ? "active" : undefined}
+                                onClick={() => setEditorMode("visual")}
+                            >
+                                Visual
+                            </button>
+                        </div>
+                        <OverflowMenu label="Load an example" text="Load example" quiet items={exampleItems} />
                     </div>
                     {editorMode === "json" ? (
                         <textarea
@@ -351,13 +455,13 @@ export default function Author() {
                     {liveError && <pre className="author-error">{liveError}</pre>}
                     <div className="author-actions">
                         {"compiled" in result && result.compiled && (
-                            <button className="btn" onClick={runSolve} disabled={solving}>
+                            <button className="btn btn-primary" onClick={runSolve} disabled={solving}>
                                 {solving ? "Checking…" : "Check uniqueness"}
                             </button>
                         )}
                         {shareLink && (
                             <button
-                                className="btn"
+                                className="btn btn-sm btn-ghost"
                                 onClick={async () => {
                                     try {
                                         await navigator.clipboard.writeText(shareLink);
@@ -369,116 +473,32 @@ export default function Author() {
                                 Copy share link
                             </button>
                         )}
+                        <OverflowMenu label="Import / Export" text="Import / Export" quiet up items={interopItems} />
                     </div>
-                    <div className="author-interop">
-                        <div className="author-interop-group">
-                            <span className="author-format-badge" aria-hidden="true">
-                                <FPuzzlesIcon />
-                            </span>
-                            <button
-                                className="btn btn-icon"
-                                onClick={() => interop.openImport("fpuzzles")}
-                                aria-label="Import from f-puzzles"
-                                title="Import from f-puzzles"
-                            >
-                                <Import size={15} />
-                            </button>
-                            {"parsed" in result && result.parsed && (
-                                <button
-                                    className="btn btn-icon"
-                                    onClick={() => interop.exportTo("fpuzzles")}
-                                    aria-label="Export to f-puzzles (opens in a new tab)"
-                                    title="Export to f-puzzles (opens in a new tab)"
-                                >
-                                    <ExternalLink size={15} />
-                                </button>
-                            )}
-                        </div>
-                        <div className="author-interop-group">
-                            <span className="author-format-badge" aria-hidden="true">
-                                <SudokuMakerIcon />
-                            </span>
-                            <button
-                                className="btn btn-icon"
-                                onClick={() => interop.openImport("sudokumaker")}
-                                aria-label="Import from SudokuMaker"
-                                title="Import from SudokuMaker"
-                            >
-                                <Import size={15} />
-                            </button>
-                            {"parsed" in result && result.parsed && (
-                                <button
-                                    className="btn btn-icon"
-                                    onClick={() => interop.exportTo("sudokumaker")}
-                                    aria-label="Export to SudokuMaker (opens in a new tab)"
-                                    title="Export to SudokuMaker (opens in a new tab)"
-                                >
-                                    <ExternalLink size={15} />
-                                </button>
-                            )}
-                        </div>
-                        <div className="author-interop-group">
-                            <span className="author-format-badge" aria-hidden="true">
-                                <SudokuPadIcon />
-                            </span>
-                            <span aria-hidden="true" />
-                            {"parsed" in result && result.parsed && (
-                                <button
-                                    className="btn btn-icon"
-                                    onClick={() => interop.exportTo("sudokupad")}
-                                    aria-label="Export to SudokuPad (opens in a new tab)"
-                                    title="Export to SudokuPad (opens in a new tab)"
-                                >
-                                    <ExternalLink size={15} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
                     <details className="author-sdk">
                         <summary>Build it in code instead</summary>
                         <p>
-                            The <code>PuzzleBuilder</code> produces the exact same artifact. This is the seam a
-                            hosted editor would be built on.
+                            The <code>PuzzleBuilder</code> produces the exact same artifact. This is the seam a hosted
+                            editor would be built on.
                         </p>
                         <pre>{BUILDER_EXAMPLE}</pre>
                     </details>
                 </div>
 
-                <div className="author-preview">
+                <div className={`author-preview${testing ? "" : " author-preview--editing"}`}>
                     {"compiled" in result && result.compiled ? (
                         <>
-                            <div className="author-preview-bar">
-                                <button
-                                    type="button"
-                                    className={`btn pp-toggle ${testing ? "active" : ""}`}
-                                    aria-pressed={testing}
-                                    onClick={() => setTesting(!testing)}
-                                >
-                                    Test as solver
-                                </button>
-                                {!testing && result.compiled.solution && (
-                                    <button
-                                        type="button"
-                                        className={`btn pp-toggle ${showSolution ? "active" : ""}`}
-                                        aria-pressed={showSolution}
-                                        onClick={() => setShowSolution(!showSolution)}
-                                    >
-                                        Show solution
-                                    </button>
-                                )}
-                            </div>
-                            {!testing && invalidConstraintIds.size > 0 && (
-                                <p className="author-notice">
-                                    Conflicts with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
-                                </p>
-                            )}
                             {testing ? (
-                                <PuzzlePlayer key={`${result.compiled.metadata.id}${submitted.length}-test`} puzzle={result.compiled} />
+                                <PuzzlePlayer
+                                    key={`${result.compiled.metadata.id}${submitted.length}-test`}
+                                    puzzle={result.compiled}
+                                    header={previewBar}
+                                />
                             ) : (
                                 <PuzzlePlayer
                                     key={result.compiled.metadata.id + submitted.length}
                                     puzzle={result.compiled}
+                                    header={previewBar}
                                     onSelectionChange={setBoardSelection}
                                     externalHistory={{
                                         canUndo: history.past.length > 0,
@@ -490,6 +510,7 @@ export default function Author() {
                                     previewObjects={visualState.previewObjects}
                                     invalidConstraintIds={invalidConstraintIds}
                                     showSolution={showSolution}
+                                    keepFooter
                                 />
                             )}
                         </>

@@ -290,6 +290,10 @@ code, pre {
    to shrink into — wrap onto a second line instead of overflowing/clipping
    past the edge of the screen. */
 @media (max-width: 600px) {
+    /* The tagline is the first thing to go: it was what pushed the nav onto a second row. */
+    .app-header .tagline {
+        display: none;
+    }
     .app-header {
         flex-wrap: wrap;
         row-gap: 0.5rem;
@@ -297,7 +301,13 @@ code, pre {
     .app-header-actions {
         margin-left: 0;
     }
+    /* Wrapped: the wordmark on its own row, then the page links at the left and the
+       settings/theme icons at the right of a full-width second row. */
     .app-header nav {
+        flex: 1 1 100%;
+        gap: 0.9rem;
+    }
+    .app-header nav a:not(.btn) + a.btn.btn {
         margin-left: auto;
     }
 }
@@ -325,16 +335,12 @@ code, pre {
         display: none;
     }
     .app--board .app-header-page {
+        display: block;
+        flex: 1 1 0;
         font-size: 0.82rem;
     }
     .app--board .app-header-actions {
         gap: 0.25rem;
-    }
-    .app--board .app-header-actions .play-btn-label {
-        display: none;
-    }
-    .app--board .app-header-actions .btn {
-        padding: 0.4rem 0.5rem;
     }
     .app--board .app-header nav {
         gap: 0.35rem;
@@ -346,17 +352,58 @@ code, pre {
 
 .app-header nav {
     display: flex;
+    align-items: center;
     gap: 1rem;
 }
 
+/* Header controls are quiet: the stamped, shadowed look is for actions on a page, not
+   for chrome that is on screen all the time. Links are plain serif text that gain an
+   ink underline when they're the current page; icon buttons are borderless and only
+   show a paper-tint square on hover/focus, or when they're the current page. */
 .app-header nav a:not(.btn) {
-    color: var(--chrome-ink);
+    padding: 0.3rem 0.1rem;
+    border-bottom: 2px solid transparent;
+    color: var(--chrome-ink-soft);
     font-weight: 600;
     text-decoration: none;
 }
 
 .app-header nav a:not(.btn):hover {
-    color: var(--brand);
+    color: var(--chrome-ink);
+}
+
+.app-header nav a:not(.btn)[aria-current="page"] {
+    color: var(--chrome-ink);
+    border-bottom-color: var(--chrome-ink);
+}
+
+.app-header .btn {
+    --btn-bg: transparent;
+    --btn-bg-hover: var(--surface-alt);
+    --btn-border: transparent;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    box-shadow: none;
+    color: var(--chrome-ink);
+}
+.app-header .btn:hover:not(:disabled),
+.app-header .btn:active:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+}
+/* NavLink also adds a plain `active` class to the current page's link, which .btn would
+   otherwise read as its inverted "selected" look; the header marks it with a tint instead. */
+.app-header .btn.active,
+.app-header .btn[aria-current="page"],
+.app-header .btn[aria-expanded="true"] {
+    --btn-bg: var(--surface-alt);
+    --btn-fg: var(--chrome-ink);
+    --btn-border: transparent;
+}
+
+/* A little air between the text links and the icon buttons that follow them. */
+.app-header nav a:not(.btn) + a.btn {
+    margin-left: 0.4rem;
 }
 
 .app-main {
@@ -483,6 +530,13 @@ button:focus-visible {
     --btn-bg-hover: var(--surface-alt);
     --btn-border: transparent;
 }
+/* Ghost = quiet: no stamp shadow, no lift. */
+.btn-ghost,
+.btn-ghost:hover:not(:disabled),
+.btn-ghost:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+}
 
 .btn-sm {
     gap: var(--space-1);
@@ -495,3 +549,20 @@ button:focus-visible {
     padding: var(--space-2);
 }
 
+
+/* Touch screens: header controls get the full 44px target (mouse layouts keep the compact bar). */
+@media (pointer: coarse) {
+    .app-header .btn,
+    .app-header nav a:not(.btn) {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .app-header nav a:not(.btn) {
+        padding-inline: 0.25rem;
+    }
+    .app-header nav a:not(.btn) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}

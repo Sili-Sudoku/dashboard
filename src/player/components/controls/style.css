@@ -1,13 +1,18 @@
-/* One row; buttons share the width and only wrap if the sidebar is too narrow
-   for all four. Tight padding so Undo/Redo/Reset/Check fit the 340px sidebar. */
+/* One row: Undo, Redo and Check share the width; the menu button keeps its own
+   44px square. Every target is at least 44px tall. */
 .controls {
     display: flex;
     gap: var(--space-1);
-    flex-wrap: wrap;
 }
 
-.controls .btn {
-    flex: 1 1 auto;
+.controls > .btn {
+    flex: 1 1 0;
+    min-height: 44px;
     padding-inline: var(--space-2);
     gap: var(--space-1);
+}
+
+.controls .overflow-menu-trigger {
+    min-height: 44px;
+    min-width: 44px;
 }

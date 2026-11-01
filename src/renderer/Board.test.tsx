@@ -99,22 +99,21 @@ describe("Board — checkAgainstSolution's incorrect marker (#52 follow-up)", ()
  * Board.tsx to re-measure, the same way a real layout change would. */
 const mutableRect = { left: 0, top: 0, width: 1200, height: 900 };
 
-/** Board.tsx now subtracts the toolbar's own (board-size-independent) height from the
- * fit's height budget (#77 follow-up) — a global getBoundingClientRect stub has to
- * give `.board-zoom-toolbar` a distinct, fixed rect, or it inherits whatever the
- * "measured container" rect is set to in a given test and the budget goes negative.
- * 32px height + Board.tsx's own TOOLBAR_GAP (8px) is baked into every expectation
- * below that depends on the fit's height dimension. */
-const TOOLBAR_RECT = { left: 0, top: 0, width: 300, height: 32 };
+/** Board.tsx subtracts the footer row's own (board-size-independent) height from the fit's
+ * height budget — a global getBoundingClientRect stub has to give `.board-footer` a
+ * distinct, fixed rect, or it inherits whatever the "measured container" rect is in a
+ * given test and the budget goes negative. 44px + Board.tsx's FOOTER_GAP (8px) is baked
+ * into every expectation below that depends on the fit's height dimension. */
+const FOOTER_RECT = { left: 0, top: 0, width: 300, height: 44 };
 
-/** Stubs getBoundingClientRect on every HTMLElement: `.board-zoom-toolbar` always
- * gets TOOLBAR_RECT, everything else (the measured `.board-measure` container, in
- * practice) gets whatever `rectFor` currently resolves to. */
+/** Stubs getBoundingClientRect on every HTMLElement: `.board-footer` always gets
+ * FOOTER_RECT, everything else (the measured `.board-measure` container, in practice)
+ * gets whatever `rectFor` currently resolves to. */
 const stubRects = (rectFor: () => { left: number; top: number; width: number; height: number }) => {
     Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
         configurable: true,
         value: function (this: HTMLElement) {
-            const r = this.classList.contains("board-zoom-toolbar") ? TOOLBAR_RECT : rectFor();
+            const r = this.classList.contains("board-footer") ? FOOTER_RECT : rectFor();
             return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON() {} };
         },
     });
@@ -165,9 +164,9 @@ describe("Board — box sizing grows to fill available space (#77 follow-up)", (
         );
         const wrap = container.querySelector(".board-wrap") as HTMLDivElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
-        // height budget = 900 - 32 (toolbar) - 8 (gap) = 860; scale = min(1200/576, 860/576) = 860/576 -> 576 * (860/576) = 860
-        expect(wrap.style.width).toBe("860px");
-        expect(viewport.style.height).toBe("860px");
+        // height budget = 900 - 44 (footer row) - 8 (gap) = 848; scale = min(1200/576, 848/576) -> 848
+        expect(wrap.style.width).toBe("848px");
+        expect(viewport.style.height).toBe("848px");
     });
 });
 
@@ -203,14 +202,14 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
         );
         const wrap = container.querySelector(".board-wrap") as HTMLDivElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
-        expect(wrap.style.width).toBe("860px"); // first-mount fit, same as the test above
+        expect(wrap.style.width).toBe("848px"); // first-mount fit, same as the test above
 
         mutableRect.width = 600;
         mutableRect.height = 450;
         act(() => StubResizeObserver.instances[0].trigger());
-        // height budget = 450 - 32 - 8 = 410; scale = min(600/576, 410/576) = 410/576 -> 576 * (410/576) = 410
-        expect(wrap.style.width).toBe("410px");
-        expect(viewport.style.height).toBe("410px");
+        // height budget = 450 - 44 - 8 = 398; scale = min(600/576, 398/576) -> 398
+        expect(wrap.style.width).toBe("398px");
+        expect(viewport.style.height).toBe("398px");
     });
 
     it("doesn't reset the player's own zoom/pan when the container resizes", () => {
@@ -219,7 +218,7 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
             <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
         );
         // 100% always means "whole board visible" (#77 follow-up) — fit-on-mount is
-        // exactly that, regardless of the achieved physical box size (860px here).
+        // exactly that, regardless of the achieved physical box size (848px here).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe("100%");
 
         act(() => getByLabelText("Zoom in").click());
@@ -259,9 +258,9 @@ describe("Board — fit never exceeds the window's own bounds (#77 follow-up)", 
         const wrap = container.querySelector(".board-wrap") as HTMLDivElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
         // available = min(5000, 1000-0-16)=984 wide, min(5000, 800-0-16)=784 tall
-        // height budget = 784 - 32 (toolbar) - 8 (gap) = 744
+        // height budget = 784 - 44 (footer row) - 8 (gap) = 732
         // scale = min(984/576, 744/576) = 744/576 = 1.2917 -> clamped by MAX_ZOOM? no, < 3
-        const expected = Math.round(576 * (744 / 576) * 1000) / 1000;
+        const expected = Math.round(576 * (732 / 576) * 1000) / 1000;
         expect(parseFloat(wrap.style.width)).toBeCloseTo(expected, 0);
         expect(parseFloat(viewport.style.height)).toBeCloseTo(expected, 0);
         expect(parseFloat(wrap.style.width)).toBeLessThan(1000); // never exceeds the window, unlike the raw 5000px rect
@@ -274,13 +273,30 @@ const readViewBox = (svg: SVGSVGElement): { left: number; top: number; width: nu
     return { left, top, width, height };
 };
 
+describe("Board — zoom controls popover", () => {
+    it("keeps the controls out of the way until the zoom button is pressed", () => {
+        const { container, getByRole } = render(
+            <Board scene={bigScene(9, 64)} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+        const panel = container.querySelector(".board-zoom-toolbar") as HTMLElement;
+        const toggle = getByRole("button", { name: /Zoom controls/ });
+        expect(panel.hidden).toBe(true);
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        act(() => toggle.click());
+        expect(panel.hidden).toBe(false);
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        act(() => {
+            panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        });
+        expect(panel.hidden).toBe(true);
+    });
+});
+
 describe("Board — large puzzles", () => {
     // jsdom reports all-zero rects by default (no real layout); stub a fixed
     // 100x100 container so the pan/zoom math has something realistic to work with.
     // (Pan/zoom interactions re-measure .board-viewport directly at the time of the
-    // interaction, so they see 100x100 regardless of the toolbar subtraction below —
-    // only the *initial* fit-on-mount scale, which goes through .board-measure minus
-    // the toolbar, is affected: height budget 100 - 32 - 8 = 60, not 100.)
+    // interaction, so they see 100x100.)
     beforeAll(() => {
         stubRects(() => ({ left: 0, top: 0, width: 100, height: 100 }));
     });

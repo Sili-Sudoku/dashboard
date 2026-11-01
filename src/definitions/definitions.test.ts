@@ -82,6 +82,13 @@ describe("killer definition", () => {
 });
 
 describe("arrow definition", () => {
+    it("starts the shaft at the bulb's rim and stops the head short of the last digit", () => {
+        const out = arrow({ bulb: "r1c1", cells: ["r1c2", "r1c3"] }, ctx());
+        if (out instanceof Error) throw out;
+        const shaft = out.objects?.find((o) => o.kind === "line");
+        expect(shaft).toMatchObject({ kind: "line", arrow: true, trim: { start: 0.4, end: 0.3 } });
+    });
+
     it("compiles to sum(shaft) == value(bulb)", () => {
         const out = arrow({ bulb: "r1c1", cells: ["r1c2", "r1c3"] }, ctx());
         if (out instanceof Error) throw out;
@@ -319,6 +326,26 @@ describe("minimum/maximum definitions", () => {
         if (out instanceof Error) throw out;
         expect(out.constraints).toHaveLength(2);
         for (const c of out.constraints) expect(Array.isArray(c.expr) && c.expr[0]).toBe(">=");
+    });
+});
+
+describe("minimum/maximum markers", () => {
+    it.each([
+        ["minimum", minimum],
+        ["maximum", maximum],
+    ])("keeps every %s chevron point clear of the cell's border lines", (_name, make) => {
+        const out = make({ cell: "r2c2" }, ctx());
+        if (out instanceof Error) throw out;
+        // r2c2 spans x 1..2, y 1..2
+        for (const obj of out.objects ?? []) {
+            if (obj.kind !== "line") throw new Error("expected a line");
+            for (const p of obj.points as { x: number; y: number }[]) {
+                expect(p.x).toBeGreaterThan(1.08);
+                expect(p.x).toBeLessThan(1.92);
+                expect(p.y).toBeGreaterThan(1.08);
+                expect(p.y).toBeLessThan(1.92);
+            }
+        }
     });
 });
 

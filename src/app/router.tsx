@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import Landing from "@/features/landing";
 import { ErrorBoundary } from "@/app/error_boundary.tsx";
@@ -89,11 +89,11 @@ export default function AppRouter() {
                             page_header.ts) instead of rendering its own row. */}
                         <span className="app-header-actions" ref={setActionsSlot} />
                         <nav>
-                            <Link to="/puzzles">Puzzles</Link>
-                            <Link to="/new">Author</Link>
-                            <Link to="/settings" className="btn btn-sm" aria-label="Settings">
+                            <NavLink to="/puzzles">Puzzles</NavLink>
+                            <NavLink to="/new">Author</NavLink>
+                            <NavLink to="/settings" className="btn btn-sm" aria-label="Settings">
                                 <SettingsIcon size={16} />
-                            </Link>
+                            </NavLink>
                             <button
                                 type="button"
                                 className="btn btn-sm"

@@ -20,6 +20,34 @@ describe("scene geometry", () => {
         expect(shape).toMatchObject({ kind: "polyline", points: [{ x: 5, y: 5 }, { x: 15, y: 5 }] });
     });
 
+    it("trims a line's ends along its length, and puts the arrowhead on the trimmed end", () => {
+        const shapes = describeObject(
+            { kind: "line", points: [{ x: 0, y: 0 }, { x: 4, y: 0 }], arrow: true, trim: { start: 1, end: 0.5 } },
+            geo,
+            10,
+        );
+        expect(shapes[0]).toMatchObject({ kind: "polyline", points: [{ x: 10, y: 0 }, { x: 35, y: 0 }] });
+        expect(shapes[1]).toMatchObject({ kind: "arrowhead", at: { x: 35, y: 0 } });
+    });
+
+    it("trims across a bend, keeping the interior vertices", () => {
+        const [shape] = describeObject(
+            { kind: "line", points: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 }], trim: { start: 0.5, end: 0.5 } },
+            geo,
+            10,
+        );
+        expect(shape).toMatchObject({ points: [{ x: 5, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 15 }] });
+    });
+
+    it("leaves a line alone when there is not enough of it to trim", () => {
+        const [shape] = describeObject(
+            { kind: "line", points: [{ x: 0, y: 0 }, { x: 0.5, y: 0 }], trim: { start: 0.4, end: 0.3 } },
+            geo,
+            10,
+        );
+        expect(shape).toMatchObject({ points: [{ x: 0, y: 0 }, { x: 5, y: 0 }] });
+    });
+
     it("adds an arrowhead shape for an arrow line", () => {
         const shapes = describeObject(
             { kind: "line", points: ["r1c1", "r1c3"], arrow: true },
@@ -36,6 +64,30 @@ describe("scene geometry", () => {
 
     it("outlines a single cell with 4 segments", () => {
         expect(cageOutline(["r5c5"], geo)).toHaveLength(4);
+    });
+
+    it("insets a single cell into a closed square, each segment ending where the next begins", () => {
+        const segs = cageOutline(["r1c1"], geo);
+        const near = (p: { x: number; y: number }, x: number, y: number) => {
+            expect(p.x).toBeCloseTo(x, 6);
+            expect(p.y).toBeCloseTo(y, 6);
+        };
+        // clockwise from the top edge: (0.08,0.08) -> (0.92,0.08) -> (0.92,0.92) -> (0.08,0.92) -> back
+        near(segs[0][0], 0.08, 0.08);
+        near(segs[0][1], 0.92, 0.08);
+        near(segs[1][0], 0.92, 0.08);
+        near(segs[1][1], 0.92, 0.92);
+        near(segs[2][1], 0.08, 0.92);
+        near(segs[3][1], 0.08, 0.08);
+    });
+
+    it("turns an L-shaped cage's concave corner at one shared point", () => {
+        // r1c1 r2c1 r2c2: the concave vertex (1,1) insets to (0.92, 1.08), inside the cage.
+        const segs = cageOutline(["r1c1", "r2c1", "r2c2"], geo);
+        const touching = segs.filter(([a, b]) =>
+            [a, b].some((p) => Math.abs(p.x - 0.92) < 1e-6 && Math.abs(p.y - 1.08) < 1e-6),
+        );
+        expect(touching).toHaveLength(2);
     });
 });
 
@@ -301,5 +353,29 @@ describe("buildScene", () => {
         });
         const shape = scene.shapes.find((s) => s.kind === "polyline");
         expect(shape?.style.stroke).not.toBe("var(--violated-line)");
+    });
+});
+
+describe("grid line draw order", () => {
+    it("draws every heavy region line after every thin cell divider", () => {
+        const puzzle = compilePuzzle(demoMixed, definitions);
+        if (puzzle instanceof Error) throw puzzle;
+        const scene = buildScene({
+            puzzle,
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, lookupFromRecord({})),
+        });
+        const weights = scene.gridLines.map((l) => l.weight);
+        expect(weights).toContain(1);
+        expect(weights).toContain(3);
+        expect(weights).toEqual([...weights].sort((a, b) => a - b));
     });
 });

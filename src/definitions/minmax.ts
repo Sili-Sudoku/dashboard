@@ -3,12 +3,11 @@
  * (maximum) every orthogonal neighbor's value. Parameterized the same way
  * `parity.ts` parameterizes odd/even. Drawn as a small "<"/">"-style wedge
  * straddling the border with each neighbor (one per orthogonal side, not
- * just a single center glyph) — entirely on the clue cell's side of that
- * border, never crossing into the neighbor: a minimum's wedge tip sits deep
- * in the clue cell with its wings out at the border ("<", wide end at the
- * larger neighbor); a maximum's is mirrored, tip right at the border with
- * its wings pulled back into the clue cell (">", point at the smaller
- * neighbor without actually entering its cell).
+ * just a single center glyph) — entirely inside the clue cell, set back from
+ * the border so it never touches the grid line: a minimum's wedge tip sits
+ * deepest in the clue cell with its wings nearest the border ("<", wide end
+ * at the larger neighbor); a maximum's is mirrored, tip nearest the border
+ * with its wings pulled further back (">", point at the smaller neighbor).
  */
 
 import { requireCell, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
@@ -17,11 +16,14 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 
 const CHEVRON_HALF_WIDTH = 0.12;
 const CHEVRON_DEPTH = 0.1;
+/** Clear space kept between the chevron's outermost point and the cell border, so it
+ *  never touches or crosses the grid line (and reads against plain paper). */
+const BORDER_CLEARANCE = 0.09;
 
 /** `tipOffset`/`wingOffset` are signed distances from the cell/neighbor
  *  border along the line between their centers; 0 is the border itself and
- *  negative moves back into `cellCenter`'s cell, so both must stay <= 0 to
- *  keep the whole wedge off the neighbor's side. */
+ *  negative moves back into `cellCenter`'s cell, so both stay below
+ *  -BORDER_CLEARANCE to keep the whole wedge off the line. */
 const chevron = (cellCenter: Point, neighborCenter: Point, tipOffset: number, wingOffset: number): VisualObject => {
     const dx = neighborCenter.x - cellCenter.x;
     const dy = neighborCenter.y - cellCenter.y;
@@ -53,7 +55,9 @@ const minmaxDefinition = (kind: "minimum" | "maximum"): ConstraintDefinition =>
         }));
 
         const cellCenter = ctx.geometry.center(cell);
-        const [tipOffset, wingOffset] = kind === "minimum" ? [-CHEVRON_DEPTH, 0] : [0, -CHEVRON_DEPTH];
+        const outer = -BORDER_CLEARANCE;
+        const inner = outer - CHEVRON_DEPTH;
+        const [tipOffset, wingOffset] = kind === "minimum" ? [inner, outer] : [outer, inner];
         const objects: VisualObject[] = neighbors.map((n) =>
             chevron(cellCenter, ctx.geometry.center(n), tipOffset, wingOffset),
         );

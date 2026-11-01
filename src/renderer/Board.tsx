@@ -1,4 +1,4 @@
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useId, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Lock, Maximize, Scan, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
@@ -28,12 +28,9 @@ import "./board.css";
 // follow-up) — keeps the box from touching the very edge of the browser viewport.
 const EDGE_MARGIN = 16;
 
-// Matches board.css's `.board-wrap { gap: 0.5rem }` — the toolbar sits *above* the
-// viewport inside the same wrap, so that gap (plus the toolbar's own height, measured
-// below) has to come out of the height budget too, or the wrap renders taller than
-// what was actually available and pushes whatever's below the board off-screen (#77
-// follow-up: this is what was still showing up as "a little overflow").
-const TOOLBAR_GAP = 8;
+// Matches board.css's `.board-wrap { gap }` — the footer row sits below the grid in the
+// same wrap, so that gap plus the row's own height comes out of the height budget.
+const FOOTER_GAP = 8;
 
 interface Props {
     scene: Scene;
@@ -45,6 +42,24 @@ interface Props {
     label?: string;
     /** Id of an element describing how to operate the board. */
     describedBy?: string;
+    /** Shown in the row under the grid, left of the zoom button (the player puts its timer here). */
+    footer?: ReactNode;
+    /** A row above the grid, inside the same box so it shares the grid's left edge however the board is placed. */
+    header?: ReactNode;
+    /** Drop the row under the grid (footer and zoom button) — the caller offers zoom elsewhere via `onZoomControls`. */
+    hideFooter?: boolean;
+    /** Publishes the zoom actions and state whenever they change (null on unmount), for a caller's own menu. */
+    onZoomControls?: (controls: ZoomControls | null) => void;
+}
+
+export interface ZoomControls {
+    percent: number;
+    locked: boolean;
+    zoomIn: () => void;
+    zoomOut: () => void;
+    fit: () => void;
+    actualSize: () => void;
+    toggleLock: () => void;
 }
 
 /** Culls scene.cells/gridLines/shapes to a margin around `viewport` — or returns `scene` as-is when `viewport` is null. */
@@ -73,7 +88,8 @@ const CENTER_NOTE_GLYPH_WIDTH_EM = 0.6;
 const centerNoteFontFactor = (charCount: number): number =>
     clamp(CENTER_NOTE_TARGET_WIDTH / (charCount * CENTER_NOTE_GLYPH_WIDTH_EM), 0.11, 0.3);
 
-export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection, label, describedBy }: Props) {
+export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection, label, describedBy, footer, header, hideFooter, onZoomControls }: Props) {
+    const zoomPanelId = `zoom-${useId().replace(/:/g, "")}`;
     const hatchId = `hatch-${useId().replace(/:/g, "")}`;
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
@@ -86,7 +102,10 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
 
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement>(null);
-    const toolbarRef = useRef<HTMLDivElement>(null);
+    const [zoomOpen, setZoomOpen] = useState(false);
+    const footerRef = useRef<HTMLDivElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
+    const hasHeader = !!header;
     // The visible rect, in board units — this *is* the SVG's viewBox. No scrolling:
     // panning/zooming just change this rect, like SudokuPad's canvas.
     const [view, setView] = useState<ViewportRect | null>(null);
@@ -128,13 +147,18 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             // legitimately exceed, so clamp against those rather than trusting the
             // flex-reported size outright — that caps the loop regardless of cause.
             const width = Math.min(rect.width, window.innerWidth - rect.left - EDGE_MARGIN);
-            const height = Math.min(rect.height, window.innerHeight - rect.top - EDGE_MARGIN);
+            // Height is capped by the window itself, not by what is left of it below the board's
+            // top: on a scrolling (phone) page the board can start below the fold, and
+            // "what's left" would shrink it to a thumbnail (it was measured at 182px of 374).
+            const height = Math.min(rect.height, window.innerHeight - EDGE_MARGIN);
             if (width <= 0 || height <= 0) return;
-            // The toolbar renders *above* the viewport inside the same wrap (see
-            // TOOLBAR_GAP above) — its height isn't board-size-dependent, so measuring
-            // it directly and subtracting it from the budget is safe (not circular).
-            const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height ?? 0;
-            const viewportHeight = height - toolbarHeight - TOOLBAR_GAP;
+            // The footer row sits below the grid inside the same wrap (see FOOTER_GAP), and
+            // its height isn't board-size-dependent, so measuring it and subtracting it
+            // from the budget is safe (not circular).
+            const footerHeight = footerRef.current?.getBoundingClientRect().height ?? 0;
+            // The header row above the grid (when given) is carved out of the budget the same way.
+            const headerHeight = headerRef.current ? headerRef.current.getBoundingClientRect().height + FOOTER_GAP : 0;
+            const viewportHeight = height - footerHeight - headerHeight - (hideFooter ? 0 : FOOTER_GAP);
             if (width <= 0 || viewportHeight <= 0) return;
             const scale = clamp(Math.min(width / scene.width, viewportHeight / scene.height), MIN_ZOOM, MAX_ZOOM);
             setBoxSize({ width: scene.width * scale, height: scene.height * scale });
@@ -167,7 +191,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         };
         // Only re-runs if the scene itself changes (a different puzzle) — PuzzlePlayer
         // remounts Board per-puzzle anyway, so in practice this is mount-only.
-    }, [scene.width, scene.height]);
+    }, [scene.width, scene.height, hideFooter, hasHeader]);
 
     const visibleScene = useMemo(() => cullToViewport(scene, view), [scene, view]);
 
@@ -225,6 +249,31 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         setView(next);
         setZoomPct(Math.round((scene.width / next.width) * 100));
     };
+
+    // Latest handlers behind a stable surface, so publishing them doesn't re-fire every render.
+    const zoomActions = useRef({ zoomIn: () => {}, zoomOut: () => {}, fit: () => {}, actualSize: () => {}, toggleLock: () => {} });
+    useEffect(() => {
+        zoomActions.current = {
+            zoomIn: () => applyZoom(0.5, 0.5, ZOOM_STEP),
+            zoomOut: () => applyZoom(0.5, 0.5, 1 / ZOOM_STEP),
+            fit: handleFitToScreen,
+            actualSize: handleResetZoom,
+            toggleLock: () => setSetting("zoomLocked", !zoomLocked),
+        };
+    });
+    useEffect(() => {
+        if (!onZoomControls) return;
+        onZoomControls({
+            percent: zoomPct,
+            locked: zoomLocked,
+            zoomIn: () => zoomActions.current.zoomIn(),
+            zoomOut: () => zoomActions.current.zoomOut(),
+            fit: () => zoomActions.current.fit(),
+            actualSize: () => zoomActions.current.actualSize(),
+            toggleLock: () => zoomActions.current.toggleLock(),
+        });
+        return () => onZoomControls(null);
+    }, [onZoomControls, zoomPct, zoomLocked]);
 
     // React's onWheel prop is attached passively at the root (for scroll-perf reasons
     // shared with every other wheel listener on the page), so preventDefault() inside
@@ -576,47 +625,11 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         // happened to be available on first mount.
         <div className="board-measure" ref={measureRef}>
             <div className="board-wrap" style={boxSize ? { width: boxSize.width } : undefined}>
-                <div className="board-zoom-toolbar" ref={toolbarRef}>
-                    <button
-                        type="button"
-                        className={`btn btn-sm ${zoomLocked ? "active" : ""}`}
-                        onClick={() => setSetting("zoomLocked", !zoomLocked)}
-                        aria-pressed={zoomLocked}
-                        aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
-                    >
-                        {zoomLocked ? <Lock size={16} /> : <Unlock size={16} />}
-                    </button>
-                    <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
-                        <ZoomOut size={16} />
-                    </button>
-                    <input
-                        type="range"
-                        className="board-zoom-slider"
-                        min={Math.round(MIN_ZOOM * 100)}
-                        max={Math.round(MAX_ZOOM * 100)}
-                        step={1}
-                        value={zoomPct}
-                        onChange={(e) => handleZoomSlider(Number(e.target.value))}
-                        aria-label="Zoom level"
-                        disabled={zoomLocked}
-                    />
-                    <span className="board-zoom-level">{zoomPct}%</span>
-                    <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
-                        <ZoomIn size={16} />
-                    </button>
-                    <button type="button" className="btn btn-sm" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
-                        <Maximize size={16} /> <span className="board-zoom-btn-label">Fit</span>
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={handleResetZoom}
-                        aria-label="Reset to actual size (1 board unit per pixel)"
-                        disabled={zoomLocked}
-                    >
-                        <Scan size={16} /> <span className="board-zoom-btn-label">Actual size</span>
-                    </button>
-                </div>
+                {header && (
+                    <div className="board-header" ref={headerRef}>
+                        {header}
+                    </div>
+                )}
                 <div
                     className="board-viewport"
                     ref={containerRef}
@@ -633,6 +646,73 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 >
                     {svg}
                 </div>
+                {!hideFooter && (
+                    <div className="board-footer" ref={footerRef}>
+                        <div className="board-footer-content">{footer}</div>
+                        <button
+                            type="button"
+                            className="btn board-zoom-toggle"
+                            aria-expanded={zoomOpen}
+                            aria-controls={zoomPanelId}
+                            aria-label={`Zoom controls (${zoomPct}%)`}
+                            onClick={() => setZoomOpen((o) => !o)}
+                        >
+                            {zoomLocked ? <Lock size={16} /> : <ZoomIn size={16} />}
+                            <span className="board-zoom-toggle-level">{zoomPct}%</span>
+                        </button>
+                        <div
+                            className="board-zoom-toolbar"
+                            id={zoomPanelId}
+                            hidden={!zoomOpen}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape" && zoomOpen) {
+                                    e.stopPropagation();
+                                    setZoomOpen(false);
+                                }
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${zoomLocked ? "active" : ""}`}
+                                onClick={() => setSetting("zoomLocked", !zoomLocked)}
+                                aria-pressed={zoomLocked}
+                                aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
+                            >
+                                {zoomLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                            </button>
+                            <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
+                                <ZoomOut size={16} />
+                            </button>
+                            <input
+                                type="range"
+                                className="board-zoom-slider"
+                                min={Math.round(MIN_ZOOM * 100)}
+                                max={Math.round(MAX_ZOOM * 100)}
+                                step={1}
+                                value={zoomPct}
+                                onChange={(e) => handleZoomSlider(Number(e.target.value))}
+                                aria-label="Zoom level"
+                                disabled={zoomLocked}
+                            />
+                            <span className="board-zoom-level">{zoomPct}%</span>
+                            <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
+                                <ZoomIn size={16} />
+                            </button>
+                            <button type="button" className="btn btn-sm" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
+                                <Maximize size={16} /> <span className="board-zoom-btn-label">Fit</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={handleResetZoom}
+                                aria-label="Reset to actual size (1 board unit per pixel)"
+                                disabled={zoomLocked}
+                            >
+                                <Scan size={16} /> <span className="board-zoom-btn-label">Actual size</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

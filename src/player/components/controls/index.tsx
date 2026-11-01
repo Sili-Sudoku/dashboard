@@ -1,5 +1,7 @@
 import { RotateCcw, Undo2, Redo2, BadgeCheck } from "lucide-react";
 
+import { OverflowMenu, type MenuItem } from "@/app/overflow_menu.tsx";
+
 import "./style.css";
 
 interface Props {
@@ -10,9 +12,13 @@ interface Props {
     onReset: () => void;
     /** Omitted entirely when the puzzle has no declared solution to check against (#52). */
     onCheck?: () => void;
+    /** Items listed above Reset in the menu (on a phone: the timer and the zoom controls). */
+    extraItems?: readonly MenuItem[];
 }
 
-export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck }: Props) {
+/** The frequent actions (Undo, Redo, Check) sit in one row; Reset, which throws the
+ *  whole attempt away, lives in the menu at the end of it behind a confirm step. */
+export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck, extraItems = [] }: Props) {
     return (
         <div className="controls">
             <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
@@ -20,9 +26,6 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
             </button>
             <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
                 <Redo2 size={16} /> Redo
-            </button>
-            <button className="btn" onClick={onReset} title="Clear all entered values">
-                <RotateCcw size={16} /> Reset
             </button>
             {onCheck && (
                 <button
@@ -33,6 +36,19 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
                     <BadgeCheck size={16} /> Check
                 </button>
             )}
+            <OverflowMenu
+                label="More actions"
+                up
+                items={[
+                    ...extraItems,
+                    {
+                        label: "Reset puzzle",
+                        confirm: "Really clear everything?",
+                        icon: <RotateCcw size={16} />,
+                        onSelect: onReset,
+                    },
+                ]}
+            />
         </div>
     );
 }

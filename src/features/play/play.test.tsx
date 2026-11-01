@@ -5,6 +5,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import Play from "@/features/play/index.tsx";
 
+const openMenuItem = (name: RegExp) => {
+    fireEvent.click(screen.getByRole("button", { name: "Puzzle actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name }));
+};
+
 const renderAt = (path: string) =>
     render(
         <MemoryRouter initialEntries={[path]}>
@@ -24,7 +29,7 @@ describe("Play — JSON viewer", () => {
         const { container } = renderAt("/p/whisper-line");
         expect(container.querySelector(".play-json")).toBeNull();
 
-        fireEvent.click(screen.getByRole("button", { name: /view json/i }));
+        openMenuItem(/view json/i);
 
         const panel = container.querySelector(".play-json") as HTMLElement;
         const pre = within(panel).getByText(/"metadata"/, { selector: "pre" });
@@ -36,7 +41,7 @@ describe("Play — JSON viewer", () => {
 
     it("switches to the compiled view where constraints carry a source", () => {
         const { container } = renderAt("/p/whisper-line");
-        fireEvent.click(screen.getByRole("button", { name: /view json/i }));
+        openMenuItem(/view json/i);
         fireEvent.click(screen.getByRole("button", { name: /compiled/i }));
 
         const pre = container.querySelector(".play-json pre") as HTMLElement;
@@ -46,9 +51,9 @@ describe("Play — JSON viewer", () => {
 
     it("closes the panel again", () => {
         const { container } = renderAt("/p/mini-sudoku");
-        fireEvent.click(screen.getByRole("button", { name: /view json/i }));
+        openMenuItem(/view json/i);
         expect(container.querySelector(".play-json")).not.toBeNull();
-        fireEvent.click(screen.getByRole("button", { name: /hide json/i }));
+        openMenuItem(/hide json/i);
         expect(container.querySelector(".play-json")).toBeNull();
     });
 });

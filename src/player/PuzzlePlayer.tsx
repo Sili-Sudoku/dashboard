@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
-import { PartyPopper, Timer } from "lucide-react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { Maximize, PartyPopper, Scan, Timer, ZoomIn, ZoomOut, Lock, Unlock } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import { useSettings } from "@/app/use_settings.ts";
 import type { CellId } from "@/runtime/geometry.ts";
-import Board from "@/renderer/Board.tsx";
+import Board, { type ZoomControls } from "@/renderer/Board.tsx";
+import type { MenuItem } from "@/app/overflow_menu.tsx";
+import { useMediaQuery } from "@/app/use_media_query.ts";
 import { buildScene } from "@/renderer/scene.ts";
 
 import { describeCell } from "@/player/describe_cell.ts";
@@ -15,6 +18,13 @@ import ConstraintPanel from "@/player/components/constraint-panel";
 import HotkeyLegend from "@/player/components/hotkey-legend";
 
 import "./player.css";
+
+/** Sidebar geometry shared with player.css (.pp-side width/right edge) plus the gap kept beside the grid. */
+const SIDE_WIDTH = 340;
+const SIDE_EDGE = 19;
+const SIDE_GAP = 28;
+/** At or below this the sidebar stacks under the board (player.css) — and the timer and zoom move into the pad's menu. */
+const STACKED_QUERY = "(max-width: 820px)";
 
 /** mm:ss, growing to h:mm:ss past an hour — plenty for a casual solve timer. */
 const formatElapsed = (ms: number): string => {
@@ -55,6 +65,11 @@ interface Props {
      *  doesn't touch the session, so toggling it back off reveals whatever
      *  was really entered, untouched. No-op on a puzzle with no solution. */
     showSolution?: boolean;
+    /** Keep the board's own footer (timer + zoom button) on the stacked/phone layout, where it is
+     *  normally folded into the controls menu — for a caller that hides the sidebar holding that menu. */
+    keepFooter?: boolean;
+    /** A row above the grid, sharing its left edge (e.g. the Author page's Edit / Test bar). */
+    header?: ReactNode;
     /** Undo/redo that continues past the board's own history — see ExternalHistory. */
     externalHistory?: ExternalHistory;
 }
@@ -66,6 +81,8 @@ export default function PuzzlePlayer({
     previewObjects,
     invalidConstraintIds,
     showSolution,
+    keepFooter,
+    header,
     externalHistory,
 }: Props) {
     const { session, check, undo, redo, canUndo, canRedo, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(
@@ -97,23 +114,42 @@ export default function PuzzlePlayer({
         const root = rootRef.current;
         const boardCol = boardColRef.current;
         if (!root || !boardCol) return;
+        const viewport = boardCol.querySelector(".board-viewport");
         const sync = () => {
-            const top = boardCol.querySelector(".board-viewport")?.getBoundingClientRect().top
-                ?? boardCol.getBoundingClientRect().top;
-            root.style.setProperty("--pp-side-top", `${top}px`);
+            const rect = (viewport ?? boardCol).getBoundingClientRect();
+            root.style.setProperty("--pp-side-top", `${rect.top}px`);
+            // Sit the sidebar a fixed gap off the grid's right edge instead of pinned to the
+            // window's edge, so the two read as one unit however wide the window is. Never
+            // further right than the window edge allows (the stacked layout ignores it).
+            const left = Math.min(rect.right + SIDE_GAP, window.innerWidth - SIDE_WIDTH - SIDE_EDGE);
+            root.style.setProperty("--pp-side-left", `${left}px`);
         };
         sync();
         window.addEventListener("resize", sync);
-        return () => window.removeEventListener("resize", sync);
+        // The grid is resized by Board's own fit after this first measure.
+        const observer = viewport && typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : undefined;
+        if (viewport) observer?.observe(viewport);
+        return () => {
+            window.removeEventListener("resize", sync);
+            observer?.disconnect();
+        };
     }, []);
 
     const [settings] = useSettings();
+    // Stacked (phone/tablet) layouts have no room for a row under the grid: the timer and
+    // the zoom controls live in the pad's "⋯" menu instead (pinch still zooms directly).
+    const stacked = useMediaQuery(STACKED_QUERY);
+    const [zoom, setZoom] = useState<ZoomControls | null>(null);
     const scene = useMemo(
         () =>
             buildScene({
-                puzzle: previewObjects?.length ? { ...puzzle, objects: [...puzzle.objects, ...previewObjects] } : puzzle,
+                puzzle: previewObjects?.length
+                    ? { ...puzzle, objects: [...puzzle.objects, ...previewObjects] }
+                    : puzzle,
                 valueOf: (c) =>
-                    showSolution && puzzle.solution?.[c] !== undefined ? puzzle.solution[c] : session.displayState(c).value,
+                    showSolution && puzzle.solution?.[c] !== undefined
+                        ? puzzle.solution[c]
+                        : session.displayState(c).value,
                 notesOf: (c) => session.displayState(c).notes,
                 centerNotesOf: (c) => session.displayState(c).centerNotes,
                 flaggedCells: session.getFlaggedCells(),
@@ -130,7 +166,16 @@ export default function PuzzlePlayer({
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution, settings.highlightSameValue, settings.markColors],
+        [
+            puzzle,
+            session,
+            session.revision,
+            previewObjects,
+            invalidConstraintIds,
+            showSolution,
+            settings.highlightSameValue,
+            settings.markColors,
+        ],
     );
 
     const onPaintStart = useCallback(
@@ -156,6 +201,30 @@ export default function PuzzlePlayer({
         ? describeCell(cursorCell) + (selectedCount > 1 ? ` — ${selectedCount} cells selected` : "")
         : "";
 
+    const stackedMenuItems: MenuItem[] = stacked
+        ? [
+              {
+                  label: `${formatElapsed(elapsedMs)}${bestElapsedMs !== undefined ? ` · best ${formatElapsed(bestElapsedMs)}` : ""}`,
+                  icon: <Timer size={16} />,
+                  info: true,
+                  onSelect: () => undefined,
+              },
+              ...(zoom
+                  ? [
+                        { label: "Zoom in", icon: <ZoomIn size={16} />, onSelect: zoom.zoomIn },
+                        { label: "Zoom out", icon: <ZoomOut size={16} />, onSelect: zoom.zoomOut },
+                        { label: "Fit to screen", icon: <Maximize size={16} />, onSelect: zoom.fit },
+                        { label: "Actual size", icon: <Scan size={16} />, onSelect: zoom.actualSize },
+                        {
+                            label: zoom.locked ? "Unlock zoom" : "Lock zoom",
+                            icon: zoom.locked ? <Unlock size={16} /> : <Lock size={16} />,
+                            onSelect: zoom.toggleLock,
+                        },
+                    ]
+                  : []),
+          ]
+        : [];
+
     return (
         <div className="puzzle-player" ref={rootRef}>
             <div className="pp-board-col" ref={boardColRef}>
@@ -167,8 +236,24 @@ export default function PuzzlePlayer({
                     onPaintMove={onPaintMove}
                     onPaintEnd={() => onSelectionEnd?.()}
                     onClearSelection={() => session.selectNone()}
+                    hideFooter={stacked && !keepFooter}
+                    header={header}
+                    onZoomControls={setZoom}
+                    footer={
+                        <>
+                            <div className="pp-timer">
+                                <Timer size={15} />
+                                {formatElapsed(elapsedMs)}
+                                {bestElapsedMs !== undefined && (
+                                    <span className="pp-timer-best">best {formatElapsed(bestElapsedMs)}</span>
+                                )}
+                            </div>
+                            <p className="pp-hint" id={hintId}>
+                                Click / drag to select · digits to enter · see keyboard shortcuts below
+                            </p>
+                        </>
+                    }
                 />
-                <p className="pp-hint" id={hintId}>Click / drag to select · digits to enter · see keyboard shortcuts below</p>
             </div>
 
             <aside className="pp-side">
@@ -177,14 +262,6 @@ export default function PuzzlePlayer({
                 <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
                     {cursorAnnouncement}
                 </div>
-                <div className="pp-timer">
-                    <Timer size={15} />
-                    {formatElapsed(elapsedMs)}
-                    {bestElapsedMs !== undefined && (
-                        <span className="pp-timer-best">best {formatElapsed(bestElapsedMs)}</span>
-                    )}
-                </div>
-
                 {evaluation.complete && (
                     <div className="pp-complete" role="status">
                         <PartyPopper size={18} /> Solved!
@@ -211,6 +288,7 @@ export default function PuzzlePlayer({
                             resetTimer();
                         }}
                         onCheck={puzzle.solution ? check : undefined}
+                        extraItems={stackedMenuItems}
                     />
                 </section>
 

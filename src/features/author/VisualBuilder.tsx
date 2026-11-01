@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+
 import { AUTHORING_SCHEMAS, isSchemaComplete, summarizeConstraint, type AuthoringField } from "@/authoring/schema.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
@@ -6,6 +8,16 @@ interface Props {
     def: PuzzleDefinition | undefined;
     state: VisualBuilderState;
 }
+
+/** The palette's sections, by what the author is placing: a path, a mark on cells, or a rule for the whole grid. */
+const PALETTE_GROUPS: { title: string; names: string[] }[] = [
+    {
+        title: "Lines & regions",
+        names: ["thermometer", "arrow", "killer", "palindrome", "betweenline", "clone", "sandwich", "quadruple"],
+    },
+    { title: "Cell marks", names: ["kropkiDifference", "kropkiRatio", "odd", "even", "minimum", "maximum", "xv"] },
+    { title: "Whole grid", names: ["sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups"] },
+];
 
 /** Visual/drag-and-drop puzzle authoring (#54): a palette of definitions, a
  *  small param form per definition, and a list of already-placed constraints.
@@ -31,25 +43,39 @@ export default function VisualBuilder({ def, state }: Props) {
     } = state;
 
     if (!def) {
-        return <p className="author-notice">Fix the JSON errors above (or switch to the JSON tab) to use the visual builder.</p>;
+        return (
+            <p className="author-notice">
+                Fix the JSON errors above (or switch to the JSON tab) to use the visual builder.
+            </p>
+        );
     }
 
     return (
         <div className="visual-builder">
-            <div className="visual-builder-palette">
-                {AUTHORING_SCHEMAS.map((schema) => (
-                    <button
-                        key={schema.name}
-                        type="button"
-                        className={`btn btn-sm ${activeSchema?.name === schema.name ? "active" : ""}`}
-                        disabled={isGlobalPlaced(def, schema)}
-                        title={isGlobalPlaced(def, schema) ? "Already added — remove it from the list below to change it" : undefined}
-                        onClick={() => startPlacing(schema)}
-                    >
-                        {schema.label}
-                    </button>
-                ))}
-            </div>
+            {PALETTE_GROUPS.map((group) => (
+                <section key={group.title} className="visual-builder-group" aria-label={group.title}>
+                    <h3 className="visual-builder-heading">{group.title}</h3>
+                    <div className="visual-builder-palette">
+                        {AUTHORING_SCHEMAS.filter((schema) => group.names.includes(schema.name)).map((schema) => (
+                            <button
+                                key={schema.name}
+                                type="button"
+                                className={`visual-builder-chip${activeSchema?.name === schema.name ? " active" : ""}`}
+                                aria-pressed={activeSchema?.name === schema.name}
+                                disabled={isGlobalPlaced(def, schema)}
+                                title={
+                                    isGlobalPlaced(def, schema)
+                                        ? "Already added — remove it from the list below to change it"
+                                        : undefined
+                                }
+                                onClick={() => startPlacing(schema)}
+                            >
+                                {schema.label}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            ))}
 
             {activeSchema && (
                 <div className="visual-builder-form">
@@ -81,8 +107,9 @@ export default function VisualBuilder({ def, state }: Props) {
                     })}
 
                     {activeSchema.fields
-                        .filter((f): f is Extract<AuthoringField, { kind: "number" | "boolean" | "numberList" }> =>
-                            f.kind === "number" || f.kind === "boolean" || f.kind === "numberList",
+                        .filter(
+                            (f): f is Extract<AuthoringField, { kind: "number" | "boolean" | "numberList" }> =>
+                                f.kind === "number" || f.kind === "boolean" || f.kind === "numberList",
                         )
                         .map((f) => (
                             <label key={f.key} className="visual-builder-param">
@@ -100,9 +127,14 @@ export default function VisualBuilder({ def, state }: Props) {
                                         {f.label}
                                         <input
                                             type="number"
-                                            value={fieldValues[f.key] === undefined ? "" : (fieldValues[f.key] as number)}
+                                            value={
+                                                fieldValues[f.key] === undefined ? "" : (fieldValues[f.key] as number)
+                                            }
                                             onChange={(e) =>
-                                                setField(f.key, e.target.value === "" ? undefined : Number(e.target.value))
+                                                setField(
+                                                    f.key,
+                                                    e.target.value === "" ? undefined : Number(e.target.value),
+                                                )
                                             }
                                         />
                                     </>
@@ -145,12 +177,15 @@ export default function VisualBuilder({ def, state }: Props) {
                 </div>
             )}
 
+            {def.constraints.length > 0 && (
+                <h3 className="visual-builder-heading">In this puzzle ({def.constraints.length})</h3>
+            )}
             <ul className="visual-builder-list">
                 {def.constraints.map((c, i) => (
                     <li key={i}>
                         <span>{summarizeConstraint(c)}</span>
                         <button type="button" aria-label="Remove constraint" onClick={() => removeConstraint(i)}>
-                            ×
+                            <X size={14} />
                         </button>
                     </li>
                 ))}

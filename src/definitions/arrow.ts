@@ -9,6 +9,10 @@ import type { Expr } from "@/runtime/expression.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
+const BULB_RADIUS = 0.4;
+/** How far short of the last shaft cell's centre the arrowhead's tip stops (digits reach about 0.25 out). */
+const HEAD_CLEARANCE = 0.3;
+
 export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const path = requireCellList(params, "cells", ctx);
     if (path instanceof Error) return new Error(`arrow: ${path.message}`);
@@ -27,13 +31,16 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
         {
             kind: "circle",
             at: bulbCells[0],
-            r: 0.4,
+            r: BULB_RADIUS,
             style: { stroke: "var(--arrow)", fill: "none", strokeWidth: 0.04, z: 1 },
         },
         {
             kind: "line",
             points: [bulbCells[bulbCells.length - 1], ...path],
             arrow: true,
+            // Start at the bulb's rim and stop the head short of the last digit, so the
+            // shaft never strikes through either number.
+            trim: { start: BULB_RADIUS, end: HEAD_CLEARANCE },
             style: { stroke: "var(--arrow)", strokeWidth: 0.04, z: 1 },
         },
     ];

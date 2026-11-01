@@ -15,8 +15,18 @@ afterEach(() => {
 
 /** Opens an import dialog, fills its textarea, and submits — the in-app
  *  replacement for pasting into `window.prompt`. */
+const openInteropItem = (name: RegExp) => {
+    fireEvent.click(screen.getByRole("button", { name: /import \/ export/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name }));
+};
+
+const loadExample = (title: RegExp) => {
+    fireEvent.click(screen.getByRole("button", { name: /load an example/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: title }));
+};
+
 const importViaDialog = (openButtonName: RegExp, dialogPlaceholder: RegExp, text: string) => {
-    fireEvent.click(screen.getByRole("button", { name: openButtonName }));
+    openInteropItem(openButtonName);
     fireEvent.change(screen.getByPlaceholderText(dialogPlaceholder), { target: { value: text } });
     fireEvent.click(screen.getByRole("button", { name: /^import$/i }));
 };
@@ -64,8 +74,10 @@ describe("Author", () => {
         expect(container.querySelector(".author-error")).toBeNull();
         expect(screen.queryByText(/fix the errors on the left/i)).toBeNull();
         expect(container.querySelector("svg.board")).not.toBeNull();
-        expect(screen.getByText(/conflicts with the declared solution/i)).toBeTruthy();
-        expect(screen.getByText(/thermometer#1/)).toBeTruthy();
+        expect(container.querySelector(".author-conflict-tip")?.textContent).toMatch(
+            /conflicts with the declared solution/i,
+        );
+        expect(container.querySelector(".author-conflict-text")?.textContent).toMatch(/thermometer#1/);
     });
 
     it("offers a 'Show solution' toggle for a puzzle with a declared solution, filling it in without touching the real board", () => {
@@ -97,18 +109,20 @@ describe("Author", () => {
         fireEvent.click(screen.getByRole("button", { name: "Show solution" }));
         expect(container.querySelectorAll(".digit").length).toBe(81);
 
-        const test = screen.getByRole("button", { name: "Test as solver" });
-        expect(test.getAttribute("aria-pressed")).toBe("false");
-        fireEvent.click(test);
+        // The bar lives inside the player (so it shares the grid's left edge), which remounts
+        // when the mode flips -- look the button up fresh each time.
+        const test = () => screen.getByRole("button", { name: "Test as solver" });
+        expect(test().getAttribute("aria-pressed")).toBe("false");
+        fireEvent.click(test());
 
-        expect(test.getAttribute("aria-pressed")).toBe("true");
+        expect(test().getAttribute("aria-pressed")).toBe("true");
         expect(screen.queryByRole("button", { name: "Show solution" })).toBeNull();
         // The solution overlay is gone: only the puzzle's own givens are showing.
         const givens = Object.keys(demoMixed.givens ?? {}).length;
         expect(container.querySelectorAll(".digit").length).toBe(givens);
 
-        fireEvent.click(test);
-        expect(test.getAttribute("aria-pressed")).toBe("false");
+        fireEvent.click(test());
+        expect(test().getAttribute("aria-pressed")).toBe("false");
         expect(screen.getByRole("button", { name: "Show solution" })).toBeTruthy();
     });
 
@@ -195,7 +209,7 @@ describe("Author", () => {
         expect(undo().disabled).toBe(true);
         expect(redo().disabled).toBe(true);
 
-        fireEvent.change(screen.getByRole("combobox", { name: /load an example/i }), { target: { value: "classic-sudoku" } });
+        loadExample(/^classic sudoku$/i);
         const changed = textarea().value;
         expect(changed).not.toBe(original);
         expect(undo().disabled).toBe(false);
@@ -232,10 +246,9 @@ describe("Author", () => {
                 <Author />
             </MemoryRouter>,
         );
-        const example = screen.getByRole("combobox", { name: /load an example/i });
-        fireEvent.change(example, { target: { value: "classic-sudoku" } });
+        loadExample(/^classic sudoku$/i);
         fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
-        fireEvent.change(example, { target: { value: "mini-sudoku" } });
+        loadExample(/^mini sudoku/i);
 
         expect((screen.getByRole("button", { name: /^redo$/i }) as HTMLButtonElement).disabled).toBe(true);
     });
@@ -338,7 +351,7 @@ describe("Author", () => {
                 <ToastViewport />
             </MemoryRouter>,
         );
-        fireEvent.click(screen.getByRole("button", { name: /export to f-puzzles/i }));
+        openInteropItem(/open in f-puzzles/i);
         expect(openSpy).toHaveBeenCalledWith(
             expect.stringMatching(/^https:\/\/f-puzzles\.com\/\?load=/),
             "_blank",
@@ -362,8 +375,9 @@ describe("Author", () => {
                     { type: 0 },
                     {
                         type: 1,
-                        regions: Array.from({ length: 16 }, (_, i) =>
-                            Math.floor(Math.floor(i / 4) / 2) * 2 + Math.floor((i % 4) / 2),
+                        regions: Array.from(
+                            { length: 16 },
+                            (_, i) => Math.floor(Math.floor(i / 4) / 2) * 2 + Math.floor((i % 4) / 2),
                         ),
                     },
                 ],
@@ -415,7 +429,7 @@ describe("Author", () => {
                 <ToastViewport />
             </MemoryRouter>,
         );
-        fireEvent.click(screen.getByRole("button", { name: /export to sudokumaker/i }));
+        openInteropItem(/open in sudokumaker/i);
         expect(openSpy).toHaveBeenCalledWith(
             expect.stringMatching(/^https:\/\/sudokumaker\.app\/\?puzzle=D/),
             "_blank",
@@ -432,7 +446,7 @@ describe("Author", () => {
                 <ToastViewport />
             </MemoryRouter>,
         );
-        fireEvent.click(screen.getByRole("button", { name: /export to sudokupad/i }));
+        openInteropItem(/open in sudokupad/i);
         expect(openSpy).toHaveBeenCalledWith(
             expect.stringMatching(/^https:\/\/sudokupad\.app\//),
             "_blank",
@@ -449,7 +463,7 @@ describe("Author", () => {
             </MemoryRouter>,
         );
         const before = (container.querySelector("textarea") as HTMLTextAreaElement).value;
-        fireEvent.click(screen.getByRole("button", { name: /import from f-puzzles/i }));
+        openInteropItem(/import from f-puzzles/i);
         fireEvent.change(screen.getByPlaceholderText(/paste f-puzzles json/i), {
             target: { value: "{ not json" },
         });

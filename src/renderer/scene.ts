@@ -233,7 +233,11 @@ export const describeObject = (obj: VisualObject, geometry: Geometry, cellSize: 
             return [{ kind: "polyline", points, style, rounded: true }];
         }
         case "line": {
-            const pts = obj.points.map((r) => scalePoint(resolvePointRef(r, geometry), cellSize));
+            const pts = trimPolyline(
+                obj.points.map((r) => scalePoint(resolvePointRef(r, geometry), cellSize)),
+                (obj.trim?.start ?? 0) * cellSize,
+                (obj.trim?.end ?? 0) * cellSize,
+            );
             const shapes: Shape[] = [{ kind: "polyline", points: pts, style, rounded: false }];
             if (obj.arrow && pts.length >= 2) {
                 const tip = pts[pts.length - 1];
@@ -291,16 +295,49 @@ export const describeObject = (obj: VisualObject, geometry: Geometry, cellSize: 
     }
 };
 
+/** Cuts `start` off the front and `end` off the back of a polyline, measured along it.
+ *  Left whole if there isn't enough line to cut (so a short line never vanishes). */
+const trimPolyline = (points: Point[], start: number, end: number): Point[] => {
+    if (points.length < 2 || (start <= 0 && end <= 0)) return points;
+    const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
+    const total = lengths.reduce((a, b) => a + b, 0);
+    if (total <= start + end) return points;
+
+    const pointAt = (distance: number): { point: Point; segment: number } => {
+        let remaining = distance;
+        for (let i = 0; i < lengths.length; i++) {
+            if (remaining <= lengths[i] || i === lengths.length - 1) {
+                const t = lengths[i] === 0 ? 0 : Math.min(remaining / lengths[i], 1);
+                const a = points[i];
+                const b = points[i + 1];
+                return { point: { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, segment: i };
+            }
+            remaining -= lengths[i];
+        }
+        return { point: points[points.length - 1], segment: lengths.length - 1 };
+    };
+
+    const from = pointAt(start);
+    const to = pointAt(total - end);
+    return [from.point, ...points.slice(from.segment + 1, to.segment + 1), to.point];
+};
+
 const INSET = 0.08;
 
 /**
- * The dashed outline of a set of cells: for every cell edge that faces a cell
- * *outside* the set, emit an inset segment. Generic to any geometry that reports
+ * The dashed outline of a set of cells: one inset segment per cell edge that faces a
+ * cell *outside* the set, each running corner to corner so neighbouring segments meet
+ * exactly (no overshoot past a corner, no gap). Generic to any geometry that reports
  * cell corners.
+ *
+ * Every boundary edge is walked clockwise (interior on its right), so the edge that
+ * continues it at a vertex is the one starting there. A corner point sits INSET along
+ * the inward normals of both edges meeting at it — a mitre, which for the right angles
+ * of a grid is the true inset corner whether the outline turns convex or concave.
  */
 export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Point, Point][] => {
     const set = new Set(cells);
-    const segments: [Point, Point][] = [];
+    const edges: { a: Point; b: Point }[] = [];
 
     for (const cell of cells) {
         const tl = geometry.anchor(cell, "tl");
@@ -308,20 +345,70 @@ export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Poin
         const bl = geometry.anchor(cell, "bl");
         const br = geometry.anchor(cell, "br");
 
-        const up = geometry.step(cell, "up");
-        const down = geometry.step(cell, "down");
-        const left = geometry.step(cell, "left");
-        const right = geometry.step(cell, "right");
+        const outside = (dir: "up" | "down" | "left" | "right"): boolean => {
+            const next = geometry.step(cell, dir);
+            return !next || !set.has(next);
+        };
 
-        if (!up || !set.has(up)) segments.push([inset(tl, 0, INSET), inset(tr, 0, INSET)]);
-        if (!down || !set.has(down)) segments.push([inset(bl, 0, -INSET), inset(br, 0, -INSET)]);
-        if (!left || !set.has(left)) segments.push([inset(tl, INSET, 0), inset(bl, INSET, 0)]);
-        if (!right || !set.has(right)) segments.push([inset(tr, -INSET, 0), inset(br, -INSET, 0)]);
+        if (outside("up")) edges.push({ a: tl, b: tr });
+        if (outside("right")) edges.push({ a: tr, b: br });
+        if (outside("down")) edges.push({ a: br, b: bl });
+        if (outside("left")) edges.push({ a: bl, b: tl });
     }
-    return segments;
-};
 
-const inset = (p: Point, dx: number, dy: number): Point => ({ x: p.x + dx, y: p.y + dy });
+    const key = (p: Point): string => `${p.x.toFixed(4)},${p.y.toFixed(4)}`;
+    const startingAt = new Map<string, number[]>();
+    edges.forEach((e, i) => {
+        const k = key(e.a);
+        startingAt.set(k, [...(startingAt.get(k) ?? []), i]);
+    });
+
+    const direction = (e: { a: Point; b: Point }): Point => {
+        const len = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) || 1;
+        return { x: (e.b.x - e.a.x) / len, y: (e.b.y - e.a.y) / len };
+    };
+    // Interior is on the right of travel; in screen coordinates (y down) that is (-dy, dx).
+    const normal = (e: { a: Point; b: Point }): Point => {
+        const d = direction(e);
+        return { x: -d.y, y: d.x };
+    };
+
+    // The edge that continues `edge` at its end. Where two outlines pinch at one vertex
+    // (cells touching only diagonally) prefer turning toward the interior, which keeps
+    // each cell's corner separate.
+    const nextOf = (edge: { a: Point; b: Point }): { a: Point; b: Point } | undefined => {
+        const d = direction(edge);
+        const turn = (e: { a: Point; b: Point }): number => {
+            const o = direction(e);
+            return d.x * o.y - d.y * o.x; // > 0: turns right on screen
+        };
+        const candidates = (startingAt.get(key(edge.b)) ?? []).map((i) => edges[i]);
+        return candidates.sort((x, y) => turn(y) - turn(x))[0];
+    };
+
+    const corner = (vertex: Point, n1: Point, n2: Point): Point => {
+        const straight = Math.abs(n1.x - n2.x) < 1e-9 && Math.abs(n1.y - n2.y) < 1e-9;
+        return straight
+            ? { x: vertex.x + n1.x * INSET, y: vertex.y + n1.y * INSET }
+            : { x: vertex.x + (n1.x + n2.x) * INSET, y: vertex.y + (n1.y + n2.y) * INSET };
+    };
+
+    const previousOf = new Map<{ a: Point; b: Point }, { a: Point; b: Point }>();
+    for (const e of edges) {
+        const next = nextOf(e);
+        if (next) previousOf.set(next, e);
+    }
+
+    return edges.map((e) => {
+        const next = nextOf(e);
+        const prev = previousOf.get(e);
+        const n = normal(e);
+        return [
+            corner(e.a, prev ? normal(prev) : n, n),
+            corner(e.b, n, next ? normal(next) : n),
+        ] as [Point, Point];
+    });
+};
 
 const cageLabelAnchor = (cells: readonly CellId[], geometry: Geometry): Point | undefined => {
     let best: { cell: CellId; p: Point } | undefined;
@@ -332,9 +419,13 @@ const cageLabelAnchor = (cells: readonly CellId[], geometry: Geometry): Point | 
     return best ? { x: best.p.x + INSET + 0.02, y: best.p.y + INSET + 0.18 } : undefined;
 };
 
-/** Major (region boundary) lines draw heavier than plain cell dividers. */
+/** Major (region boundary) lines draw heavier than plain cell dividers, and come last
+ *  so a thin divider that meets one never paints over it (the array is draw order). */
 const gridLines = (geometry: Geometry, cellSize: number): { points: Point[]; weight: number }[] =>
-    geometry.boardLines().map((l) => ({
-        points: l.points.map((p) => scalePoint(p, cellSize)),
-        weight: l.major ? 3 : 1,
-    }));
+    geometry
+        .boardLines()
+        .map((l) => ({
+            points: l.points.map((p) => scalePoint(p, cellSize)),
+            weight: l.major ? 3 : 1,
+        }))
+        .sort((a, b) => a.weight - b.weight);
