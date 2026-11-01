@@ -86,6 +86,32 @@ describe("Author", () => {
         expect(container.querySelectorAll(".digit").length).toBe(before);
     });
 
+    it("'Test as solver' drops the author-only extras, and starts a fresh board each time", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+                <ToastViewport />
+            </MemoryRouter>,
+        );
+        // Author view first: show the solution so there's something to be rid of.
+        fireEvent.click(screen.getByRole("button", { name: "Show solution" }));
+        expect(container.querySelectorAll(".digit").length).toBe(81);
+
+        const test = screen.getByRole("button", { name: "Test as solver" });
+        expect(test.getAttribute("aria-pressed")).toBe("false");
+        fireEvent.click(test);
+
+        expect(test.getAttribute("aria-pressed")).toBe("true");
+        expect(screen.queryByRole("button", { name: "Show solution" })).toBeNull();
+        // The solution overlay is gone: only the puzzle's own givens are showing.
+        const givens = Object.keys(demoMixed.givens ?? {}).length;
+        expect(container.querySelectorAll(".digit").length).toBe(givens);
+
+        fireEvent.click(test);
+        expect(test.getAttribute("aria-pressed")).toBe("false");
+        expect(screen.getByRole("button", { name: "Show solution" })).toBeTruthy();
+    });
+
     it("hides the 'Show solution' toggle for a puzzle with no declared solution", () => {
         const { container } = render(
             <MemoryRouter>

@@ -183,6 +183,14 @@
     min-height: 0;
 }
 
+/* Test-as-solver / Show solution, side by side above the board. */
+.author-preview-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-self: flex-start;
+}
+
 .author-actions {
     margin-top: 0.6rem;
     display: flex;

@@ -244,6 +244,10 @@ export default function Author() {
     const [boardSelection, setBoardSelection] = useState<ReadonlySet<CellId>>(new Set());
     const visualState = useVisualBuilder("parsed" in result ? result.parsed : undefined, boardSelection, handleVisualChange);
     const [showSolution, setShowSolution] = useState(false);
+    // "Test as solver": the preview becomes the plain player a solver would get — none
+    // of the author extras (builder hooks, red conflict marking, solution overlay, the
+    // puzzle-edit undo history) — so the author can play their own puzzle. Per-session.
+    const [testing, setTesting] = useState(false);
 
     const runSolve = async () => {
         if (!("compiled" in result) || !result.compiled || solving) return;
@@ -444,36 +448,50 @@ export default function Author() {
                 <div className="author-preview">
                     {"compiled" in result && result.compiled ? (
                         <>
-                            {result.compiled.solution && (
+                            <div className="author-preview-bar">
                                 <button
                                     type="button"
-                                    className={`btn pp-toggle ${showSolution ? "active" : ""}`}
-                                    aria-pressed={showSolution}
-                                    onClick={() => setShowSolution(!showSolution)}
+                                    className={`btn pp-toggle ${testing ? "active" : ""}`}
+                                    aria-pressed={testing}
+                                    onClick={() => setTesting(!testing)}
                                 >
-                                    Show solution
+                                    Test as solver
                                 </button>
-                            )}
-                            {invalidConstraintIds.size > 0 && (
+                                {!testing && result.compiled.solution && (
+                                    <button
+                                        type="button"
+                                        className={`btn pp-toggle ${showSolution ? "active" : ""}`}
+                                        aria-pressed={showSolution}
+                                        onClick={() => setShowSolution(!showSolution)}
+                                    >
+                                        Show solution
+                                    </button>
+                                )}
+                            </div>
+                            {!testing && invalidConstraintIds.size > 0 && (
                                 <p className="author-notice">
                                     Conflicts with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
                                 </p>
                             )}
-                            <PuzzlePlayer
-                                key={result.compiled.metadata.id + submitted.length}
-                                puzzle={result.compiled}
-                                onSelectionChange={setBoardSelection}
-                                externalHistory={{
-                                    canUndo: history.past.length > 0,
-                                    canRedo: history.future.length > 0,
-                                    undo,
-                                    redo,
-                                }}
-                                onSelectionEnd={visualState.onBoardSelectionEnd}
-                                previewObjects={visualState.previewObjects}
-                                invalidConstraintIds={invalidConstraintIds}
-                                showSolution={showSolution}
-                            />
+                            {testing ? (
+                                <PuzzlePlayer key={`${result.compiled.metadata.id}${submitted.length}-test`} puzzle={result.compiled} />
+                            ) : (
+                                <PuzzlePlayer
+                                    key={result.compiled.metadata.id + submitted.length}
+                                    puzzle={result.compiled}
+                                    onSelectionChange={setBoardSelection}
+                                    externalHistory={{
+                                        canUndo: history.past.length > 0,
+                                        canRedo: history.future.length > 0,
+                                        undo,
+                                        redo,
+                                    }}
+                                    onSelectionEnd={visualState.onBoardSelectionEnd}
+                                    previewObjects={visualState.previewObjects}
+                                    invalidConstraintIds={invalidConstraintIds}
+                                    showSolution={showSolution}
+                                />
+                            )}
                         </>
                     ) : (
                         <p className="author-hint">Fix the errors on the left to see a preview.</p>
