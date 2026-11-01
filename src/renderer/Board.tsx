@@ -530,7 +530,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 shows feedback even on a violated/invalid cell */}
             <g className="rings" pointerEvents="none">
                 {visibleScene.cells
-                    .filter((c) => c.ring)
+                    .filter((c) => c.ring === "cursor")
                     .map((c) => {
                         const inset = c.size * 0.05;
                         return (
@@ -544,6 +544,9 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                             />
                         );
                     })}
+                {visibleScene.selectionOutline.map(([a, b], i) => (
+                    <line key={`sel-${i}`} className="selection-outline" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+                ))}
             </g>
 
             {/* digits + notes */}

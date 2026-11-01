@@ -104,6 +104,8 @@ export interface Scene {
     gridLines: { points: Point[]; weight: number }[];
     /** Visual objects (constraint graphics), sorted by z. */
     shapes: Shape[];
+    /** One combined outline around the multi-cell selection (#157), in board pixels. */
+    selectionOutline: [Point, Point][];
 }
 
 const DEFAULT_CELL_SIZE = 64;
@@ -173,7 +175,20 @@ export const buildScene = (input: SceneInput): Scene => {
         cells,
         gridLines: gridLines(geometry, cellSize),
         shapes,
+        selectionOutline: selectionOutline(selected, input.cursor, geometry, cellSize),
     };
+};
+
+/** A lone cell is already marked by the cursor ring; only a larger selection gets the combined outline. */
+const selectionOutline = (
+    selected: ReadonlySet<CellId>,
+    cursor: CellId | null,
+    geometry: Geometry,
+    cellSize: number,
+): [Point, Point][] => {
+    if (selected.size === 0 || (selected.size === 1 && selected.has(cursor as CellId))) return [];
+    const scale = (p: Point): Point => ({ x: p.x * cellSize, y: p.y * cellSize });
+    return cageOutline([...selected], geometry).map(([a, b]) => [scale(a), scale(b)]);
 };
 
 const tone = (cell: CellId, violated: ReadonlySet<CellId>, invalid: ReadonlySet<CellId>): CellTone => {

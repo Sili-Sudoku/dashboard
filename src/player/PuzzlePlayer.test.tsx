@@ -289,7 +289,9 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]); // cursor back on r1c2
         fireEvent.keyDown(window, { key: "Enter" });
 
-        expect(container.querySelectorAll(".cell-ring-cursor, .cell-ring-selected")).toHaveLength(2);
+        // the cursor keeps its own ring; the other selected cell is covered by the combined outline (#157)
+        expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
+        expect(container.querySelectorAll(".selection-outline")).toHaveLength(8); // two diagonal cells: 4 edges each
     });
 
     it("Tab/Shift+Tab step between empty cells while the board has focus, and fall through at the ends", () => {
@@ -339,7 +341,7 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.keyDown(window, { key: "Escape" });
         expect(container.querySelector(".cell-ring-cursor")).toBeNull();
-        expect(container.querySelector(".cell-ring-selected")).toBeNull();
+        expect(container.querySelector(".selection-outline")).toBeNull();
 
         // arrow keys still work afterwards, re-anchoring instead of staying dead
         fireEvent.keyDown(window, { key: "ArrowRight" });

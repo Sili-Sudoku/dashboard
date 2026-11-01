@@ -197,6 +197,15 @@ describe("buildScene", () => {
             expect(same(build({ hiddenCells: new Set(["r1c1"]) }, (c) => (c === "r1c1" ? null : at(c))))).toEqual([]);
         });
 
+        it("outlines a multi-cell selection once, and leaves a lone cursor cell to its ring (#157)", () => {
+            const size = build().cellSize;
+            expect(build({ selection: new Set(["r1c1"]) }).selectionOutline).toEqual([]);
+            // two adjacent cells: 6 boundary edges, none of them the shared one
+            const two = build({ selection: new Set(["r1c1", "r1c2"]) }).selectionOutline;
+            expect(two).toHaveLength(6);
+            expect(two.flat().every((p) => p.x >= 0 && p.x <= 3 * size)).toBe(true);
+        });
+
         it("leaves selection, cursor ring and tone untouched", () => {
             const scene = build({ selection: new Set(["r1c1", "r4c4"]) });
             const cell = scene.cells.find((c) => c.cell === "r4c4");
