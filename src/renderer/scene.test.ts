@@ -114,6 +114,34 @@ describe("buildScene", () => {
         expect(scene.shapes.length).toBeGreaterThan(0);
     });
 
+    it("grows a margin for clues placed outside the grid and shifts everything to keep the origin at 0,0 (#130)", () => {
+        const base = {
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set<string>(),
+            incorrectCells: new Set<string>(),
+            isGiven: () => false,
+            selection: new Set<string>(),
+            cursor: null,
+            hiddenCells: new Set<string>(),
+            evaluation: evaluate(puzzle, () => null),
+        };
+        const plain = buildScene({ ...base, puzzle });
+        const clue = { kind: "text", at: { x: -1, y: 4.5 }, text: "7", style: { fontSize: 0.4 } } as const;
+        const scene = buildScene({ ...base, puzzle: { ...puzzle, objects: [...puzzle.objects, clue] } });
+
+        const left = scene.width - plain.width;
+        expect(left).toBeGreaterThan(64); // a cell of margin plus half the glyph
+        expect(scene.height).toBe(plain.height);
+        expect(scene.viewBox).toBe(`0 0 ${scene.width} ${scene.height}`);
+        // every cell moved right by exactly the margin; the clue now sits inside the viewBox
+        expect(scene.cells[0].x).toBeCloseTo(plain.cells[0].x + left, 6);
+        const text = scene.shapes.find((s) => s.kind === "text" && s.text === "7");
+        expect(text && text.kind === "text" && text.x).toBeGreaterThan(0);
+        expect(plain.cells[0].x).toBe(0);
+    });
+
     it("tags violated cells so the renderer can colour them", () => {
         const broken = { ...(demoMixed.solution ?? {}), r1c8: 9, r2c8: 8 };
         const scene = buildScene({

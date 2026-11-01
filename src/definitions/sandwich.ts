@@ -36,7 +36,18 @@ export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | 
         }
     }
 
+    // The clue sits just outside the line, in line with it, before its first cell — which is
+    // beyond the grid for a full row/column, so the renderer grows a margin to fit it (#130).
+    const first = ctx.geometry.center(cells[0]);
+    const second = ctx.geometry.center(cells[1]);
+    const length = Math.hypot(second.x - first.x, second.y - first.y) || 1;
+    const clueAt = {
+        x: first.x - (second.x - first.x) / length,
+        y: first.y - (second.y - first.y) / length,
+    };
+
     return {
         constraints: [{ expr: ["and", ...terms], label: `sandwich ${cells.join(",")} = ${sum}` }],
+        objects: [{ kind: "text", at: clueAt, text: String(sum), style: { fontSize: 0.4, bold: true } }],
     };
 };
