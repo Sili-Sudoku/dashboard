@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FocusEvent, type WheelEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Import } from "lucide-react";
 
 import { toast } from "@/app/toast.ts";
@@ -12,6 +12,7 @@ import { definitions } from "@/definitions/index.ts";
 import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import VisualBuilder from "@/features/author/VisualBuilder.tsx";
+import DimInput from "@/features/author/dim_input.tsx";
 import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import { encodeFPuzzlesShareLink, encodeSudokuPadShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
@@ -34,16 +35,6 @@ const SudokuMakerIcon = () => (
 );
 
 const SudokuPadIcon = () => <img className="author-icon" src={sudokuPadIcon} alt="" width={16} height={16} />;
-
-// Number inputs change value on scroll-wheel while focused (standard browser behavior) —
-// harmless normally, but these dim fields sit right above the page's own scrollable
-// content, so scrolling past them silently rewrites the grid size. Blurring on wheel lets
-// the scroll pass through to the page instead of being consumed as an increment/decrement.
-const blurOnWheel = (e: WheelEvent<HTMLInputElement>) => e.currentTarget.blur();
-
-// Selecting the existing value on focus means typing a new number replaces it
-// outright, instead of inserting at the cursor and leaving the old digits behind.
-const selectOnFocus = (e: FocusEvent<HTMLInputElement>) => e.currentTarget.select();
 
 interface ImportDialogProps {
     title: string;
@@ -450,53 +441,21 @@ export default function Author() {
                         <fieldset className="author-dims-group">
                             <legend>Grid size</legend>
                             <div className="author-dims-pair">
-                                <input
-                                    type="number"
-                                    min={1}
-                                    aria-label="Width"
-                                    value={dims.width}
-                                    onChange={(e) => setDims({ width: e.target.valueAsNumber })}
-                                    onFocus={selectOnFocus}
-                                    onWheel={blurOnWheel}
-                                />
+                                <DimInput label="Width" value={dims.width} onCommit={(n) => setDims({ width: n })} />
                                 <span className="author-dims-x" aria-hidden="true">
                                     ×
                                 </span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    aria-label="Height"
-                                    value={dims.height}
-                                    onChange={(e) => setDims({ height: e.target.valueAsNumber })}
-                                    onFocus={selectOnFocus}
-                                    onWheel={blurOnWheel}
-                                />
+                                <DimInput label="Height" value={dims.height} onCommit={(n) => setDims({ height: n })} />
                             </div>
                         </fieldset>
                         <fieldset className="author-dims-group">
                             <legend>Box size</legend>
                             <div className="author-dims-pair">
-                                <input
-                                    type="number"
-                                    min={1}
-                                    aria-label="Box width"
-                                    value={dims.boxWidth}
-                                    onChange={(e) => setDims({ boxWidth: e.target.valueAsNumber })}
-                                    onFocus={selectOnFocus}
-                                    onWheel={blurOnWheel}
-                                />
+                                <DimInput label="Box width" value={dims.boxWidth} onCommit={(n) => setDims({ boxWidth: n })} />
                                 <span className="author-dims-x" aria-hidden="true">
                                     ×
                                 </span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    aria-label="Box height"
-                                    value={dims.boxHeight}
-                                    onChange={(e) => setDims({ boxHeight: e.target.valueAsNumber })}
-                                    onFocus={selectOnFocus}
-                                    onWheel={blurOnWheel}
-                                />
+                                <DimInput label="Box height" value={dims.boxHeight} onCommit={(n) => setDims({ boxHeight: n })} />
                             </div>
                         </fieldset>
                     </div>
@@ -530,6 +489,7 @@ export default function Author() {
                     ) : (
                         <VisualBuilder def={"parsed" in result ? result.parsed : undefined} state={visualState} />
                     )}
+                    {liveError && <pre className="author-error">{liveError}</pre>}
                     <div className="author-actions">
                         {"compiled" in result && result.compiled && (
                             <button className="btn" onClick={runSolve} disabled={solving}>
@@ -602,14 +562,7 @@ export default function Author() {
                             <span className="author-format-badge" aria-hidden="true">
                                 <SudokuPadIcon />
                             </span>
-                            <button
-                                className="btn btn-icon"
-                                disabled
-                                aria-label="Import from SudokuPad (not supported yet)"
-                                title="Import from SudokuPad (not supported yet)"
-                            >
-                                <Import size={15} />
-                            </button>
+                            <span aria-hidden="true" />
                             {"parsed" in result && result.parsed && (
                                 <button
                                     className="btn btn-icon"
@@ -622,16 +575,15 @@ export default function Author() {
                             )}
                         </div>
                     </div>
-                    {liveError && <pre className="author-error">{liveError}</pre>}
 
-                    <section className="author-sdk">
-                        <h2>…or build it in code</h2>
+                    <details className="author-sdk">
+                        <summary>Build it in code instead</summary>
                         <p>
                             The <code>PuzzleBuilder</code> produces the exact same artifact. This is the seam a
                             hosted editor would be built on.
                         </p>
                         <pre>{BUILDER_EXAMPLE}</pre>
-                    </section>
+                    </details>
                 </div>
 
                 <div className="author-preview">

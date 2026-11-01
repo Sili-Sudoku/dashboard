@@ -137,6 +137,24 @@ describe("Author", () => {
         expect((screen.getByLabelText("Box width") as HTMLInputElement).value).toBe("3");
     });
 
+    it("lets a dimension input be emptied mid-edit, then snaps back to the applied value on blur", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+                <ToastViewport />
+            </MemoryRouter>,
+        );
+        const width = screen.getByLabelText("Width") as HTMLInputElement;
+        fireEvent.change(width, { target: { value: "" } });
+        // The field shows what you typed (nothing), and nothing was applied.
+        expect(width.value).toBe("");
+        const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+        expect(JSON.parse(textarea.value).geometry.width).toBe(9);
+
+        fireEvent.blur(width);
+        expect(width.value).toBe("9");
+    });
+
     it("undoes and redoes changes to the puzzle made outside the JSON box (#116)", () => {
         const { container } = render(
             <MemoryRouter>

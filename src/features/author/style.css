@@ -41,19 +41,6 @@
     min-height: 420px;
 }
 
-@media (max-width: 900px) {
-    .author-grid {
-        /* Stacked (editor, then preview) instead of side-by-side — each
-         * should size to its own natural content height, not stretch to
-         * share the row's height. */
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .author-editor {
-        flex: 0 0 auto;
-    }
-}
-
 .author-example {
     display: block;
     margin-bottom: 0.5rem;
@@ -113,6 +100,12 @@
     -moz-appearance: textfield;
 }
 
+/* Same inside-the-border ring as the JSON editor and a selected board cell. */
+.author-dims input:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: -6px;
+}
+
 .author-dims input::-webkit-outer-spin-button,
 .author-dims input::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -140,21 +133,9 @@
 
 .author-editor textarea {
     width: 100%;
-    /* flex-basis:auto (not the flex:1 shorthand's 0%) so a manual drag-resize
-     * actually sticks: resize sets the textarea's used height as if it were
-     * specified via the height property, but that only feeds back into flex
-     * layout as the flex-basis when flex-basis is auto — at 0% flex-grow
-     * just recomputes the box back to its grown size on the very next
-     * layout pass, so the resize handle silently no-ops. flex-grow:1 still
-     * fills all the available space by default, same as before.
-     * flex-shrink:0 (not the shorthand's 1) for the same reason, one level
-     * deeper: once resized larger than .author-editor's available space,
-     * that's negative free space in flex terms, and shrink:1 claws the item
-     * straight back down to fit the container — same visible no-op as the
-     * flex-basis bug, just triggered by overflow instead of by 0% basis.
-     * Disabling shrink lets a resize past the container's size actually
-     * overflow it (.author-editor scrolls, same as any other overflow). */
-    flex: 1 0 auto;
+    /* Fills whatever height the column has left; there is no drag handle to
+     * fight the flex layout, the editor simply uses the available space. */
+    flex: 1 1 auto;
     min-height: 260px;
     font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
     font-size: 0.78rem;
@@ -162,9 +143,21 @@
     padding: 0.8rem;
     border: 2px solid var(--ink);
     border-radius: var(--radius-sm);
-    resize: vertical;
+    resize: none;
     background: var(--surface);
     color: var(--ink);
+}
+
+/* Same pen-blue ring as buttons (style.css) instead of the browser's default
+ * focus outline; the border stays put, so the invalid state's red border
+ * below still reads while the field is focused. */
+.author-editor textarea:focus-visible,
+.author-dialog textarea:focus-visible {
+    outline: 2px solid var(--brand);
+    /* Negative offset draws the ring inside the border, like a selected cell
+     * on the board, so the box keeps its outline and the invalid red border
+     * still shows. */
+    outline-offset: -8px;
 }
 
 /* Live validity feedback: red while the current text doesn't parse/compile,
@@ -321,22 +314,21 @@
     gap: 0.5rem;
 }
 
-/* Now a block inside the scrollable .author-editor sidebar, not a full-width
- * page section below the grid (see .author-grid's comment above for why) —
- * styled like .author-interop's divider rather than the old 2rem page gap. */
+/* Collapsed by default: reference material, not part of the editing flow. */
 .author-sdk {
     margin-top: 0.6rem;
     padding-top: 0.6rem;
     border-top: 1px solid var(--line);
 }
 
-.author-sdk h2 {
-    margin: 0 0 0.4rem;
-    font-size: 0.95rem;
+.author-sdk summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
 }
 
 .author-sdk p {
-    margin: 0 0 0.6rem;
+    margin: 0.5rem 0;
     font-size: 0.82rem;
     color: var(--ink-soft);
 }
@@ -474,4 +466,44 @@
     padding: 0;
     width: 1.9rem;
     height: 1.9rem;
+}
+
+/* At the end of the file, after every base .author-* rule it overrides, on purpose: equal specificity, so source
+ * order decides, and this used to sit above them and never applied. */
+@media (max-width: 900px) {
+    .author-grid {
+        /* Stacked (editor, then preview) instead of side-by-side — each
+         * should size to its own natural content height, not stretch to
+         * share the row's height. */
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .author-editor {
+        /* Sized by its content and scrolled by the page, not by an inner
+         * scroll area that clips the actions and import/export rows. */
+        flex: 0 0 auto;
+        overflow: visible;
+        padding-right: 0;
+    }
+    .author-editor textarea {
+        flex: 0 0 auto;
+        height: 22rem;
+    }
+    .author-preview {
+        /* Stacked under the editor, which now takes its full content height;
+         * without a floor the board would be what gets squeezed. */
+        flex: 0 0 auto;
+        min-height: 32rem;
+    }
+}
+
+/* Author's preview sits right next to the editor, so the board hugs the left
+ * edge of its column instead of being centered, sharing one left edge with
+ * "Show solution" above it and the hint below it. */
+.author-preview .board-measure {
+    justify-content: flex-start;
+}
+
+.author-preview .pp-hint {
+    text-align: left;
 }
