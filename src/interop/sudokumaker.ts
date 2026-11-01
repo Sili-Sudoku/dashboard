@@ -23,6 +23,7 @@ import { deflateRaw, inflateRaw } from "pako";
 import { decompressFromEncodedURIComponent } from "lz-string";
 
 import { GridGeometry, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
+import { findRectangularBoxes, slugify } from "@/interop/shared.ts";
 import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 interface SudokuMakerCell {
@@ -154,38 +155,6 @@ const cellsToEdge = (a: CellId, b: CellId, width: number): number | undefined =>
     if (ca === cb && Math.abs(ra - rb) === 1) {
         const row = Math.min(ra, rb);
         return ca + width + row * 2 * width;
-    }
-    return undefined;
-};
-
-const divisorsOf = (n: number): number[] => {
-    const out: number[] = [];
-    for (let d = 1; d <= n; d++) if (n % d === 0) out.push(d);
-    return out;
-};
-
-const regionSignature = (groups: readonly (readonly CellId[])[]): string =>
-    groups
-        .map((g) => [...g].sort().join(","))
-        .sort()
-        .join("|");
-
-const findRectangularBoxes = (
-    size: number,
-    actualGroups: readonly (readonly CellId[])[],
-): { boxWidth: number; boxHeight: number } | undefined => {
-    const want = regionSignature(actualGroups);
-    for (const bw of divisorsOf(size)) {
-        for (const bh of divisorsOf(size)) {
-            const geo = new GridGeometry({ type: "grid", width: size, height: size, boxWidth: bw, boxHeight: bh });
-            const boxCount = Math.ceil(size / bw) * Math.ceil(size / bh);
-            const groups: CellId[][] = [];
-            for (let i = 0; i < boxCount; i++) {
-                const g = geo.resolveRegion(`box:${i}`);
-                if (g) groups.push([...g]);
-            }
-            if (regionSignature(groups) === want) return { boxWidth: bw, boxHeight: bh };
-        }
     }
     return undefined;
 };
@@ -448,14 +417,6 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
     };
 
     return { puzzle, warnings };
-};
-
-const slugify = (s: string): string => {
-    const slug = s
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-    return slug || "puzzle";
 };
 
 // --- export -------------------------------------------------------------
