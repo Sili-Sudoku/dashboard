@@ -17,6 +17,7 @@ import type { CellId } from "@/runtime/geometry.ts";
 import { encodeFPuzzlesShareLink, encodeSudokuPadShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
 import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker } from "@/interop/sudokumaker.ts";
 import { usePageHeader } from "@/app/page_header.ts";
+import { useFocusTrap } from "@/app/use_focus_trap.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
 import sudokuPadIcon from "./sudokupad-icon.png";
 
@@ -56,37 +57,41 @@ interface ImportDialogProps {
 /** An in-app replacement for `window.prompt`: browsers let a user permanently
  *  suppress native dialogs after a few show up (and the native one is a
  *  single-line input anyway, which is awkward for pasting multi-line JSON). */
-const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit }: ImportDialogProps) => (
-    <div className="author-dialog-backdrop" onClick={onCancel}>
-        <div
-            className="author-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-                if (e.key === "Escape") onCancel();
-            }}
-        >
-            <h3>{title}</h3>
-            <textarea
-                autoFocus
-                value={value}
-                placeholder={placeholder}
-                onChange={(e) => onChange(e.target.value)}
-                spellCheck={false}
-            />
-            <div className="author-dialog-actions">
-                <button className="btn" onClick={onCancel}>
-                    Cancel
-                </button>
-                <button className="btn btn-primary" onClick={onSubmit} disabled={!value.trim()}>
-                    Import
-                </button>
+const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit }: ImportDialogProps) => {
+    const { ref, onKeyDown } = useFocusTrap<HTMLDivElement>();
+    return (
+        <div className="author-dialog-backdrop" onClick={onCancel}>
+            <div
+                className="author-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+                ref={ref}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                    if (e.key === "Escape") onCancel();
+                    onKeyDown(e);
+                }}
+            >
+                <h3>{title}</h3>
+                <textarea
+                    value={value}
+                    placeholder={placeholder}
+                    onChange={(e) => onChange(e.target.value)}
+                    spellCheck={false}
+                />
+                <div className="author-dialog-actions">
+                    <button className="btn" onClick={onCancel}>
+                        Cancel
+                    </button>
+                    <button className="btn btn-primary" onClick={onSubmit} disabled={!value.trim()}>
+                        Import
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 /** Import/export outcome toast. One key, so a second action replaces the first
  *  instead of stacking; warning lists are long, so they linger. */
