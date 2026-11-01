@@ -4,6 +4,7 @@
  * keyboard input and progress persistence.
  */
 
+import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { getSettings } from "@/app/use_settings.ts";
@@ -90,7 +91,16 @@ export interface ExternalHistory {
     redo: () => void;
 }
 
-export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: ExternalHistory) => {
+/**
+ * `scope` is the player's root element: keyboard shortcuts only fire for key events that
+ * originate inside it (focused board, number pad, controls), so typing elsewhere on the page —
+ * a dialog, the site header — can never edit a cell.
+ */
+export const usePuzzleSession = (
+    puzzle: CompiledPuzzle,
+    scope: RefObject<HTMLElement | null>,
+    externalHistory?: ExternalHistory,
+) => {
     const session = useMemo(
         () =>
             new PuzzleSession(puzzle, {
@@ -462,18 +472,19 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: Exter
             if (modifierHeld.current) restoreMode();
         };
 
-        window.addEventListener("keydown", onKeyDown);
-        window.addEventListener("keyup", onKeyUp);
+        const root = scope.current;
+        root?.addEventListener("keydown", onKeyDown);
+        root?.addEventListener("keyup", onKeyUp);
         window.addEventListener("blur", onBlur);
         return () => {
             unsubscribe();
             window.clearTimeout(digitTimer.current);
             digitBuffer.current = "";
-            window.removeEventListener("keydown", onKeyDown);
-            window.removeEventListener("keyup", onKeyUp);
+            root?.removeEventListener("keydown", onKeyDown);
+            root?.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
         };
-    }, [session, puzzle.domain, check, undo, redo]);
+    }, [session, scope, puzzle.domain, check, undo, redo]);
 
     return {
         session,

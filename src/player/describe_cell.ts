@@ -36,3 +36,43 @@ export const describeCell = (cell: CellShape): string => {
 
     return `${where}: ${what}${problems.length > 0 ? ` (${problems.join(", ")})` : ""}`;
 };
+
+const briefCell = (cell: CellShape): string => {
+    if (cell.hidden) return "hidden";
+    if (cell.value !== null) return `${cell.value}${cell.given ? " given" : ""}`;
+    return cell.notes.length > 0 || cell.centerNotes.length > 0 ? "notes" : "empty";
+};
+
+export type ReadKind = "row" | "col" | "box" | "givens";
+
+const REGION_NAME = { row: "Row", col: "Column", box: "Box" } as const;
+
+/**
+ * Spoken overview of a region for the screen-reader live region, so a non-sighted player can
+ * ask "what's in this row?" without stepping cell by cell. `region` is the geometry's
+ * `row:N` / `col:N` / `box:N` selector that contains the cursor, or undefined when there is none
+ * (no cursor, or a geometry without that kind of region). "givens" ignores the region and
+ * lists every revealed given on the board.
+ */
+export const describeRegion = (
+    kind: ReadKind,
+    cells: readonly CellShape[],
+    region?: { selector: string; cells: readonly string[] },
+): string => {
+    if (kind === "givens") {
+        const givens = cells.filter((c) => c.given && !c.hidden && c.value !== null);
+        if (givens.length === 0) return "No givens";
+        const where = (c: CellShape) => {
+            const rc = parseGridCellId(c.cell);
+            return rc ? `row ${rc.row + 1} column ${rc.col + 1}` : c.cell;
+        };
+        return `${givens.length} ${givens.length === 1 ? "given" : "givens"}: ${givens.map((c) => `${where(c)} is ${c.value}`).join("; ")}`;
+    }
+    if (!region) return `No ${REGION_NAME[kind].toLowerCase()} here`;
+    const members = new Set(region.cells);
+    const index = Number(region.selector.split(":")[1]) + 1;
+    return `${REGION_NAME[kind]} ${index}: ${cells
+        .filter((c) => members.has(c.cell))
+        .map(briefCell)
+        .join(", ")}`;
+};

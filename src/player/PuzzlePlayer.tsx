@@ -9,8 +9,9 @@ import Board, { type ZoomControls } from "@/renderer/Board.tsx";
 import type { MenuItem } from "@/app/overflow_menu.tsx";
 import { useMediaQuery } from "@/app/use_media_query.ts";
 import { buildScene } from "@/renderer/scene.ts";
+import { createGeometry } from "@/runtime/geometry.ts";
 
-import { describeCell } from "@/player/describe_cell.ts";
+import { describeCell, describeRegion, type ReadKind } from "@/player/describe_cell.ts";
 import { usePuzzleSession, type ExternalHistory } from "@/player/use_puzzle_session.ts";
 import NumberPad from "@/player/components/number-pad";
 import Controls from "@/player/components/controls";
@@ -85,8 +86,10 @@ export default function PuzzlePlayer({
     header,
     externalHistory,
 }: Props) {
+    const rootRef = useRef<HTMLDivElement>(null);
     const { session, check, undo, redo, canUndo, canRedo, elapsedMs, bestElapsedMs, resetTimer } = usePuzzleSession(
         puzzle,
+        rootRef,
         externalHistory,
     );
 
@@ -95,7 +98,6 @@ export default function PuzzlePlayer({
         // session.revision (not session itself) is the actual change signal —
         // same dependency the scene recompute below relies on.
     }, [session, session.revision, onSelectionChange]);
-    const rootRef = useRef<HTMLDivElement>(null);
     const boardColRef = useRef<HTMLDivElement>(null);
 
     // Large boards (#49 follow-up): the sidebar is pinned with position:fixed so it
@@ -201,6 +203,34 @@ export default function PuzzlePlayer({
         ? describeCell(cursorCell) + (selectedCount > 1 ? ` — ${selectedCount} cells selected` : "")
         : "";
 
+    // R / C / B / G read the cursor's row / column / box / the whole board's givens aloud
+    // (screen-reader overview; there is no per-cell DOM to browse). Alternating a zero-width
+    // suffix makes pressing the same key twice re-announce.
+    const [readout, setReadout] = useState("");
+    useEffect(() => {
+        const root = rootRef.current;
+        if (!root) return;
+        const geometry = createGeometry(puzzle.geometry);
+        const kinds: Record<string, ReadKind> = { r: "row", c: "col", b: "box", g: "givens" };
+        const onKeyDown = (e: KeyboardEvent) => {
+            const kind = kinds[e.key.toLowerCase()];
+            const target = e.target as HTMLElement | null;
+            if (!kind || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+            const cursor = scene.cells.find((c) => c.ring === "cursor")?.cell;
+            const selector = cursor
+                ? geometry.regionSelectors.find(
+                      (s) => s.startsWith(`${kind}:`) && geometry.resolveRegion(s)?.includes(cursor),
+                  )
+                : undefined;
+            const region = selector ? { selector, cells: geometry.resolveRegion(selector) ?? [] } : undefined;
+            const text = describeRegion(kind, scene.cells, region);
+            setReadout((prev) => (prev === text ? `${text}\u200b` : text));
+        };
+        root.addEventListener("keydown", onKeyDown);
+        return () => root.removeEventListener("keydown", onKeyDown);
+    }, [puzzle.geometry, scene.cells]);
+
     const stackedMenuItems: MenuItem[] = stacked
         ? [
               {
@@ -261,6 +291,9 @@ export default function PuzzlePlayer({
                     reader learns where the cursor is and what's in the cell. */}
                 <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
                     {cursorAnnouncement}
+                </div>
+                <div className="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+                    {readout}
                 </div>
                 {evaluation.complete && (
                     <div className="pp-complete" role="status">

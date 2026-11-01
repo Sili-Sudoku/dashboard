@@ -17,6 +17,7 @@ const SHORTCUTS: { keys: string; action: string }[] = [
     { keys: "Ctrl+Z", action: "undo" },
     { keys: "Ctrl+Shift+Z / Ctrl+Y", action: "redo" },
     { keys: "V", action: "check entered values/centre notes against the solution (if the puzzle has one)" },
+    { keys: "R / C / B / G", action: "read aloud the cursor's row / column / box, or every given (screen readers)" },
     { keys: "Escape", action: "deselect everything — click a cell to start again" },
 ];
 

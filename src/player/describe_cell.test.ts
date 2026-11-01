@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeCell } from "@/player/describe_cell.ts";
+import { describeCell, describeRegion } from "@/player/describe_cell.ts";
 import type { CellShape } from "@/renderer/scene.ts";
 
 const cell = (over: Partial<CellShape> = {}): CellShape => ({
@@ -58,5 +58,30 @@ describe("describeCell colour marks", () => {
             { position: 0, color: "var(--surface)" },
         ];
         expect(describeCell(cell({ marks }))).toBe("Row 3, column 4: empty, color 1 and background");
+    });
+});
+
+describe("describeRegion", () => {
+    const row = [
+        cell({ cell: "r1c1", value: 5, given: true }),
+        cell({ cell: "r1c2" }),
+        cell({ cell: "r1c3", value: 7 }),
+        cell({ cell: "r1c4", notes: [1, 2] }),
+        cell({ cell: "r1c5", hidden: true }),
+    ];
+    const region = { selector: "row:0", cells: row.map((c) => c.cell) };
+
+    it("reads a region's cells in order, 1-based", () => {
+        expect(describeRegion("row", row, region)).toBe("Row 1: 5 given, empty, 7, notes, hidden");
+        expect(describeRegion("col", row, { selector: "col:2", cells: ["r1c3"] })).toBe("Column 3: 7");
+    });
+
+    it("says so when there is no such region", () => {
+        expect(describeRegion("box", row, undefined)).toBe("No box here");
+    });
+
+    it("lists the revealed givens with their positions", () => {
+        expect(describeRegion("givens", row)).toBe("1 given: row 1 column 1 is 5");
+        expect(describeRegion("givens", [cell()])).toBe("No givens");
     });
 });

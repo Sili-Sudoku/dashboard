@@ -11,6 +11,9 @@ import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
 
+/** Key events must originate inside the player (#155), so tests dispatch from its root. */
+const root = () => document.querySelector(".puzzle-player")!;
+
 const compiled = () => {
     const result = compilePuzzle(miniSudoku, definitions);
     if (result instanceof Error) throw result;
@@ -142,16 +145,16 @@ describe("<PuzzlePlayer />", () => {
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         fireEvent.pointerDown(cells[1]); // empty cell, not in note mode
 
-        fireEvent.keyDown(window, { code: "Digit2", shiftKey: true });
-        fireEvent.keyDown(window, { code: "Digit4", shiftKey: true });
+        fireEvent.keyDown(root(), { code: "Digit2", shiftKey: true });
+        fireEvent.keyDown(root(), { code: "Digit4", shiftKey: true });
         expect(container.querySelectorAll(".note")).toHaveLength(2);
 
-        fireEvent.keyDown(window, { code: "Digit3", ctrlKey: true });
+        fireEvent.keyDown(root(), { code: "Digit3", ctrlKey: true });
         const center = container.querySelector(".note-center");
         expect(center?.textContent).toBe("3");
 
         // toggling again removes it
-        fireEvent.keyDown(window, { code: "Digit3", ctrlKey: true });
+        fireEvent.keyDown(root(), { code: "Digit3", ctrlKey: true });
         expect(container.querySelector(".note-center")).toBeNull();
     });
 
@@ -162,16 +165,16 @@ describe("<PuzzlePlayer />", () => {
         const centerMode = screen.getByRole("button", { name: /^Center$/ });
         expect(digitMode.getAttribute("aria-pressed")).toBe("true");
 
-        fireEvent.keyDown(window, { key: "Shift" });
+        fireEvent.keyDown(root(), { key: "Shift" });
         expect(cornerMode.getAttribute("aria-pressed")).toBe("true");
 
-        fireEvent.keyUp(window, { key: "Shift" });
+        fireEvent.keyUp(root(), { key: "Shift" });
         expect(digitMode.getAttribute("aria-pressed")).toBe("true");
 
-        fireEvent.keyDown(window, { key: "Control" });
+        fireEvent.keyDown(root(), { key: "Control" });
         expect(centerMode.getAttribute("aria-pressed")).toBe("true");
 
-        fireEvent.keyUp(window, { key: "Control" });
+        fireEvent.keyUp(root(), { key: "Control" });
         expect(digitMode.getAttribute("aria-pressed")).toBe("true");
     });
 
@@ -179,10 +182,10 @@ describe("<PuzzlePlayer />", () => {
         render(<PuzzlePlayer puzzle={compiled()} />);
         fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
 
-        fireEvent.keyDown(window, { key: "Control" });
+        fireEvent.keyDown(root(), { key: "Control" });
         expect(screen.getByRole("button", { name: /^Center$/ }).getAttribute("aria-pressed")).toBe("true");
 
-        fireEvent.keyUp(window, { key: "Control" });
+        fireEvent.keyUp(root(), { key: "Control" });
         expect(screen.getByRole("button", { name: /^Corner$/ }).getAttribute("aria-pressed")).toBe("true");
     });
 
@@ -246,22 +249,46 @@ describe("<PuzzlePlayer />", () => {
     it("prevents the browser back-navigation gesture on Backspace/Delete", () => {
         render(<PuzzlePlayer puzzle={compiled()} />);
         for (const key of ["Backspace", "Delete"]) {
-            const event = new KeyboardEvent("keydown", { key, cancelable: true });
-            window.dispatchEvent(event);
+            const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+            root().dispatchEvent(event);
             expect(event.defaultPrevented).toBe(true);
         }
+    });
+
+    it("R reads the cursor's row aloud in a live region, and repeats on a second press (#155)", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        const live = () => container.querySelector('[aria-live="assertive"]')!.textContent;
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]); // r1c2
+        fireEvent.keyDown(root(), { key: "r" });
+        const first = live();
+        expect(first).toMatch(/^Row 1: /);
+        fireEvent.keyDown(root(), { key: "r" });
+        expect(live()).not.toBe(first); // changed (zero-width suffix) so it re-announces
+        fireEvent.keyDown(root(), { key: "g" });
+        expect(live()).toMatch(/givens?: /);
+    });
+
+    it("ignores shortcuts from outside the player, e.g. a dialog or the page header (#155)", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
+        const outside = document.createElement("button");
+        document.body.append(outside);
+        const event = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true });
+        outside.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+        outside.remove();
     });
 
     it("'0' is a plain digit for domains that include it, separate from erase", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
 
-        fireEvent.keyDown(window, { key: "0" });
+        fireEvent.keyDown(root(), { key: "0" });
         const entered = container.querySelectorAll(".digit.entered");
         expect(entered).toHaveLength(1);
         expect(entered[0].textContent).toBe("0");
 
-        fireEvent.keyDown(window, { key: "Backspace" });
+        fireEvent.keyDown(root(), { key: "Backspace" });
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
     });
 
@@ -271,10 +298,10 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: "3" }));
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(1);
 
-        fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+        fireEvent.keyDown(root(), { key: "z", ctrlKey: true });
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
 
-        fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+        fireEvent.keyDown(root(), { key: "y", ctrlKey: true });
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(1);
     });
 
@@ -287,7 +314,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: "3" }));
 
         fireEvent.pointerDown(cells[1]); // cursor back on r1c2
-        fireEvent.keyDown(window, { key: "Enter" });
+        fireEvent.keyDown(root(), { key: "Enter" });
 
         // the cursor keeps its own ring; the other selected cell is covered by the combined outline (#157)
         expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
@@ -339,12 +366,12 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
         expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
 
-        fireEvent.keyDown(window, { key: "Escape" });
+        fireEvent.keyDown(root(), { key: "Escape" });
         expect(container.querySelector(".cell-ring-cursor")).toBeNull();
         expect(container.querySelector(".selection-outline")).toBeNull();
 
         // arrow keys still work afterwards, re-anchoring instead of staying dead
-        fireEvent.keyDown(window, { key: "ArrowRight" });
+        fireEvent.keyDown(root(), { key: "ArrowRight" });
         expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
     });
 
@@ -419,9 +446,9 @@ describe("<PuzzlePlayer />", () => {
 
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: "3" })); // wrong
-        fireEvent.keyDown(window, { key: "v" });
+        fireEvent.keyDown(root(), { key: "v" });
         expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(0);
-        fireEvent.keyDown(window, { key: "v" });
+        fireEvent.keyDown(root(), { key: "v" });
         expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(1);
     });
 
@@ -480,14 +507,14 @@ describe("<PuzzlePlayer />", () => {
 
         // "1" alone is ambiguous (could become 1, or 10-19) — but it's shown right
         // away rather than waiting to see if a second digit follows.
-        fireEvent.keyDown(window, { key: "1" });
+        fireEvent.keyDown(root(), { key: "1" });
         let entered = container.querySelectorAll(".digit.entered");
         expect(entered).toHaveLength(1);
         expect(entered[0].textContent).toBe("1");
 
         // "10" can't be extended any further within a 1-25 domain — the second
         // keystroke corrects the preview immediately.
-        fireEvent.keyDown(window, { key: "0" });
+        fireEvent.keyDown(root(), { key: "0" });
         entered = container.querySelectorAll(".digit.entered");
         expect(entered).toHaveLength(1);
         expect(entered[0].textContent).toBe("10");
@@ -499,7 +526,7 @@ describe("<PuzzlePlayer />", () => {
             const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
             fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
 
-            fireEvent.keyDown(window, { key: "2" }); // could still become 2, or 20-25
+            fireEvent.keyDown(root(), { key: "2" }); // could still become 2, or 20-25
             let entered = container.querySelectorAll(".digit.entered");
             expect(entered).toHaveLength(1);
             expect(entered[0].textContent).toBe("2");
@@ -519,11 +546,11 @@ describe("<PuzzlePlayer />", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
 
-        fireEvent.keyDown(window, { key: "1" });
-        fireEvent.keyDown(window, { key: "0" });
+        fireEvent.keyDown(root(), { key: "1" });
+        fireEvent.keyDown(root(), { key: "0" });
         expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("10");
 
-        fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+        fireEvent.keyDown(root(), { key: "z", ctrlKey: true });
         expect(container.querySelectorAll(".digit.entered")).toHaveLength(0);
     });
 
@@ -533,7 +560,7 @@ describe("<PuzzlePlayer />", () => {
             const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
             fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
 
-            fireEvent.keyDown(window, { key: "2" }); // pending, awaiting a possible second digit
+            fireEvent.keyDown(root(), { key: "2" }); // pending, awaiting a possible second digit
             fireEvent.click(screen.getByRole("button", { name: "15" }));
             expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("15");
 
