@@ -2,6 +2,7 @@
     max-width: 60ch;
     margin: 2rem auto;
     padding: 0 1rem;
+    text-align: center;
 }
 
 .error-page-message {
@@ -12,5 +13,10 @@
 .error-page-actions {
     display: flex;
     gap: 0.6rem;
+    justify-content: center;
     margin-top: 1.2rem;
+}
+
+.error-page-actions .btn {
+    text-decoration: none;
 }

@@ -51,6 +51,15 @@ describe("AppRouter — board-route layout class", () => {
         expect(container.querySelector(".app-main.app-main--board")).toBeNull();
     });
 
+    it("renders a not-found page for an unknown path", () => {
+        const { container } = render(
+            <MemoryRouter initialEntries={["/nope"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        expect(container.querySelector(".error-page h1")?.textContent).toBe("Page not found");
+    });
+
     it("also adds the classes on the author route, which embeds a live preview board", () => {
         const { container } = render(
             <MemoryRouter initialEntries={["/new"]}>
