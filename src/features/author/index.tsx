@@ -2,9 +2,10 @@ import { Eye, EyeOff, Redo2, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "@/app/toast.ts";
-import { useSettings } from "@/app/use_settings.ts";
+import { useSettings, type EditorMode } from "@/app/use_settings.ts";
 import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import { GridGeometry } from "@/runtime/geometry.ts";
+import { puzzleToCode } from "@/authoring/to_code.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { solve, type SolveResult } from "@/runtime/solver.ts";
@@ -17,6 +18,7 @@ import ImportDialog from "@/features/author/import_dialog.tsx";
 import { useAuthorInterop } from "@/features/author/use_author_interop.ts";
 import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
 import type { CellId } from "@/runtime/geometry.ts";
+import { PuzzleBuilder } from "@/authoring/builder.ts";
 import { OverflowMenu, type MenuItem } from "@/app/overflow_menu.tsx";
 import { usePageHeader } from "@/app/page_header.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
@@ -49,10 +51,8 @@ const summarizeConflicts = (ids: ReadonlySet<string>): string => {
 /** Snapshots kept for author undo — each is a full JSON text, so keep it bounded. */
 const HISTORY_LIMIT = 100;
 
-const BUILDER_EXAMPLE = `import { PuzzleBuilder } from "@/authoring/builder";
-
-// define puzzle + geometry
-const artifact = PuzzleBuilder.create("thermo-demo", "Thermo Demo")
+const BUILDER_EXAMPLE = `// PuzzleBuilder is in scope. Return the built puzzle; Run loads it into the editor.
+return PuzzleBuilder.create("thermo-demo", "Thermo Demo")
   .grid(9, 9)
   .domain([1, 2, 3, 4, 5, 6, 7, 8, 9])
   // add constraints (definitions compile to primitives)
@@ -62,10 +62,7 @@ const artifact = PuzzleBuilder.create("thermo-demo", "Thermo Demo")
   .constraint(["==", ["sum", ["cells", "col:0"]], 45])
   // add a visual object the renderer draws generically
   .visual({ kind: "text", at: "r5c5", text: "!" })
-  .build();            // -> plain PuzzleDefinition (the artifact)
-
-// "publish" = serialize
-localStorage.setItem(artifact.metadata.id, JSON.stringify(artifact));`;
+  .build(); // -> plain PuzzleDefinition (the artifact)`;
 
 interface GridDims {
     width: number;
@@ -91,6 +88,12 @@ const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
     }
 };
 
+const EDITOR_TABS: { mode: EditorMode; label: string }[] = [
+    { mode: "json", label: "JSON" },
+    { mode: "visual", label: "Visual" },
+    { mode: "code", label: "Code" },
+];
+
 /** One entry of the author undo history: the puzzle JSON plus the visual builder's pinned tools. */
 interface Snapshot {
     text: string;
@@ -108,7 +111,7 @@ export default function Author() {
     const [solving, setSolving] = useState(false);
     const [settings, setSetting] = useSettings();
     const editorMode = settings.authorEditorMode;
-    const setEditorMode = (mode: "json" | "visual") => setSetting("authorEditorMode", mode);
+    const setEditorMode = (mode: EditorMode) => setSetting("authorEditorMode", mode);
     usePageHeader(
         "Author a puzzle",
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
@@ -124,6 +127,27 @@ export default function Author() {
     // A snapshot is the puzzle text *and* the visual builder's toolbox (its pinned tools), so
     // undo also puts back a tool you just pinned or removed.
     const tools = settings.builderTools;
+
+    // The Code tab (#123, #164): the loaded puzzle as PuzzleBuilder code, always in step with the
+    // JSON and Visual tabs. Typing starts a draft (kept until you Run or Discard); Run replaces the
+    // puzzle (so undo steps back), exactly as pasting the JSON it builds would.
+    const [codeDraft, setCodeDraft] = useState<string>();
+    const [codeError, setCodeError] = useState<string>();
+    const runCode = () => {
+        try {
+            const built: unknown = new Function("PuzzleBuilder", code)(PuzzleBuilder);
+            // Forgetting the trailing .build() is the easy mistake, so just do it.
+            const artifact = built instanceof PuzzleBuilder ? built.build() : built;
+            if (!artifact || typeof artifact !== "object") {
+                throw new Error("The code must return the puzzle: end with `return PuzzleBuilder.create(…)….build();`");
+            }
+            applyText(JSON.stringify(artifact, null, 2));
+            setCodeDraft(undefined);
+            setCodeError(undefined);
+        } catch (e) {
+            setCodeError(e instanceof Error ? e.message : String(e));
+        }
+    };
     const [history, setHistory] = useState<{ past: readonly Snapshot[]; future: readonly Snapshot[] }>({
         past: [],
         future: [],
@@ -231,6 +255,18 @@ export default function Author() {
         return { compiled, parsed };
     }, [submitted]);
 
+    // The code the Code tab shows: your draft, else the loaded puzzle printed as code (the sample
+    // while the JSON doesn't parse).
+    const generatedCode = useMemo(() => {
+        if (!("parsed" in result) || !result.parsed) return BUILDER_EXAMPLE;
+        try {
+            return puzzleToCode(result.parsed);
+        } catch {
+            return BUILDER_EXAMPLE;
+        }
+    }, [result]);
+    const code = codeDraft ?? generatedCode;
+
     // While the puzzle doesn't compile there's no board, hence no Undo button or
     // Ctrl+Z handler from the player — and an edit that broke the puzzle (a grid
     // size it can't satisfy, say) is exactly when you want to step back. So the
@@ -267,7 +303,11 @@ export default function Author() {
         "parsed" in result ? result.parsed : undefined,
         boardSelection,
         handleVisualChange,
-        { tools, onChange: (nextTools, nextDef) => applyChange({ tools: nextTools, text: nextDef && JSON.stringify(nextDef, null, 2) }) },
+        {
+            tools,
+            onChange: (nextTools, nextDef) =>
+                applyChange({ tools: nextTools, text: nextDef && JSON.stringify(nextDef, null, 2) }),
+        },
     );
     const [showSolution, setShowSolution] = useState(false);
     // "Test as solver": the preview becomes the plain player a solver would get — none
@@ -308,7 +348,10 @@ export default function Author() {
 
     const exampleItems: MenuItem[] = listPuzzles().map((p) => ({
         label: p.metadata.title,
-        onSelect: () => loadExample(p.metadata.id),
+        onSelect: () => {
+            setCodeDraft(undefined); // the Code tab should show the example, not an old draft
+            loadExample(p.metadata.id);
+        },
     }));
     const previewBar = (
         <div className="author-preview-bar">
@@ -441,24 +484,18 @@ export default function Author() {
                     </div>
                     <div className="author-mode-bar">
                         <div className="segmented" role="tablist">
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={editorMode === "json"}
-                                className={editorMode === "json" ? "active" : undefined}
-                                onClick={() => setEditorMode("json")}
-                            >
-                                JSON
-                            </button>
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={editorMode === "visual"}
-                                className={editorMode === "visual" ? "active" : undefined}
-                                onClick={() => setEditorMode("visual")}
-                            >
-                                Visual
-                            </button>
+                            {EDITOR_TABS.map((tab) => (
+                                <button
+                                    key={tab.mode}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={editorMode === tab.mode}
+                                    className={editorMode === tab.mode ? "active" : undefined}
+                                    onClick={() => setEditorMode(tab.mode)}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
                         <OverflowMenu label="Load an example" text="Load example" quiet items={exampleItems} />
                     </div>
@@ -469,8 +506,42 @@ export default function Author() {
                             spellCheck={false}
                             className={liveError ? "invalid" : undefined}
                         />
-                    ) : (
+                    ) : editorMode === "visual" ? (
                         <VisualBuilder def={"parsed" in result ? result.parsed : undefined} state={visualState} />
+                    ) : (
+                        <div className="author-sdk">
+                            <textarea
+                                value={code}
+                                onChange={(e) => setCodeDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                        e.preventDefault();
+                                        runCode();
+                                    }
+                                }}
+                                spellCheck={false}
+                                aria-label="PuzzleBuilder code"
+                                className={codeError ? "invalid" : undefined}
+                            />
+                            {codeError && <pre className="author-error">{codeError}</pre>}
+                            <div className="author-code-actions">
+                                <button type="button" className="btn btn-sm" onClick={runCode}>
+                                    Run
+                                </button>
+                                {codeDraft !== undefined && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => setCodeDraft(undefined)}
+                                    >
+                                        Discard edits
+                                    </button>
+                                )}
+                                <span className="author-code-hint">
+                                    {codeDraft !== undefined ? "Edited, not run yet · " : ""}Ctrl/⌘ + Enter
+                                </span>
+                            </div>
+                        </div>
                     )}
                     {liveError && <pre className="author-error">{liveError}</pre>}
                     <div className="author-actions">
@@ -495,14 +566,6 @@ export default function Author() {
                         )}
                         <OverflowMenu label="Import / Export" text="Import / Export" quiet up items={interopItems} />
                     </div>
-                    <details className="author-sdk">
-                        <summary>Build it in code instead</summary>
-                        <p>
-                            The <code>PuzzleBuilder</code> produces the exact same artifact. This is the seam a hosted
-                            editor would be built on.
-                        </p>
-                        <pre>{BUILDER_EXAMPLE}</pre>
-                    </details>
                 </div>
 
                 <div className={`author-preview${testing ? "" : " author-preview--editing"}`}>

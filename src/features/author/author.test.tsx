@@ -256,6 +256,88 @@ describe("Author", () => {
         expect(screen.getAllByLabelText("Remove constraint").length).toBe(before);
     });
 
+    it("has a Code tab with runnable PuzzleBuilder code that loads the puzzle it builds, undoably (#123)", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const textarea = () => container.querySelector("textarea") as HTMLTextAreaElement;
+        expect(container.querySelector(".author-sdk")).toBeNull();
+        const original = textarea().value;
+
+        fireEvent.click(screen.getByRole("tab", { name: "Code" }));
+        const code = screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement;
+        expect(code.value).toMatch(/PuzzleBuilder\.create/);
+        // loading an example is available here too (#164: the tab shows the live puzzle)
+        expect(screen.getByRole("button", { name: /load an example/i })).not.toBeNull();
+
+        fireEvent.change(code, {
+            target: {
+                value: 'return PuzzleBuilder.create("from-code", "Built In Code").grid(4, 4).domain([1, 2, 3, 4]).use("sudoku");',
+            },
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Run" })); // a builder left un-built is built for you
+
+        fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
+        expect(textarea().value).toContain('"title": "Built In Code"');
+        fireEvent.click(screen.getByRole("button", { name: /^undo puzzle edit$/i }));
+        expect(textarea().value).toBe(original);
+    });
+
+    it("shows the loaded puzzle as code, in step with the JSON, and keeps edits as a draft until run or discarded (#164)", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const json = () => container.querySelector("textarea") as HTMLTextAreaElement;
+        const def = JSON.parse(json().value) as { metadata: { title: string } };
+        fireEvent.click(screen.getByRole("tab", { name: "Code" }));
+        const code = screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement;
+        expect(code.value).toContain(JSON.stringify(def.metadata.title));
+
+        // an edit made on the JSON tab shows up in the code
+        fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
+        fireEvent.change(json(), { target: { value: json().value.replace(def.metadata.title, "Renamed Elsewhere") } });
+        fireEvent.click(screen.getByRole("tab", { name: "Code" }));
+        expect((screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement).value).toContain(
+            "Renamed Elsewhere",
+        );
+
+        // typing makes a draft that survives a tab switch, and Discard goes back to the puzzle's code
+        fireEvent.change(screen.getByLabelText("PuzzleBuilder code"), { target: { value: "// my draft" } });
+        fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
+        fireEvent.click(screen.getByRole("tab", { name: "Code" }));
+        expect((screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement).value).toBe("// my draft");
+        fireEvent.click(screen.getByRole("button", { name: "Discard edits" }));
+        expect((screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement).value).toContain(
+            "Renamed Elsewhere",
+        );
+    });
+
+    it("reports a Code tab error instead of throwing, and leaves the puzzle alone (#123)", () => {
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        const original = (container.querySelector("textarea") as HTMLTextAreaElement).value;
+        fireEvent.click(screen.getByRole("tab", { name: "Code" }));
+        const code = screen.getByLabelText("PuzzleBuilder code");
+
+        fireEvent.change(code, { target: { value: 'return PuzzleBuilder.create("x", "X").nope();' } });
+        fireEvent.click(screen.getByRole("button", { name: "Run" }));
+        expect(container.querySelector(".author-error")?.textContent).toMatch(/nope/);
+
+        fireEvent.change(code, { target: { value: "const forgotReturn = 1;" } });
+        fireEvent.click(screen.getByRole("button", { name: "Run" }));
+        expect(container.querySelector(".author-error")?.textContent).toMatch(/must return the puzzle/);
+
+        fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
+        expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe(original);
+    });
+
     it("still undoes via Ctrl+Z when the edit left the puzzle uncompilable, so there's no board to hold a button", () => {
         const { container } = render(
             <MemoryRouter>

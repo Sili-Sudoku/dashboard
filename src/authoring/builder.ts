@@ -15,12 +15,7 @@
  */
 
 import type { CellId, GridGeometrySpec } from "@/runtime/geometry.ts";
-import type {
-    ConstraintSpec,
-    PuzzleDefinition,
-    PuzzleMetadata,
-    VisualObject,
-} from "@/runtime/puzzle.ts";
+import type { ConstraintSpec, PuzzleDefinition, PuzzleMetadata, VisualObject } from "@/runtime/puzzle.ts";
 import type { Expr } from "@/runtime/expression.ts";
 import { givensFromRows } from "@/puzzles/grid_text.ts";
 
@@ -32,6 +27,7 @@ export class PuzzleBuilder {
     private readonly regionMap: Record<string, readonly CellId[]> = {};
     private readonly constraintList: ConstraintSpec[] = [];
     private readonly objectList: VisualObject[] = [];
+    private fogHidden?: readonly CellId[];
     private solutionMap?: Record<CellId, number>;
     private presentationOpts: PuzzleDefinition["presentation"];
 
@@ -90,6 +86,12 @@ export class PuzzleBuilder {
         return this;
     }
 
+    /** Cells hidden behind fog at the start (needs a `solution` to reveal against). */
+    fog(hidden: readonly CellId[]): this {
+        this.fogHidden = hidden;
+        return this;
+    }
+
     solution(map: Record<CellId, number>): this {
         this.solutionMap = map;
         return this;
@@ -116,6 +118,7 @@ export class PuzzleBuilder {
         };
         if (Object.keys(this.givenMap).length > 0) def.givens = this.givenMap;
         if (Object.keys(this.regionMap).length > 0) def.regions = this.regionMap;
+        if (this.fogHidden) def.fog = { hidden: this.fogHidden };
         if (this.objectList.length > 0) def.objects = this.objectList;
         if (this.solutionMap) def.solution = this.solutionMap;
         if (this.presentationOpts) def.presentation = this.presentationOpts;

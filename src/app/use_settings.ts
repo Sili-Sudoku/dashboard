@@ -8,6 +8,9 @@ import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
  * own bolted-on, non-persistent state. New preferences add a key here and a
  * control on the Settings page; they don't need their own storage story.
  */
+/** The Author page's left-pane tabs: raw JSON, the drag-and-drop builder, or the read-only PuzzleBuilder code sample. */
+export type EditorMode = "json" | "visual" | "code";
+
 export interface Settings {
     /** PuzzlePlayer: flag a cell red on cursor-leave if its remaining centre notes no longer include the solution digit. */
     checkNotesOnLeave: boolean;
@@ -24,7 +27,7 @@ export interface Settings {
      * JSON view — those are per-session by nature. */
     constraintPanelOpen: boolean;
     hotkeyLegendOpen: boolean;
-    authorEditorMode: "json" | "visual";
+    authorEditorMode: EditorMode;
     /** Visual builder: names of the tools the author pinned to quick access (the rest sit behind "Add tool"). */
     builderTools: readonly string[];
 }

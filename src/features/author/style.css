@@ -375,35 +375,27 @@
 }
 
 /* Collapsed by default: reference material, not part of the editing flow. */
+/* The Code tab: a code box that fills the pane like the JSON box does, with Run beneath. */
 .author-sdk {
-    margin-top: 0.6rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--line);
+    flex: 1 1 auto;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.author-sdk summary {
-    cursor: pointer;
-    font-size: 0.82rem;
+.author-code-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.author-code-hint {
+    font-size: 0.75rem;
     color: var(--ink-soft);
 }
 
-.author-sdk p {
-    margin: 0.5rem 0;
-    font-size: 0.82rem;
-    color: var(--ink-soft);
-}
-
-.author-sdk pre {
-    background: var(--code-bg);
-    color: var(--code-ink);
-    padding: 1rem;
-    border-radius: 0.6rem;
-    overflow-x: auto;
-    font-size: 0.76rem;
-    line-height: 1.5;
-}
-
-/* JSON / Visual tabs on the left, the "Load example" menu at the far end of the same row. */
+/* JSON / Visual / Code tabs on the left, the "Load example" menu at the far end of the same row. */
 .author-mode-bar {
     display: flex;
     align-items: center;
