@@ -12,7 +12,7 @@ const SHORTCUTS: { keys: string; action: string }[] = [
     { keys: "Ctrl/Cmd+digit", action: "toggle a centre note directly" },
     { keys: "Space", action: "switch between Digit and Corner mode" },
     { keys: "Backspace / Delete", action: "erase the active layer (value / corner / centre)" },
-    { keys: "Tab / Shift+Tab", action: "jump to the next / previous empty cell" },
+    { keys: "Tab / Shift+Tab", action: "next / previous empty cell (Tab again past the last one leaves the board)" },
     { keys: "Enter", action: "select every cell sharing the cursor cell's value" },
     { keys: "Ctrl+Z", action: "undo" },
     { keys: "Ctrl+Shift+Z / Ctrl+Y", action: "redo" },

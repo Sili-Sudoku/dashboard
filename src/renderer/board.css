@@ -202,3 +202,9 @@
     fill: var(--violated-line);
     font-weight: 700;
 }
+
+/* The board is a Tab stop (#64); keep a visible ring for keyboard focus. */
+.board:focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: -3px; /* inside: the viewport clips anything outside the board */
+}

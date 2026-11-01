@@ -292,28 +292,44 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".cell-ring-cursor, .cell-ring-selected")).toHaveLength(2);
     });
 
-    it("Tab/Shift+Tab jump the cursor between empty cells, but not while a control is focused", () => {
+    it("Tab/Shift+Tab step between empty cells while the board has focus, and fall through at the ends", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cursorRing = () => container.querySelector(".cell-ring-cursor") as SVGRectElement;
         const ringPos = () => ({ x: cursorRing().getAttribute("x"), y: cursorRing().getAttribute("y") });
+        const board = container.querySelector<SVGSVGElement>("svg.board")!;
+        expect(board.getAttribute("tabindex")).toBe("0");
 
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]); // r1c1 (given)
+        board.focus();
         const start = ringPos();
 
-        fireEvent.keyDown(window, { key: "Tab" });
+        expect(fireEvent.keyDown(board, { key: "Tab" })).toBe(false); // handled -> default prevented
         const afterTab = ringPos();
         expect(afterTab).not.toEqual(start);
 
-        fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+        // r1c2 is the first empty cell: Shift+Tab has nowhere earlier to go, so it falls through.
+        expect(fireEvent.keyDown(board, { key: "Tab", shiftKey: true })).toBe(true);
+        expect(ringPos()).toEqual(afterTab);
+        fireEvent.keyDown(board, { key: "Tab" });
         expect(ringPos()).not.toEqual(afterTab);
+        fireEvent.keyDown(board, { key: "Tab", shiftKey: true });
+        expect(ringPos()).toEqual(afterTab);
 
-        // Tab's normal job (moving focus between controls) takes over once a
-        // control actually has focus, instead of jumping the puzzle cursor.
+        // Past the last empty cell Tab is left alone so focus can leave the board.
+        for (let i = 0; i < 40; i++) fireEvent.keyDown(board, { key: "Tab" });
+        const atEnd = ringPos();
+        expect(fireEvent.keyDown(board, { key: "Tab" })).toBe(true);
+        expect(ringPos()).toEqual(atEnd);
+    });
+
+    it("doesn't steal Tab or Enter from a focused control", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
         const eraseButton = screen.getByRole("button", { name: /erase/i });
         eraseButton.focus();
-        const beforeFocusedTab = ringPos();
-        fireEvent.keyDown(window, { key: "Tab" });
-        expect(ringPos()).toEqual(beforeFocusedTab);
+        expect(fireEvent.keyDown(eraseButton, { key: "Tab" })).toBe(true);
+        expect(fireEvent.keyDown(eraseButton, { key: "Enter" })).toBe(true);
+        expect(fireEvent.keyDown(eraseButton, { key: " " })).toBe(true);
     });
 
     it("Escape visibly removes the cursor ring, not just an invisible internal selection", () => {

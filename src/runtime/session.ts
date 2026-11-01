@@ -279,23 +279,29 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Moves the cursor to the next (or, with `direction` -1, previous) empty cell, wrapping around. */
-    jumpToEmptyCell(direction: 1 | -1): void {
+    /**
+     * Moves the cursor to the next (or, with `direction` -1, previous) empty cell. Wraps around
+     * unless `wrap` is false, in which case it stops at the ends. Returns whether it moved.
+     */
+    jumpToEmptyCell(direction: 1 | -1, wrap = true): boolean {
         const cells = this.geometry.cells;
-        if (cells.length === 0) return;
+        if (cells.length === 0) return false;
         const startIndex = this.cursor ? cells.indexOf(this.cursor) : -1;
 
         for (let step = 1; step <= cells.length; step++) {
-            const index = (((startIndex + direction * step) % cells.length) + cells.length) % cells.length;
+            const raw = startIndex + direction * step;
+            if (!wrap && (raw < 0 || raw >= cells.length)) return false;
+            const index = ((raw % cells.length) + cells.length) % cells.length;
             const cell = cells[index];
             if (this.valueOf(cell) === null) {
                 this.leaveCursorCell(cell);
                 this.cursor = cell;
                 this.selection = new Set([cell]);
                 this.emit();
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     /**

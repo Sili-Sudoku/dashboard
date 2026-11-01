@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Lock, Maximize, Scan, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
@@ -72,6 +72,7 @@ const centerNoteFontFactor = (charCount: number): number =>
     clamp(CENTER_NOTE_TARGET_WIDTH / (charCount * CENTER_NOTE_GLYPH_WIDTH_EM), 0.11, 0.3);
 
 export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection, label, describedBy }: Props) {
+    const hatchId = `hatch-${useId().replace(/:/g, "")}`;
     const painting = useRef(false);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
     // Two-finger touch pan/zoom (#70 follow-up): a touchscreen has no middle/right
@@ -330,6 +331,9 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         if (e.button === 1 || e.button === 2) return; // middle/right-click pans instead (see the container handlers below)
         e.preventDefault();
         painting.current = true;
+        // preventDefault() above also suppresses the browser's own click-to-focus, so focus
+        // the board by hand — that's what makes Tab step between cells (see use_puzzle_session).
+        (e.currentTarget as SVGElement).ownerSVGElement?.focus({ preventScroll: true });
         (e.target as Element).releasePointerCapture?.(e.pointerId);
         onPaintStart(cell, e.shiftKey || e.metaKey || e.ctrlKey);
     };
@@ -355,6 +359,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
             role="group"
             aria-label={label}
             aria-describedby={describedBy}
+            tabIndex={0}
             onPointerUp={stopPainting}
             onPointerLeave={stopPainting}
         >
@@ -366,6 +371,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 fill="var(--surface)"
                 onPointerDown={onClearSelection}
             />
+
+            <defs>
+                {/* Violated/invalid cells get a hatch on top of the tint, so "wrong" doesn't
+                    depend on telling two colours apart. */}
+                <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="6" stroke="var(--violated-line)" strokeWidth="1.5" opacity="0.4" />
+                </pattern>
+            </defs>
 
             {/* cell tones */}
             {visibleScene.cells.map((c) => (
@@ -380,6 +393,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     onPointerEnter={handleCellEnter(c.cell)}
                 />
             ))}
+
+            <g pointerEvents="none">
+                {visibleScene.cells
+                    .filter((c) => c.tone !== "normal")
+                    .map((c) => (
+                        <rect key={`hatch-${c.cell}`} x={c.x} y={c.y} width={c.size} height={c.size} fill={`url(#${hatchId})`} />
+                    ))}
+            </g>
 
             {/* grid + box lines, drawn before constraint graphics so a dot/marker
                 sitting on a cell boundary (kropki, XV, ...) isn't painted over by

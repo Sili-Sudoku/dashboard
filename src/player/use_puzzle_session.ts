@@ -329,14 +329,20 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: Exter
             return !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
         };
 
-        /**
-         * Tab/Shift+Tab jump to the next/previous empty cell, but only when
-         * nothing else on the page is focused — otherwise Tab keeps its normal
-         * job of moving focus between buttons/controls (accessibility).
-         */
-        const isInteractiveFocus = () => {
+        /** Focus is on a control whose own Enter/Space behaviour must not be hijacked. */
+        const isActivatable = () => {
             const active = document.activeElement;
-            return active instanceof HTMLElement && active !== document.body && active.tagName !== "svg";
+            return active instanceof HTMLElement && !!active.closest("button, a[href], summary, select, [role=button]");
+        };
+
+        /**
+         * The board is a Tab stop. While it has focus Tab/Shift+Tab step to the next/previous empty
+         * cell, but never wrap: at the last (first) empty cell Tab falls through to normal focus
+         * order, so keyboard users can always leave the board (no keyboard trap).
+         */
+        const isBoardFocused = () => {
+            const active = document.activeElement;
+            return active instanceof SVGElement && active.classList.contains("board");
         };
 
         const restoreMode = () => {
@@ -400,16 +406,17 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: Exter
                 return;
             }
             if (e.key === " ") {
+                if (isActivatable()) return;
                 e.preventDefault();
                 session.setInputMode(session.inputMode === "digit" ? "corner" : "digit");
                 return;
             }
-            if (e.key === "Tab" && !isInteractiveFocus()) {
-                e.preventDefault();
-                session.jumpToEmptyCell(e.shiftKey ? -1 : 1);
+            if (e.key === "Tab" && isBoardFocused()) {
+                if (session.jumpToEmptyCell(e.shiftKey ? -1 : 1, false)) e.preventDefault();
                 return;
             }
             if (e.key === "Enter") {
+                if (isActivatable()) return;
                 e.preventDefault();
                 session.selectSameValue();
                 return;

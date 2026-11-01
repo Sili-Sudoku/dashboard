@@ -270,6 +270,16 @@ describe("PuzzleSession", () => {
         expect(session.getCursor()).toBe("r4c4"); // wraps past the start to the last cell
     });
 
+    it("jumpToEmptyCell without wrap stops at the ends and reports it", () => {
+        session.select("r4c4");
+        expect(session.jumpToEmptyCell(1, false)).toBe(false);
+        expect(session.getCursor()).toBe("r4c4");
+        session.select("r1c1");
+        expect(session.jumpToEmptyCell(-1, false)).toBe(false);
+        expect(session.jumpToEmptyCell(1, false)).toBe(true);
+        expect(session.getCursor()).toBe("r1c2");
+    });
+
     it("jumpToEmptyCell skips over filled cells", () => {
         session.select("r1c2");
         session.input(2);
