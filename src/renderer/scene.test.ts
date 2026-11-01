@@ -153,6 +153,52 @@ describe("buildScene", () => {
         });
     });
 
+    it("resolves colour marks to palette colours, keeping each mark's 1-based position (#35)", () => {
+        const scene = buildScene({
+            puzzle,
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            colorsOf: (c) => (c === "r1c1" ? [0, 2] : c === "r1c2" ? [99] : []),
+            markPalette: ["#111111", "#222222", "#333333"],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, () => null),
+        });
+        expect(scene.cells.find((c) => c.cell === "r1c1")?.marks).toEqual([
+            { position: 1, color: "#111111" },
+            { position: 3, color: "#333333" },
+        ]);
+        expect(scene.cells.find((c) => c.cell === "r1c2")?.marks).toEqual([]);
+        expect(scene.cells.find((c) => c.cell === "r1c3")?.marks).toEqual([]);
+    });
+
+    it("resolves the background mark to the theme surface, reported as digit 0 (#35)", () => {
+        const scene = buildScene({
+            puzzle,
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            colorsOf: (c) => (c === "r1c1" ? [0, 9] : []),
+            markPalette: ["#111111"],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, () => null),
+        });
+        expect(scene.cells.find((c) => c.cell === "r1c1")?.marks).toEqual([
+            { position: 1, color: "#111111" },
+            { position: 0, color: "var(--surface)" },
+        ]);
+    });
+
     it("carries per-cell centre notes into the scene, distinct from corner notes", () => {
         const scene = buildScene({
             puzzle,

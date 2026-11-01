@@ -125,10 +125,12 @@ export default function PuzzlePlayer({
                 hiddenCells: session.getHiddenCells(),
                 invalidConstraintIds,
                 highlightSameValue: settings.highlightSameValue,
+                colorsOf: (c) => session.displayState(c).colors,
+                markPalette: settings.markColors,
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution, settings.highlightSameValue],
+        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution, settings.highlightSameValue, settings.markColors],
     );
 
     const onPaintStart = useCallback(
@@ -192,6 +194,7 @@ export default function PuzzlePlayer({
                 <section className="pp-group pp-solve" aria-label="Solving controls">
                     <NumberPad
                         values={puzzle.domain}
+                        palette={settings.markColors}
                         mode={session.inputMode}
                         onInput={(v) => session.input(v)}
                         onErase={() => session.erase()}

@@ -4,6 +4,7 @@ import { Lock, Maximize, Scan, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 import { useSettings } from "@/app/use_settings.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import type { Scene } from "@/renderer/scene.ts";
+import { cornerSlot } from "@/renderer/corner_slot.ts";
 import ShapeNode from "@/renderer/ShapeNode.tsx";
 import {
     cellInViewport,
@@ -403,6 +404,25 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     ))}
             </g>
 
+            {/* colour marks (#35): the player's own cell colouring, under the grid and
+                digits. One mark fills the cell; several split it into even vertical
+                stripes (SudokuPad splits into wedges; stripes keep it simple). */}
+            <g pointerEvents="none">
+                {visibleScene.cells.flatMap((c) =>
+                    c.marks.map((mark, i) => (
+                        <rect
+                            key={`mark-${c.cell}-${mark.position}`}
+                            x={c.x + (c.size * i) / c.marks.length}
+                            y={c.y}
+                            width={c.size / c.marks.length}
+                            height={c.size}
+                            fill={mark.color}
+                            className="cell-mark"
+                        />
+                    )),
+                )}
+            </g>
+
             {/* same-value highlight (#73): a soft wash over matching cells, under the
                 grid and digits and separate from the tone fill and selection ring */}
             <g pointerEvents="none">
@@ -512,8 +532,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     return (
                         <g key={`notes-${c.cell}`}>
                             {c.notes.map((n) => {
-                                const col = (n - 1) % 3;
-                                const row = Math.floor((n - 1) / 3);
+                                const { col, row } = cornerSlot(n);
                                 return (
                                     <text
                                         key={`n-${c.cell}-${n}`}

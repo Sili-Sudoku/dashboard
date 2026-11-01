@@ -15,6 +15,7 @@ import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
 import { hiddenCells } from "@/runtime/fog.ts";
+import { MARK_COLOR_COUNT, markIndexForDigit } from "@/runtime/mark_colors.ts";
 
 export interface CellState {
     value: number | null;
@@ -22,9 +23,11 @@ export interface CellState {
     notes: readonly number[];
     /** Centre (candidate) notes: rendered as a compact growing list. */
     centerNotes: readonly number[];
+    /** Colour marks (#35): palette indices, ascending. An independent layer — digits and notes never touch it. */
+    colors: readonly number[];
 }
 
-const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [] };
+const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [], colors: [] };
 
 /**
  * One undo/redo step. Per-cell edits (typing, notes, erase) are the hot
@@ -50,7 +53,10 @@ const toggleSet = (notes: readonly number[], digit: number): number[] => {
 
 /** Compact, serialisable player progress (entered cells only). */
 export type ProgressSnapshot = Readonly<
-    Record<CellId, { value?: number; notes?: readonly number[]; centerNotes?: readonly number[] }>
+    Record<
+        CellId,
+        { value?: number; notes?: readonly number[]; centerNotes?: readonly number[]; colors?: readonly number[] }
+    >
 >;
 
 export type SelectMode = "replace" | "add" | "toggle";
@@ -63,11 +69,10 @@ export interface SessionOptions {
 }
 
 /**
- * What a plain digit press (number pad click or keyboard digit) does.
- * "color" is not implemented yet (#35) but is listed here so pad/session
- * consumers have one seam to extend rather than two.
+ * What a plain digit press (number pad click or keyboard digit) does. In
+ * "color" mode the digit picks a palette colour (1-based) instead of a value.
  */
-export type InputMode = "digit" | "corner" | "center";
+export type InputMode = "digit" | "corner" | "center" | "color";
 
 /**
  * Outcome of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
@@ -154,7 +159,9 @@ export class PuzzleSession {
 
     cellState(cell: CellId): CellState {
         const given = this.puzzle.givens[cell];
-        if (given !== undefined) return { value: given, notes: [], centerNotes: [] };
+        if (given !== undefined) {
+            return { value: given, notes: [], centerNotes: [], colors: this.board.get(cell)?.colors ?? [] };
+        }
         return this.board.get(cell) ?? EMPTY_CELL;
     }
 
@@ -428,6 +435,11 @@ export class PuzzleSession {
     input(digit: number): void {
         if (this.inputMode === "corner") return this.toggleCornerNote(digit);
         if (this.inputMode === "center") return this.toggleCenterNote(digit);
+        if (this.inputMode === "color") {
+            const index = markIndexForDigit(digit);
+            if (index !== undefined) this.toggleColor(index);
+            return;
+        }
 
         const cells = this.targets();
         if (cells.length === 0) return;
@@ -436,7 +448,7 @@ export class PuzzleSession {
         this.pushPatch(cells);
         this.checkArmed = false;
         for (const cell of cells) {
-            this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+            this.board.set(cell, { ...(this.board.get(cell) ?? EMPTY_CELL), value: digit, notes: [], centerNotes: [] });
             this.incorrectCells.delete(cell);
         }
         this.markDirty(cells);
@@ -460,7 +472,7 @@ export class PuzzleSession {
 
         this.checkArmed = false;
         for (const cell of cells) {
-            this.board.set(cell, { value: digit, notes: [], centerNotes: [] });
+            this.board.set(cell, { ...(this.board.get(cell) ?? EMPTY_CELL), value: digit, notes: [], centerNotes: [] });
             this.incorrectCells.delete(cell);
         }
         this.markDirty(cells);
@@ -475,6 +487,46 @@ export class PuzzleSession {
     /** Toggles a centre (candidate) note directly, independent of `inputMode`. */
     toggleCenterNote(digit: number): void {
         this.toggleNote(digit, "centerNotes");
+    }
+
+    /**
+     * Toggles palette colour `index` on the selection (#35). Unlike digits and
+     * notes it applies to givens too — marking a clue is half the point — and
+     * leaves the cell's value and notes alone. If every target already has the
+     * colour it's removed from all of them; otherwise it's added to the rest, so
+     * one press on a mixed selection paints the whole selection.
+     */
+    toggleColor(index: number): void {
+        if (!Number.isInteger(index) || index < 0 || index >= MARK_COLOR_COUNT) return;
+        const cells = this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : [];
+        if (cells.length === 0) return;
+
+        const has = (c: CellId) => (this.board.get(c)?.colors ?? []).includes(index);
+        const remove = cells.every(has);
+
+        this.pushPatch(cells);
+        for (const cell of cells) {
+            const current = this.board.get(cell) ?? EMPTY_CELL;
+            const colors = remove
+                ? current.colors.filter((c) => c !== index)
+                : [...new Set([...current.colors, index])].sort((a, b) => a - b);
+            this.setOrDrop(cell, { ...current, colors });
+        }
+        this.emit();
+    }
+
+    /** Stores `state`, or drops the cell's entry entirely once nothing is left on it. */
+    private setOrDrop(cell: CellId, state: CellState): void {
+        if (
+            state.value === null &&
+            state.notes.length === 0 &&
+            state.centerNotes.length === 0 &&
+            state.colors.length === 0
+        ) {
+            this.board.delete(cell);
+        } else {
+            this.board.set(cell, state);
+        }
     }
 
     private toggleNote(digit: number, field: "notes" | "centerNotes"): void {
@@ -492,8 +544,9 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Clears only the layer matching the active `inputMode` (value / corner / center). */
+    /** Clears only the layer matching the active `inputMode` (value / corner / center / colour). */
     erase(): void {
+        if (this.inputMode === "color") return this.eraseColors();
         const cells = this.targets();
         if (cells.length === 0) return;
 
@@ -512,15 +565,21 @@ export class PuzzleSession {
         for (const cell of cells) {
             const current = this.board.get(cell);
             if (!current) continue;
-            const next = field === "value" ? { ...current, value: null } : { ...current, [field]: [] };
-            if (next.value === null && next.notes.length === 0 && next.centerNotes.length === 0) {
-                this.board.delete(cell);
-            } else {
-                this.board.set(cell, next);
-            }
+            this.setOrDrop(cell, field === "value" ? { ...current, value: null } : { ...current, [field]: [] });
             if (field === "value") this.incorrectCells.delete(cell);
         }
         if (field === "value") this.markDirty(cells);
+        this.emit();
+    }
+
+    private eraseColors(): void {
+        const cells = this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : [];
+        if (!cells.some((c) => (this.board.get(c)?.colors.length ?? 0) > 0)) return;
+        this.pushPatch(cells);
+        for (const cell of cells) {
+            const current = this.board.get(cell);
+            if (current) this.setOrDrop(cell, { ...current, colors: [] });
+        }
         this.emit();
     }
 
@@ -558,16 +617,16 @@ export class PuzzleSession {
     // --- persistence ---------------------------------------------------
 
     toProgress(): ProgressSnapshot {
-        const out: Record<CellId, { value?: number; notes?: readonly number[]; centerNotes?: readonly number[] }> = {};
+        const out: Record<CellId, ProgressSnapshot[CellId]> = {};
         for (const [cell, state] of this.board) {
-            if (state.value !== null) {
-                out[cell] = { value: state.value };
-            } else if (state.notes.length > 0 || state.centerNotes.length > 0) {
-                const entry: { notes?: readonly number[]; centerNotes?: readonly number[] } = {};
+            const entry: { value?: number; notes?: readonly number[]; centerNotes?: readonly number[]; colors?: readonly number[] } = {};
+            if (state.value !== null) entry.value = state.value;
+            else {
                 if (state.notes.length > 0) entry.notes = state.notes;
                 if (state.centerNotes.length > 0) entry.centerNotes = state.centerNotes;
-                out[cell] = entry;
             }
+            if (state.colors.length > 0) entry.colors = state.colors;
+            if (Object.keys(entry).length > 0) out[cell] = entry;
         }
         return out;
     }
@@ -585,20 +644,25 @@ export class PuzzleSession {
     private applyProgress(snapshot: ProgressSnapshot): void {
         this.board.clear();
         const setEntry = (cell: CellId, entry: ProgressSnapshot[CellId]): void => {
+            const colors = [
+                ...new Set((entry.colors ?? []).filter((c) => Number.isInteger(c) && c >= 0 && c < MARK_COLOR_COUNT)),
+            ].sort((a, b) => a - b);
             if (entry.value !== undefined && this.puzzle.domain.includes(entry.value)) {
-                this.board.set(cell, { value: entry.value, notes: [], centerNotes: [] });
+                this.board.set(cell, { value: entry.value, notes: [], centerNotes: [], colors });
                 return;
             }
             const notes = entry.notes ? [...entry.notes].sort((a, b) => a - b) : [];
             const centerNotes = entry.centerNotes ? [...entry.centerNotes].sort((a, b) => a - b) : [];
-            if (notes.length > 0 || centerNotes.length > 0) {
-                this.board.set(cell, { value: null, notes, centerNotes });
+            if (notes.length > 0 || centerNotes.length > 0 || colors.length > 0) {
+                this.board.set(cell, { value: null, notes, centerNotes, colors });
             }
         };
 
         const entries = Object.entries(snapshot).filter(([cell]) => this.geometry.has(cell));
         for (const [cell, entry] of entries) {
             if (!this.isGiven(cell)) setEntry(cell, entry);
+            // A visible given keeps only its colour marks (its value is the clue itself).
+            else setEntry(cell, { colors: entry.colors });
         }
         // A given's own saved guess only matters if it was still hidden by
         // fog when saved — restore it the same way `targets()` lets it be

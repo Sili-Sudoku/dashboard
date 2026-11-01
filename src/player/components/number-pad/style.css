@@ -22,6 +22,37 @@
     gap: 0.4rem;
 }
 
+/* Four modes: two rows of two rather than four cramped columns. */
+.number-pad .pad-modes {
+    flex-wrap: wrap;
+}
+.number-pad .pad-modes .pad-key.wide {
+    flex: 1 1 calc(50% - 0.2rem);
+}
+
+/* Colour mode: the key *is* the swatch, so its digit is just the hotkey hint. The
+   swatches are all light (>= 7:1 against the ink), so the ink digit stays readable. */
+/* The background swatch is the paper colour itself, so it needs an outline to read as a key. */
+.pad-key-color[aria-label="Background color"] {
+    border-style: dashed;
+    color: var(--ink);
+}
+
+.pad-key-color {
+    /* A fixed dark ink, not --ink: the swatches are light in both themes. */
+    color: #211a10;
+    font-size: 0.85rem;
+}
+
+/* 0 sits beside Erase at the width of one digit column; Erase takes the rest. */
+.number-pad .pad-actions .pad-key-zero {
+    flex: 1;
+    height: 2.7rem;
+}
+.number-pad .pad-actions .pad-erase {
+    flex: 2;
+}
+
 .pad-key {
     position: relative;
     padding: 0.65rem 0.5rem;

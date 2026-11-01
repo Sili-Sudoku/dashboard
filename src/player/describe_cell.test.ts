@@ -18,6 +18,7 @@ const cell = (over: Partial<CellShape> = {}): CellShape => ({
     incorrect: false,
     hidden: false,
     sameValue: false,
+    marks: [],
     ...over,
 });
 
@@ -47,5 +48,15 @@ describe("describeCell", () => {
 
     it("falls back to the raw id for a non-grid geometry", () => {
         expect(describeCell(cell({ cell: "hex:2:-1" }))).toBe("Cell hex:2:-1: empty");
+    });
+});
+
+describe("describeCell colour marks", () => {
+    it("names palette colours by their key, and the background mark as 'background'", () => {
+        const marks = [
+            { position: 1, color: "#f4c7c2" },
+            { position: 0, color: "var(--surface)" },
+        ];
+        expect(describeCell(cell({ marks }))).toBe("Row 3, column 4: empty, color 1 and background");
     });
 });

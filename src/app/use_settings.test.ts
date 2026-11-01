@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 import { getSettings, useSettings } from "@/app/use_settings.ts";
+import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
 
 afterEach(() => {
     localStorage.clear();
@@ -13,6 +14,7 @@ describe("useSettings", () => {
         expect(getSettings()).toEqual({
             checkNotesOnLeave: false,
             highlightSameValue: true,
+            markColors: DEFAULT_MARK_COLORS,
             zoomLocked: false,
             constraintPanelOpen: false,
             hotkeyLegendOpen: false,
@@ -51,5 +53,19 @@ describe("useSettings", () => {
 
         expect(a.result.current[0].checkNotesOnLeave).toBe(true);
         expect(b.result.current[0].checkNotesOnLeave).toBe(true);
+    });
+
+    it("persists a customised mark palette", () => {
+        const custom = [...DEFAULT_MARK_COLORS];
+        custom[0] = "#123456";
+        const { result } = renderHook(() => useSettings());
+        act(() => result.current[1]("markColors", custom));
+        expect(getSettings().markColors[0]).toBe("#123456");
+    });
+
+    it("falls back to the default palette when the stored one is malformed", () => {
+        localStorage.setItem("cpr:settings", JSON.stringify({ markColors: ["red", "blue"] }));
+        expect(getSettings().markColors).toEqual(DEFAULT_MARK_COLORS);
+        expect(sanitizePalette([...DEFAULT_MARK_COLORS.slice(1), "nope"])).toEqual(DEFAULT_MARK_COLORS);
     });
 });

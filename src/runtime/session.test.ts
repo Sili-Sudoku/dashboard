@@ -87,7 +87,7 @@ describe("PuzzleSession", () => {
         expect(session.cellState("r1c2").notes).toEqual([4]);
         session.setInputMode("digit");
         session.input(3);
-        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [], colors: [] });
     });
 
     it("input() applies centre notes while in center mode", () => {
@@ -118,7 +118,7 @@ describe("PuzzleSession", () => {
         session.select("r1c2");
         session.input(3);
         session.toggleCornerNote(5);
-        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: 3, notes: [], centerNotes: [], colors: [] });
 
         session.select("r1c1"); // given
         session.toggleCenterNote(2);
@@ -156,7 +156,7 @@ describe("PuzzleSession", () => {
         session.input(2); // overwrites the notes with a value
 
         session.undo();
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1, 3], centerNotes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1, 3], centerNotes: [], colors: [] });
     });
 
     it("undo of an edit that deleted a cell's entry restores it, not a stray empty one", () => {
@@ -183,28 +183,28 @@ describe("PuzzleSession", () => {
         session.input(3); // overwrite all three with the same value in one patch
 
         session.undo();
-        expect(session.cellState("r1c2")).toEqual({ value: 1, notes: [], centerNotes: [] });
-        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [1], centerNotes: [] });
-        expect(session.cellState("r1c4")).toEqual({ value: null, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: 1, notes: [], centerNotes: [], colors: [] });
+        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [1], centerNotes: [], colors: [] });
+        expect(session.cellState("r1c4")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
     });
 
     it("erase only clears the layer matching the active input mode", () => {
         session.select("r1c2");
         session.toggleCornerNote(1);
         session.toggleCenterNote(2);
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2] });
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2], colors: [] });
 
         session.setInputMode("digit");
         session.erase(); // nothing to erase on the value layer
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2] });
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2], colors: [] });
 
         session.setInputMode("corner");
         session.erase();
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [2] });
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [2], colors: [] });
 
         session.setInputMode("center");
         session.erase();
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
     });
 
     it("erase on the digit layer clears the value but leaves notes untouched", () => {
@@ -213,7 +213,7 @@ describe("PuzzleSession", () => {
         session.input(3);
         session.toggleCornerNote(1); // value is set, so this note toggle is a no-op (cell holds a value)
         session.erase();
-        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [], centerNotes: [] });
+        expect(session.cellState("r1c3")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
     });
 
     it("moves a keyboard cursor and stops at edges", () => {
@@ -640,5 +640,119 @@ describe("PuzzleSession — fog", () => {
 
         const restored = new PuzzleSession(compiledWithFog(), { initialProgress: session.toProgress() });
         expect(restored.displayState("r2c2").value).toBe(2);
+    });
+});
+
+describe("PuzzleSession colour marks (#35)", () => {
+    let session: PuzzleSession;
+    const colorsAt = (cell: string) => session.cellState(cell).colors;
+
+    beforeEach(() => {
+        session = new PuzzleSession(compiled());
+        session.setInputMode("color");
+    });
+
+    it("toggles a palette colour on the cursor cell with a plain digit, and off again", () => {
+        session.select("r1c2");
+        session.input(3);
+        expect(colorsAt("r1c2")).toEqual([2]);
+        session.input(3);
+        expect(colorsAt("r1c2")).toEqual([]);
+    });
+
+    it("keeps several colours on one cell, in palette order", () => {
+        session.select("r1c2");
+        session.input(5);
+        session.input(2);
+        expect(colorsAt("r1c2")).toEqual([1, 4]);
+    });
+
+    it("ignores a colour outside the palette", () => {
+        session.select("r1c2");
+        session.input(10);
+        session.input(-1);
+        session.input(2.5);
+        expect(colorsAt("r1c2")).toEqual([]);
+    });
+
+    it("treats 0 as the background colour, which can sit beside a palette colour", () => {
+        session.select("r1c2");
+        session.input(1);
+        session.input(0);
+        expect(colorsAt("r1c2")).toEqual([0, 9]);
+        session.input(0);
+        expect(colorsAt("r1c2")).toEqual([0]);
+    });
+
+    it("also marks givens, which digits and notes can't touch", () => {
+        session.select("r1c1");
+        session.input(1);
+        expect(session.cellState("r1c1")).toEqual({ value: 1, notes: [], centerNotes: [], colors: [0] });
+    });
+
+    it("paints a mixed selection entirely first, and only removes once every cell has it", () => {
+        session.select("r1c2");
+        session.input(1);
+        session.select("r1c2");
+        session.select("r1c3", "add");
+        session.input(1);
+        expect(colorsAt("r1c2")).toEqual([0]);
+        expect(colorsAt("r1c3")).toEqual([0]);
+        session.input(1);
+        expect(colorsAt("r1c2")).toEqual([]);
+        expect(colorsAt("r1c3")).toEqual([]);
+    });
+
+    it("survives entering, replacing and erasing a digit", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.setInputMode("digit");
+        session.input(4);
+        expect(session.cellState("r1c2")).toEqual({ value: 4, notes: [], centerNotes: [], colors: [1] });
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [], colors: [1] });
+    });
+
+    it("erase in colour mode clears only the colours", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.setInputMode("digit");
+        session.input(4);
+        session.setInputMode("color");
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: 4, notes: [], centerNotes: [], colors: [] });
+    });
+
+    it("undoes and redoes a colour change like any other edit", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.undo();
+        expect(colorsAt("r1c2")).toEqual([]);
+        session.redo();
+        expect(colorsAt("r1c2")).toEqual([1]);
+    });
+
+    it("doesn't count as filling the cell (no value, no evaluation effect)", () => {
+        session.select("r1c2");
+        session.input(2);
+        expect(session.valueOf("r1c2")).toBeNull();
+        expect(session.evaluation.filledCount).toBe(1); // only the given
+    });
+
+    it("round-trips through saved progress, including a mark on a given", () => {
+        session.select("r1c2");
+        session.input(2);
+        session.select("r1c1");
+        session.input(7);
+        const restored = new PuzzleSession(compiled(), { initialProgress: session.toProgress() });
+        expect(restored.cellState("r1c2").colors).toEqual([1]);
+        expect(restored.cellState("r1c1").colors).toEqual([6]);
+    });
+
+    it("drops malformed saved colours instead of trusting them", () => {
+        const restored = new PuzzleSession(compiled(), {
+            initialProgress: { r1c2: { colors: [1, 1, -1, 99, 2.5] } },
+        });
+        expect(restored.cellState("r1c2").colors).toEqual([1]);
     });
 });

@@ -1,4 +1,5 @@
 import { useSettings } from "@/app/use_settings.ts";
+import { DEFAULT_MARK_COLORS } from "@/runtime/mark_colors.ts";
 
 import "./style.css";
 
@@ -39,6 +40,41 @@ export default function Settings() {
                         onChange={(e) => setSetting("highlightSameValue", e.target.checked)}
                     />
                 </label>
+
+                <div className="settings-row settings-row-static">
+                    <div>
+                        <div className="settings-row-title">Mark colors</div>
+                        <div className="settings-row-desc">
+                            The palette for Color mode on the number pad. Press 1-9 in Color mode to paint with
+                            the matching color, or 0 for the board background (always the paper color, so it
+                            isn't editable); a cell can hold several, e.g. color 1 plus background. Changing a
+                            color recolors cells already marked with it.
+                        </div>
+                        <div className="settings-palette">
+                            {settings.markColors.map((color, i) => (
+                                <input
+                                    key={i}
+                                    type="color"
+                                    value={color}
+                                    aria-label={`Color ${i + 1}`}
+                                    onChange={(e) =>
+                                        setSetting(
+                                            "markColors",
+                                            settings.markColors.map((c, j) => (j === i ? e.target.value : c)),
+                                        )
+                                    }
+                                />
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => setSetting("markColors", DEFAULT_MARK_COLORS)}
+                        >
+                            Reset colors
+                        </button>
+                    </div>
+                </div>
 
                 <label className="settings-row">
                     <div>

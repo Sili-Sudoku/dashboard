@@ -155,6 +155,13 @@
     pointer-events: none;
 }
 
+/* #35: the palette is light, tuned for dark digits on cream. On the dark theme the
+   digits are cream, so mute the marks there (they stay distinguishable, just darker)
+   instead of putting light text on light pastels. */
+:root[data-theme="dark"] .board .cell-mark {
+    opacity: 0.4;
+}
+
 /* #73: translucent so it layers over a violated/invalid tone instead of hiding it. */
 .board .cell-same {
     fill: var(--brand);

@@ -43,3 +43,25 @@
     height: 1.1rem;
     accent-color: var(--brand);
 }
+
+/* Not a <label>: it holds several controls, so a click anywhere mustn't forward to one. */
+.settings-row-static {
+    cursor: default;
+}
+
+.settings-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.7rem 0;
+}
+
+.settings-palette input[type="color"] {
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    border: 2px solid var(--ink);
+    border-radius: 0.3rem;
+    background: none;
+    cursor: pointer;
+}

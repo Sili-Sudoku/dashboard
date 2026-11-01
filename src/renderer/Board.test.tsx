@@ -33,6 +33,7 @@ const bigScene = (n: number, cellSize = 20): Scene => {
                 incorrect: false,
                 hidden: false,
                 sameValue: false,
+                marks: [],
             });
         }
     }

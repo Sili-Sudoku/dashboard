@@ -29,5 +29,10 @@ export const describeCell = (cell: CellShape): string => {
         cell.flagged && "a note rules out the right digit",
     ].filter(Boolean);
 
+    if (cell.marks.length > 0) {
+        const names = cell.marks.map((m) => (m.position === 0 ? "background" : String(m.position)));
+        what += `, color ${names.join(" and ")}`;
+    }
+
     return `${where}: ${what}${problems.length > 0 ? ` (${problems.join(", ")})` : ""}`;
 };

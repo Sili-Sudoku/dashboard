@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
+
 /**
  * The shared home for player preferences (#69) — one localStorage blob
  * instead of each toggle (check-notes-on-leave, zoom-lock, ...) inventing its
@@ -9,6 +11,8 @@ import { useEffect, useState } from "react";
 export interface Settings {
     /** PuzzlePlayer: flag a cell red on cursor-leave if its remaining centre notes no longer include the solution digit. */
     checkNotesOnLeave: boolean;
+    /** Colour-marking palette (#35): one #rrggbb per slot, shared by every puzzle. */
+    markColors: readonly string[];
     /** Board: wash every cell matching the cursor cell's value (#73). */
     highlightSameValue: boolean;
     /** Board: keep the zoom/pan toolbar's lock engaged (ignore wheel/pinch/fit) across puzzles and reloads. */
@@ -26,6 +30,7 @@ export interface Settings {
 const DEFAULT_SETTINGS: Settings = {
     checkNotesOnLeave: false,
     highlightSameValue: true,
+    markColors: DEFAULT_MARK_COLORS,
     zoomLocked: false,
     constraintPanelOpen: false,
     hotkeyLegendOpen: false,
@@ -45,7 +50,10 @@ const listeners = new Set<() => void>();
 export const getSettings = (): Settings => {
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
-        return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+        if (!raw) return DEFAULT_SETTINGS;
+        const stored = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        // A hand-edited or older blob must never hand the board a malformed palette.
+        return { ...stored, markColors: sanitizePalette(stored.markColors) };
     } catch {
         return DEFAULT_SETTINGS;
     }

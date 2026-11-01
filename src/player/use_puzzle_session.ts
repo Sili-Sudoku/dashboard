@@ -261,6 +261,12 @@ export const usePuzzleSession = (puzzle: CompiledPuzzle, externalHistory?: Exter
         };
 
         const pushDigit = (digitChar: string) => {
+            // Colour mode: the digit picks a palette colour, so there's no
+            // multi-digit value to buffer, whatever the puzzle's domain.
+            if (session.inputMode === "color") {
+                session.input(Number(digitChar));
+                return;
+            }
             // Domains that are entirely single digits behave exactly as before —
             // instant commit, no waiting around for a second keystroke.
             if (!puzzle.domain.some((v) => v >= 10)) {

@@ -11,6 +11,7 @@ import type { CellId, Geometry, Point } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
 import type { EvaluationResult } from "@/runtime/evaluate.ts";
+import { MARK_COLOR_COUNT, resolveMarkColor } from "@/runtime/mark_colors.ts";
 
 export interface SceneInput {
     puzzle: CompiledPuzzle;
@@ -42,6 +43,9 @@ export interface SceneInput {
     /** Flag every other cell showing the same value as the cursor cell (#73) —
      *  purely visual; doesn't touch the real selection or cursor. */
     highlightSameValue?: boolean;
+    /** Colour marks per cell, as palette indices (#35), resolved against `markPalette`. */
+    colorsOf?: (cell: CellId) => readonly number[];
+    markPalette?: readonly string[];
 }
 
 export type CellTone = "normal" | "violated" | "invalid";
@@ -68,6 +72,8 @@ export interface CellShape {
     hidden: boolean;
     /** Shows the same value as the cursor cell (#73) — a passive highlight, separate from tone and ring. */
     sameValue: boolean;
+    /** Colour marks in palette order: the digit that picks each (1-9, 0 = background) and its resolved colour. */
+    marks: readonly { position: number; color: string }[];
 }
 
 export type Shape =
@@ -141,6 +147,11 @@ export const buildScene = (input: SceneInput): Scene => {
             flagged: input.flaggedCells.has(cell),
             incorrect: input.incorrectCells.has(cell),
             hidden,
+            marks: (input.colorsOf?.(cell) ?? []).flatMap((i) => {
+                const color = resolveMarkColor(input.markPalette ?? [], i);
+                // position = the digit that picks it: 1-9, and 0 for the background mark.
+                return color ? [{ position: (i + 1) % MARK_COLOR_COUNT, color }] : [];
+            }),
             sameValue: sameAs !== null && cell !== input.cursor && !hidden && input.valueOf(cell) === sameAs,
         };
     });
