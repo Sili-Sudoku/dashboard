@@ -371,6 +371,17 @@ describe("sandwich definition", () => {
         expect(evalPredicate(out.constraints[0].expr, evalCtx)).toBe(true);
     });
 
+    it("draws its sum just outside the line, before the first cell (#131)", () => {
+        const row = ctx(3, 3);
+        const rowOut = sandwich({ cells: ["r2c1", "r2c2", "r2c3"], sum: 5 }, { ...row, domain: [1, 2, 3] });
+        if (rowOut instanceof Error) throw rowOut;
+        expect(rowOut.objects).toEqual([expect.objectContaining({ kind: "text", text: "5", at: { x: -0.5, y: 1.5 } })]);
+
+        const col = sandwich({ cells: ["r1c3", "r2c3", "r3c3"], sum: 4 }, { ...row, domain: [1, 2, 3] });
+        if (col instanceof Error) throw col;
+        expect(col.objects).toEqual([expect.objectContaining({ at: { x: 2.5, y: -0.5 } })]);
+    });
+
     it("rejects a domain with only one value", () => {
         const geometry = createGeometry({ type: "grid", width: 2, height: 1 });
         const compileCtx: CompileContext = { geometry, regions: {}, domain: [1] };

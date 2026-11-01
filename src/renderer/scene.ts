@@ -167,17 +167,105 @@ export const buildScene = (input: SceneInput): Scene => {
         })
         .sort((a, b2) => a.style.z - b2.style.z);
 
-    return {
-        width,
-        height,
-        viewBox: `0 0 ${width} ${height}`,
+    // Content a definition places outside the grid (sandwich/X-sum/room clues, #130) gets a
+    // margin on whichever sides it overhangs, so it isn't clipped by the viewBox; everything
+    // is then shifted right/down by the left/top margin so the scene stays origin-anchored
+    // at 0,0 (which pan/zoom, culling and the thumbnail all rely on).
+    const margin = overhang(shapes, width, height);
+    const scene: Scene = {
+        width: width + margin.left + margin.right,
+        height: height + margin.top + margin.bottom,
+        viewBox: `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`,
         cellSize,
         cells,
         gridLines: gridLines(geometry, cellSize),
         shapes,
         selectionOutline: selectionOutline(selected, input.cursor, geometry, cellSize),
     };
+    return margin.left === 0 && margin.top === 0 ? scene : translateScene(scene, margin.left, margin.top);
 };
+
+interface Margin {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+}
+
+/** Rough extent of a shape (text width is estimated from its length — good enough to size a margin). */
+const extent = (shape: Shape): { minX: number; minY: number; maxX: number; maxY: number } => {
+    const of = (points: readonly Point[]) => ({
+        minX: Math.min(...points.map((p) => p.x)),
+        minY: Math.min(...points.map((p) => p.y)),
+        maxX: Math.max(...points.map((p) => p.x)),
+        maxY: Math.max(...points.map((p) => p.y)),
+    });
+    switch (shape.kind) {
+        case "polyline":
+        case "polygon":
+            return of(shape.points);
+        case "circle":
+            return { minX: shape.cx - shape.r, minY: shape.cy - shape.r, maxX: shape.cx + shape.r, maxY: shape.cy + shape.r };
+        case "rect":
+            return { minX: shape.x, minY: shape.y, maxX: shape.x + shape.w, maxY: shape.y + shape.h };
+        case "text": {
+            const halfW = (shape.text.length * shape.fontSize * 0.6) / 2;
+            const halfH = shape.fontSize / 2;
+            return { minX: shape.x - halfW, minY: shape.y - halfH, maxX: shape.x + halfW, maxY: shape.y + halfH };
+        }
+        case "arrowhead":
+            return of([
+                { x: shape.at.x - shape.size, y: shape.at.y - shape.size },
+                { x: shape.at.x + shape.size, y: shape.at.y + shape.size },
+            ]);
+        case "cage":
+            return of(shape.segments.flat());
+    }
+};
+
+/** How far (in pixels) shapes reach past each side of the `width` x `height` grid. */
+const overhang = (shapes: readonly Shape[], width: number, height: number): Margin => {
+    const m = { top: 0, right: 0, bottom: 0, left: 0 };
+    for (const shape of shapes) {
+        const e = extent(shape);
+        m.left = Math.max(m.left, -e.minX);
+        m.top = Math.max(m.top, -e.minY);
+        m.right = Math.max(m.right, e.maxX - width);
+        m.bottom = Math.max(m.bottom, e.maxY - height);
+    }
+    return m;
+};
+
+const translatePoint = (p: Point, dx: number, dy: number): Point => ({ x: p.x + dx, y: p.y + dy });
+
+const translateShape = (shape: Shape, dx: number, dy: number): Shape => {
+    switch (shape.kind) {
+        case "polyline":
+        case "polygon":
+            return { ...shape, points: shape.points.map((p) => translatePoint(p, dx, dy)) };
+        case "circle":
+            return { ...shape, cx: shape.cx + dx, cy: shape.cy + dy };
+        case "rect":
+        case "text":
+            return { ...shape, x: shape.x + dx, y: shape.y + dy };
+        case "arrowhead":
+            return { ...shape, at: translatePoint(shape.at, dx, dy) };
+        case "cage":
+            return {
+                ...shape,
+                segments: shape.segments.map(([a, b]) => [translatePoint(a, dx, dy), translatePoint(b, dx, dy)]),
+                label: shape.label && { ...shape.label, x: shape.label.x + dx, y: shape.label.y + dy },
+            };
+    }
+};
+
+const translateScene = (scene: Scene, dx: number, dy: number): Scene => ({
+    ...scene,
+    cells: scene.cells.map((c) => ({ ...c, x: c.x + dx, y: c.y + dy })),
+    gridLines: scene.gridLines.map((l) => ({ ...l, points: l.points.map((p) => translatePoint(p, dx, dy)) })),
+    shapes: scene.shapes.map((s) => translateShape(s, dx, dy)),
+    selectionOutline: scene.selectionOutline.map(([a, b]) => [translatePoint(a, dx, dy), translatePoint(b, dx, dy)]),
+});
 
 /** A lone cell is already marked by the cursor ring; only a larger selection gets the combined outline. */
 const selectionOutline = (
