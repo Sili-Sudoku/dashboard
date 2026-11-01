@@ -17,8 +17,8 @@
    button to frame — collapsed, the panel is just that button, styled like
    any other sidebar toggle (.pp-toggle, from player.css). */
 .constraint-panel.cp-open {
-    border: 1px solid var(--line);
-    border-radius: 0.6rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-lg);
     background: var(--surface);
     overflow: hidden;
 }
@@ -47,6 +47,13 @@
    (unlike every other sidebar toggle) wouldn't visibly react to hover at all. */
 .constraint-panel.cp-open .cp-toggle:hover {
     filter: brightness(0.96);
+}
+/* A status bar inside the box, not a free-standing stamp button. */
+.constraint-panel.cp-open .cp-toggle,
+.constraint-panel.cp-open .cp-toggle:hover:not(:disabled),
+.constraint-panel.cp-open .cp-toggle:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
 }
 
 .cp-groups,

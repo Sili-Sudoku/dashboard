@@ -32,7 +32,7 @@ export default function NumberPad({ values, mode, onInput, onErase, onModeChange
                 {values.map((v) => (
                     <button
                         key={v}
-                        className={`pad-key pad-key-${mode}`}
+                        className={`btn pad-key pad-key-${mode}`}
                         aria-label={mode === "digit" ? String(v) : `${mode === "corner" ? "Corner" : "Center"} note ${v}`}
                         onClick={() => onInput(v)}
                     >
@@ -50,7 +50,7 @@ export default function NumberPad({ values, mode, onInput, onErase, onModeChange
                 {MODES.map(({ mode: m, label, icon: Icon }) => (
                     <button
                         key={m}
-                        className={`pad-key wide ${mode === m ? "active" : ""}`}
+                        className={`btn pad-key wide ${mode === m ? "active" : ""}`}
                         aria-pressed={mode === m}
                         onClick={() => onModeChange(m)}
                     >
@@ -59,7 +59,7 @@ export default function NumberPad({ values, mode, onInput, onErase, onModeChange
                 ))}
             </div>
             <div className="pad-actions">
-                <button className="pad-key wide" onClick={onErase}>
+                <button className="btn pad-key wide" onClick={onErase}>
                     <Eraser size={16} /> Erase
                 </button>
             </div>

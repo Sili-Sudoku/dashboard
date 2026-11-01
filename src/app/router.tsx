@@ -65,12 +65,12 @@ export default function AppRouter() {
                         <nav>
                             <Link to="/puzzles">Puzzles</Link>
                             <Link to="/new">Author</Link>
-                            <Link to="/settings" className="theme-toggle" aria-label="Settings">
+                            <Link to="/settings" className="btn btn-sm" aria-label="Settings">
                                 <SettingsIcon size={16} />
                             </Link>
                             <button
                                 type="button"
-                                className="theme-toggle"
+                                className="btn btn-sm"
                                 onClick={toggleTheme}
                                 aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                             >

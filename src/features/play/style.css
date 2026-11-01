@@ -16,29 +16,6 @@
     flex-shrink: 0;
 }
 
-.play-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.8rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    color: var(--ink);
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.play-btn:hover {
-    background: var(--surface-alt);
-}
-
-.play-btn[aria-pressed="true"] {
-    background: var(--brand-tint);
-    border-color: var(--brand);
-    color: var(--brand-hover);
-}
-
 /* Side-by-side with the board (same shape as .author-grid/.author-editor in
  * the author page) rather than stacked above it — a fixed-width lane next to
  * the board instead of a full-width block that pushes the board down. */

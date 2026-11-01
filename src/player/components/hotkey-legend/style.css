@@ -13,8 +13,8 @@
    button to frame — collapsed, the panel is just that button, styled like
    any other sidebar toggle (.pp-toggle, from player.css). */
 .hotkey-legend.hk-open {
-    border: 1px solid var(--line);
-    border-radius: 0.6rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-lg);
     background: var(--surface);
     overflow: hidden;
 }
@@ -26,7 +26,7 @@
     width: 100%;
     border: none;
     border-radius: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 2px solid var(--ink);
     justify-content: flex-start;
     font-weight: 600;
     background: var(--surface-alt);
@@ -37,6 +37,13 @@
    hover at all. */
 .hotkey-legend.hk-open .hk-toggle:hover {
     filter: brightness(0.96);
+}
+/* A title bar inside the box, not a free-standing stamp button. */
+.hotkey-legend.hk-open .hk-toggle,
+.hotkey-legend.hk-open .hk-toggle:hover:not(:disabled),
+.hotkey-legend.hk-open .hk-toggle:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
 }
 
 .hotkey-legend dl {

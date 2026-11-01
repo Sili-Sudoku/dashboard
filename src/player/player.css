@@ -60,9 +60,10 @@
 
 .pp-solve {
     padding: var(--space-3);
-    border: 1px solid var(--line);
+    border: 2px solid var(--ink);
     border-radius: var(--radius-lg);
     background: var(--surface);
+    box-shadow: 4px 4px 0 var(--line);
 }
 
 .pp-reference {
@@ -120,25 +121,7 @@
 }
 
 .pp-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
     align-self: flex-start;
-    padding: 0.45rem 0.7rem;
-    font-size: 0.85rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    color: var(--ink);
-    cursor: pointer;
-}
-.pp-toggle:hover {
-    background: var(--surface-alt);
-}
-.pp-toggle.active {
-    background: var(--brand);
-    border-color: var(--brand);
-    color: var(--on-brand);
 }
 
 .pp-timer {

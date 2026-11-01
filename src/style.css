@@ -1,112 +1,116 @@
+/* One warm "ink & paper" palette app-wide (#139) — the board and solving
+   surfaces included. The constraint-graphic and state colors below were
+   re-tuned against cream paper, not carried over from the old cool theme;
+   see docs/DESIGN.md for the reasoning and the contrast figures. */
 :root[data-theme="light"] {
-    --bg: #f8f8fc;
-    --surface: #ffffff;
-    --surface-alt: #eef0f8;
-    --ink: #0a0b14;
-    --ink-soft: #565a76;
-    --line: #c7cadf;
-    --line-strong: #2a2c3f;
+    --bg: #f6efe0;
+    --surface: #fbf6ea;
+    --surface-alt: #eee3c8;
+    --ink: #211a10;
+    --ink-soft: #6b5c40;
+    --line: #cdbb8d;
+    --line-strong: #211a10;
 
-    --brand: #5861bb;
-    --brand-hover: #4a53a8;
-    --brand-tint: #e6e8fb;
-    /* Text/icons on a --brand fill. White is 5.5:1 on the light brand but only
-       2.8:1 on the dark theme's lighter brand, so it flips there (7:1). */
-    --on-brand: #ffffff;
-    --accent: #c572b7;
+    /* The one cool color: pen-blue ink, for interactive state (selection,
+       active toggles, links, focus) and the player's own entered digits. It must
+       not be the red pen — red already means "this breaks a rule". */
+    --brand: #2f4b8c;
+    --brand-hover: #243a70;
+    --brand-tint: #e0e4f1;
+    /* Text/icons on a --brand fill: paper in both themes' own terms. */
+    --on-brand: #fbf6ea;
+    /* Stamp-style buttons: face, hover face and offset shadow (dark overrides for depth). */
+    --raised: var(--surface);
+    --raised-hover: var(--surface-alt);
+    --stamp-shadow: var(--ink);
+    --accent: #bd3b28;
 
-    --given: #0a0b14;
-    --entered: #3b45c9;
-    --violated: #fbe0e0;
-    --violated-line: #d33a3a;
-    --invalid: #f6c9c9;
-    --satisfied: #16a34a;
-    --satisfied-tint: #e7f7ec;
-    --satisfied-border: #b9e4c6;
-    --incomplete: #b9803a;
-    --fog: #d7d9e8;
-    --fog-line: #aeb3d1;
+    --given: #211a10;
+    --entered: #2f4b8c;
+    --violated: #f6d5c8;
+    --violated-line: #b8321f;
+    --invalid: #efb9a8;
+    --satisfied: #2c7a4b;
+    --satisfied-tint: #e3ecdf;
+    --satisfied-border: #b3ccb0;
+    --incomplete: #a86b1c;
+    --fog: #d9ceb0;
+    --fog-line: #b3a275;
 
     /* Constraint-graphic palette referenced by definition-authored objects. */
-    --thermo: #9aa4c8;
-    --cage: #4a53a8;
-    --arrow: #333850;
-    --palindrome: #c572b7;
-    --betweenline: #5861bb;
-    --diagonal: #b9bfe0;
+    --thermo: #a89c80;
+    --cage: #3c6e52;
+    --arrow: #4a3c28;
+    --palindrome: #9a4f7d;
+    --betweenline: #4f6aa8;
+    --diagonal: #d1b27a;
 
     /* Code/JSON preview blocks (author SDK panel, play-page JSON view) stay a
        fixed dark "terminal" look in both themes — deliberately not riding on
-       --ink, which flips to near-white in dark mode and would otherwise turn
-       these into unreadable white-on-light-lavender blocks. */
-    --code-bg: #0a0b14;
-    --code-ink: #e9ecff;
+       --ink, which flips to near-white in dark mode. */
+    --code-bg: #1b170f;
+    --code-ink: #f1e8d3;
 
-    /* The "ink & paper" identity established on the landing page (#67),
-       progressively extended to shell chrome and non-solving pages. Kept
-       separate from --bg/--surface/--ink above rather than replacing them —
-       those still back the puzzle-solving surfaces, whose --thermo/--cage/
-       --violated/etc. colors above are tuned against them and haven't been
-       re-audited against this warmer palette yet (see kanban board). */
-    --chrome-paper: #f6efe0;
+    /* Names the landing page, header and /puzzles cards were built on (#67).
+       Where they mean the same thing as the app tokens above they alias them. */
+    --chrome-paper: var(--bg);
     --chrome-paper-edge: #e4d6b4;
-    --chrome-ink: #211a10;
-    --chrome-ink-soft: #6b5c40;
-    --chrome-pen: #bd3b28;
-    --chrome-pen-dark: #8c2a1c;
-    --chrome-line: #cdbb8d;
+    --chrome-ink: var(--ink);
+    --chrome-ink-soft: var(--ink-soft);
+    --chrome-line: var(--line);
     --chrome-moss: #3c6e52;
     --chrome-moss-tint: #e3ecdf;
 }
 
 :root[data-theme="dark"] {
-    --bg: #11121c;
-    --surface: #1a1c2b;
-    --surface-alt: #242637;
-    --ink: #e8e9f2;
-    --ink-soft: #9b9fc0;
-    --line: #343754;
-    --line-strong: #7276a8;
+    --raised: #352b1a;
+    --raised-hover: #40341f;
+    --stamp-shadow: #8a7748;
+    --bg: #1b170f;
+    --surface: #241e14;
+    --surface-alt: #2f2719;
+    --ink: #f1e8d3;
+    --ink-soft: #c2b08a;
+    --line: #453922;
+    --line-strong: #c2b08a;
 
-    --brand: #8b93ef;
-    --brand-hover: #a3aaf5;
-    --brand-tint: #272a4a;
-    --on-brand: #0a0b14;
-    --accent: #d98fcb;
+    --brand: #8fa8e8;
+    --brand-hover: #a9bcf0;
+    --brand-tint: #232a45;
+    --on-brand: #1b170f;
+    --accent: #e8705a;
 
-    --given: #f5f6fb;
-    --entered: #9aa3ff;
-    /* Flagged/invalid tones: a glaring light-mode-style pink would read as a
-       harsh glow against a dark surface, so these stay dark, desaturated
-       tints distinguished mainly by hue (toward red) rather than by being
-       bright — the stroke/line colors carry the actual contrast instead. */
-    --violated: #3a2430;
-    --violated-line: #ef6b7a;
-    --invalid: #4a2230;
-    --satisfied: #3ddc84;
-    --satisfied-tint: #1d3327;
+    --given: #f1e8d3;
+    --entered: #8fa8e8;
+    /* Flagged/invalid tones: a glaring light-mode-style tint would read as a
+       harsh glow against a dark surface, so these stay dark, desaturated tints
+       distinguished mainly by hue (toward red) — the line colors carry the
+       actual contrast instead. */
+    --violated: #43281b;
+    --violated-line: #f07b63;
+    --invalid: #53301f;
+    --satisfied: #63b08a;
+    --satisfied-tint: #1f2c24;
     --satisfied-border: #2f5c3f;
     --incomplete: #e0a858;
-    --fog: #2b2d42;
-    --fog-line: #454875;
+    --fog: #3a2f1d;
+    --fog-line: #5e4d2d;
 
-    --thermo: #6c74a8;
-    --cage: #a3aaf5;
-    --arrow: #c7cadf;
-    --palindrome: #d98fcb;
-    --betweenline: #8b93ef;
-    --diagonal: #40436b;
+    --thermo: #867860;
+    --cage: #63b08a;
+    --arrow: #d9c9a3;
+    --palindrome: #d98fb0;
+    --betweenline: #8fa8e8;
+    --diagonal: #5e4d2d;
 
-    --code-bg: #0a0b14;
-    --code-ink: #e9ecff;
+    --code-bg: #120f09;
+    --code-ink: #f1e8d3;
 
-    --chrome-paper: #1b170f;
+    --chrome-paper: var(--bg);
     --chrome-paper-edge: #2c2415;
-    --chrome-ink: #f1e8d3;
-    --chrome-ink-soft: #c2b08a;
-    --chrome-pen: #e8705a;
-    --chrome-pen-dark: #c9532e;
-    --chrome-line: #453922;
+    --chrome-ink: var(--ink);
+    --chrome-ink-soft: var(--ink-soft);
+    --chrome-line: var(--line);
     --chrome-moss: #63b08a;
     --chrome-moss-tint: #1f2c24;
 }
@@ -117,9 +121,11 @@
     --space-2: 0.5rem;
     --space-3: 0.75rem;
     --space-4: 1rem;
-    --radius-sm: 0.4rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.6rem;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
+    /* Serif display face for headings, same stack as the landing page. */
+    --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
 }
 
 * {
@@ -153,6 +159,7 @@ a {
 }
 
 h1, h2, h3 {
+    font-family: var(--font-display);
     line-height: 1.2;
 }
 
@@ -326,13 +333,13 @@ code, pre {
     .app--board .app-header-actions .play-btn-label {
         display: none;
     }
-    .app--board .app-header-actions .play-btn {
+    .app--board .app-header-actions .btn {
         padding: 0.4rem 0.5rem;
     }
     .app--board .app-header nav {
         gap: 0.35rem;
     }
-    .app--board .app-header nav a:not(.theme-toggle) {
+    .app--board .app-header nav a:not(.btn) {
         font-size: 0.78rem;
     }
 }
@@ -342,14 +349,14 @@ code, pre {
     gap: 1rem;
 }
 
-.app-header nav a {
+.app-header nav a:not(.btn) {
     color: var(--chrome-ink);
     font-weight: 600;
     text-decoration: none;
 }
 
-.app-header nav a:hover {
-    color: var(--chrome-pen);
+.app-header nav a:not(.btn):hover {
+    color: var(--brand);
 }
 
 .app-main {
@@ -403,26 +410,31 @@ button:focus-visible {
  * through --btn-* so re-theming (#139) means re-pointing these in one place.
  * Reuses the global button:focus-visible ring above. */
 .btn {
-    --btn-bg: var(--surface);
-    --btn-bg-hover: var(--surface-alt);
+    --btn-bg: var(--raised);
+    --btn-bg-hover: var(--raised-hover);
     --btn-fg: var(--ink);
-    --btn-border: var(--line);
+    --btn-border: var(--ink);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     font-size: 0.85rem;
+    font-weight: 600;
     white-space: nowrap;
     /* 2rem floor so even .btn-sm is a usable touch target (#138). */
     min-height: 2rem;
     min-width: 2rem;
     touch-action: manipulation;
-    border: 1px solid var(--btn-border);
-    border-radius: var(--radius-md);
+    /* The "stamp" look from the landing page: solid ink border, flat offset
+       shadow instead of a blur, a small press instead of a color fade. */
+    border: 2px solid var(--btn-border);
+    border-radius: var(--radius-sm);
     background: var(--btn-bg);
     color: var(--btn-fg);
+    box-shadow: 2px 2px 0 var(--stamp-shadow);
     cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
 }
 
 /* Icons keep their size when a crowded row squeezes the button's text. */
@@ -432,24 +444,43 @@ button:focus-visible {
 
 .btn:hover:not(:disabled) {
     background: var(--btn-bg-hover);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--stamp-shadow);
+}
+
+.btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 0 0 0 var(--stamp-shadow);
 }
 
 .btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+    box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn {
+        transition: none;
+    }
+    .btn:hover:not(:disabled),
+    .btn:active:not(:disabled) {
+        transform: none;
+    }
 }
 
 .btn-primary,
 .btn.active,
 .btn[aria-pressed="true"] {
-    --btn-bg: var(--brand);
-    --btn-bg-hover: var(--brand-hover);
-    --btn-fg: var(--on-brand);
-    --btn-border: var(--brand);
+    --btn-bg: var(--ink);
+    --btn-bg-hover: var(--ink-soft);
+    --btn-fg: var(--bg);
+    --btn-border: var(--ink);
 }
 
 .btn-ghost {
     --btn-bg: transparent;
+    --btn-bg-hover: var(--surface-alt);
     --btn-border: transparent;
 }
 
@@ -464,21 +495,3 @@ button:focus-visible {
     padding: var(--space-2);
 }
 
-.theme-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border: 1.5px solid var(--chrome-ink);
-    border-radius: 3px;
-    background: var(--chrome-paper-edge);
-    color: var(--chrome-ink-soft);
-    cursor: pointer;
-}
-
-.theme-toggle:hover {
-    color: var(--chrome-pen);
-    border-color: var(--chrome-pen);
-}

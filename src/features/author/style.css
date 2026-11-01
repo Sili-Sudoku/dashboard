@@ -64,8 +64,8 @@
 .author-example select {
     font: inherit;
     padding: 0.2rem 0.4rem;
-    border: 1px solid var(--line);
-    border-radius: 0.35rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
     background: var(--surface);
 }
 
@@ -103,8 +103,8 @@
     font: inherit;
     width: 3.2rem;
     padding: 0.25rem 0.4rem;
-    border: 1px solid var(--line);
-    border-radius: 0.35rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--ink);
     text-align: center;
@@ -160,8 +160,8 @@
     font-size: 0.78rem;
     line-height: 1.45;
     padding: 0.8rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
     resize: vertical;
     background: var(--surface);
     color: var(--ink);
@@ -308,8 +308,8 @@
     font-size: 0.78rem;
     line-height: 1.45;
     padding: 0.6rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
     resize: vertical;
     background: var(--surface);
     color: var(--ink);
@@ -425,8 +425,8 @@
 .visual-builder-param input[type="text"] {
     width: 8rem;
     padding: 0.3rem 0.5rem;
-    border: 1px solid var(--line);
-    border-radius: 0.4rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--ink);
 }

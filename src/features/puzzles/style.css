@@ -36,7 +36,7 @@
 
 .puzzle-card:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 var(--chrome-pen);
+    box-shadow: 5px 5px 0 var(--stamp-shadow);
 }
 
 .pc-title {

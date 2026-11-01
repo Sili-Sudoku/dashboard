@@ -635,7 +635,7 @@ export default function Author() {
                             {result.compiled.solution && (
                                 <button
                                     type="button"
-                                    className={`pp-toggle ${showSolution ? "active" : ""}`}
+                                    className={`btn pp-toggle ${showSolution ? "active" : ""}`}
                                     aria-pressed={showSolution}
                                     onClick={() => setShowSolution(!showSolution)}
                                 >

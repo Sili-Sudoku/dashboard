@@ -1,8 +1,6 @@
-/* The landing page runs its own warm "ink & paper" palette rather than the
-   app shell's cool blue-indigo theme — deliberately distinct, on purpose, so
-   the page that's meant to sell the product doesn't read as a generic
-   dashboard screen. Still answers the light/dark toggle, just with its own
-   hues instead of reusing --brand/--accent. */
+/* The landing page keeps its own display type and a few decorative accents (the red "pen"
+   underline, thermometer art), but its buttons are the shared .btn — red is reserved
+   for violated constraints on the puzzle pages, so it is never an interactive color. */
 .landing {
     --lp-paper: #f6efe0;
     --lp-paper-edge: #e4d6b4;
@@ -85,40 +83,12 @@
     margin-top: 1.6rem;
 }
 
-/* "Rubber stamp" buttons: hard edges, a flat offset shadow instead of blur,
-   and a press-down shift on hover — picked specifically to avoid the soft
-   rounded/gradient CTA look most generated SaaS landing pages default to. */
-.lp-btn {
-    display: inline-flex;
-    align-items: center;
+/* The CTAs are ordinary .btn / .btn-primary (src/style.css) — same stamp look as the rest
+   of the app — just larger for the hero. */
+.landing .lp-btn {
     padding: 0.75rem 1.4rem;
-    border: 2px solid var(--lp-ink);
-    border-radius: 2px;
     font-size: 1rem;
-    font-weight: 700;
     text-decoration: none;
-    box-shadow: 4px 4px 0 var(--lp-pen);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.lp-btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0 var(--lp-pen);
-}
-
-.lp-btn:active {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 var(--lp-pen);
-}
-
-.lp-btn-fill {
-    background: var(--lp-ink);
-    color: var(--lp-paper);
-}
-
-.lp-btn-line {
-    background: transparent;
-    color: var(--lp-ink);
 }
 
 /* --- hero art: a little stack of puzzle sheets, fanned and pinned ------ */
@@ -300,15 +270,20 @@
     margin-top: 0;
 }
 
-.lp-closer .lp-btn-fill {
-    background: var(--lp-paper);
-    color: var(--lp-ink);
-    border-color: var(--lp-paper);
+/* On the inverted band the normal button colors would blend into the background, so swap
+   them: primary = filled with the page paper, secondary = outlined in it. */
+.lp-closer .btn {
+    --btn-bg: transparent;
+    --btn-bg-hover: color-mix(in srgb, var(--lp-paper) 15%, transparent);
+    --btn-fg: var(--lp-paper);
+    --btn-border: var(--lp-paper);
+    --stamp-shadow: var(--lp-ink-soft);
 }
 
-.lp-closer .lp-btn-line {
-    color: var(--lp-paper);
-    border-color: var(--lp-paper);
+.lp-closer .btn-primary {
+    --btn-bg: var(--lp-paper);
+    --btn-bg-hover: var(--lp-paper-edge);
+    --btn-fg: var(--lp-ink);
 }
 
 @media (max-width: 860px) {

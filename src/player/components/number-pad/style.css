@@ -24,17 +24,8 @@
 
 .pad-key {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
     padding: 0.65rem 0.5rem;
     font-size: 1.1rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    color: var(--ink);
-    cursor: pointer;
 }
 
 /* Fixed height so switching the preview content (full digit / shrunk centre
@@ -64,12 +55,3 @@
     font-size: 0.85rem;
 }
 
-.pad-key:hover {
-    background: var(--surface-alt);
-}
-
-.pad-key.active {
-    background: var(--brand);
-    border-color: var(--brand);
-    color: var(--on-brand);
-}

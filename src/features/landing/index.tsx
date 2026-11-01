@@ -18,10 +18,10 @@ export default function Landing() {
                         every other constraint.
                     </p>
                     <div className="lp-ctas">
-                        <Link to="/puzzles" className="lp-btn lp-btn-fill">
+                        <Link to="/puzzles" className="btn btn-primary lp-btn">
                             Browse the puzzles
                         </Link>
-                        <Link to="/new" className="lp-btn lp-btn-line">
+                        <Link to="/new" className="btn lp-btn">
                             Try the author tool
                         </Link>
                     </div>
@@ -115,10 +115,10 @@ export default function Landing() {
             <section className="lp-closer">
                 <h2>Play a puzzle, or create one.</h2>
                 <div className="lp-ctas">
-                    <Link to="/puzzles" className="lp-btn lp-btn-fill">
+                    <Link to="/puzzles" className="btn btn-primary lp-btn">
                         Browse the puzzles
                     </Link>
-                    <Link to="/new" className="lp-btn lp-btn-line">
+                    <Link to="/new" className="btn lp-btn">
                         Try the author tool
                     </Link>
                 </div>
