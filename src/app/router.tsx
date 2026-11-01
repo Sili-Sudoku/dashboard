@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 
 import Landing from "@/features/landing";
-import PuzzleList from "@/features/puzzles";
-import Play from "@/features/play";
-import Author from "@/features/author";
-import Settings from "@/features/settings";
 import { ErrorBoundary } from "@/app/error_boundary.tsx";
 import NotFound from "@/app/not_found.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
+
+// Landing stays in the main bundle (it's the first page most visitors see);
+// everything else loads on navigation, so Play's solver/renderer and Author's
+// visual builder and interop code don't weigh down the landing page.
+const PuzzleList = lazy(() => import("@/features/puzzles"));
+const Play = lazy(() => import("@/features/play"));
+const Author = lazy(() => import("@/features/author"));
+const Settings = lazy(() => import("@/features/settings"));
 
 const APP_TITLE = "Constraint Puzzle Runtime";
 
@@ -107,14 +111,16 @@ export default function AppRouter() {
                         }`}
                     >
                         <ErrorBoundary key={pathname}>
-                            <Routes>
-                                <Route path="/" element={<Landing />} />
-                                <Route path="/puzzles" element={<PuzzleList />} />
-                                <Route path="/p/:ref" element={<Play />} />
-                                <Route path="/new" element={<Author />} />
-                                <Route path="/settings" element={<Settings />} />
-                                <Route path="*" element={<NotFound />} />
-                            </Routes>
+                            <Suspense fallback={null}>
+                                <Routes>
+                                    <Route path="/" element={<Landing />} />
+                                    <Route path="/puzzles" element={<PuzzleList />} />
+                                    <Route path="/p/:ref" element={<Play />} />
+                                    <Route path="/new" element={<Author />} />
+                                    <Route path="/settings" element={<Settings />} />
+                                    <Route path="*" element={<NotFound />} />
+                                </Routes>
+                            </Suspense>
                         </ErrorBoundary>
                     </main>
                     <ToastViewport />
