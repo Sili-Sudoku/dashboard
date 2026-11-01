@@ -398,6 +398,23 @@ describe("Author", () => {
         expect(container.querySelector(".toast-message")?.textContent).toMatch(/opened/i);
     });
 
+    it("exports to SudokuPad by opening a share link in a new tab", () => {
+        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+                <ToastViewport />
+            </MemoryRouter>,
+        );
+        fireEvent.click(screen.getByRole("button", { name: /export to sudokupad/i }));
+        expect(openSpy).toHaveBeenCalledWith(
+            expect.stringMatching(/^https:\/\/sudokupad\.app\//),
+            "_blank",
+            "noopener,noreferrer",
+        );
+        expect(container.querySelector(".toast-message")?.textContent).toMatch(/sudokupad/i);
+    });
+
     it("cancelling the import dialog leaves the puzzle untouched", () => {
         const { container } = render(
             <MemoryRouter>

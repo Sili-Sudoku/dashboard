@@ -13,12 +13,11 @@ import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import VisualBuilder from "@/features/author/VisualBuilder.tsx";
 import DimInput from "@/features/author/dim_input.tsx";
+import ImportDialog from "@/features/author/import_dialog.tsx";
+import { useAuthorInterop } from "@/features/author/use_author_interop.ts";
 import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
 import type { CellId } from "@/runtime/geometry.ts";
-import { encodeFPuzzlesShareLink, encodeSudokuPadShareLink, exportFPuzzles, importFPuzzles } from "@/interop/fpuzzles.ts";
-import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker } from "@/interop/sudokumaker.ts";
 import { usePageHeader } from "@/app/page_header.ts";
-import { useFocusTrap } from "@/app/use_focus_trap.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
 import sudokuPadIcon from "./sudokupad-icon.png";
 
@@ -35,61 +34,6 @@ const SudokuMakerIcon = () => (
 );
 
 const SudokuPadIcon = () => <img className="author-icon" src={sudokuPadIcon} alt="" width={16} height={16} />;
-
-interface ImportDialogProps {
-    title: string;
-    placeholder: string;
-    value: string;
-    onChange: (value: string) => void;
-    onCancel: () => void;
-    onSubmit: () => void;
-}
-
-/** An in-app replacement for `window.prompt`: browsers let a user permanently
- *  suppress native dialogs after a few show up (and the native one is a
- *  single-line input anyway, which is awkward for pasting multi-line JSON). */
-const ImportDialog = ({ title, placeholder, value, onChange, onCancel, onSubmit }: ImportDialogProps) => {
-    const { ref, onKeyDown } = useFocusTrap<HTMLDivElement>();
-    return (
-        <div className="author-dialog-backdrop" onClick={onCancel}>
-            <div
-                className="author-dialog"
-                role="dialog"
-                aria-modal="true"
-                aria-label={title}
-                ref={ref}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => {
-                    if (e.key === "Escape") onCancel();
-                    onKeyDown(e);
-                }}
-            >
-                <h3>{title}</h3>
-                <textarea
-                    value={value}
-                    placeholder={placeholder}
-                    onChange={(e) => onChange(e.target.value)}
-                    spellCheck={false}
-                />
-                <div className="author-dialog-actions">
-                    <button className="btn" onClick={onCancel}>
-                        Cancel
-                    </button>
-                    <button className="btn btn-primary" onClick={onSubmit} disabled={!value.trim()}>
-                        Import
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-/** Import/export outcome toast. One key, so a second action replaces the first
- *  instead of stacking; warning lists are long, so they linger. */
-const notifyInterop = (warningCount: number, withWarnings: string, plain: string): void =>
-    warningCount > 0
-        ? toast(withWarnings, { key: "interop", duration: 12000 })
-        : toast(plain, { kind: "success", key: "interop" });
 
 /** "antiking#56, antiking#73, thermometer#2" → "antiking ×2, thermometer#2" — a
  *  global rule can violate at hundreds of cell pairs, so listing every id made
@@ -150,13 +94,9 @@ const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
 
 const DEFAULT_DIMS: GridDims = { width: 9, height: 9, boxWidth: 3, boxHeight: 3 };
 
-type ImportFormat = "fpuzzles" | "sudokumaker";
-
 export default function Author() {
     const [text, setText] = useState(() => JSON.stringify(demoMixed, null, 2));
     const [submitted, setSubmitted] = useState(text);
-    const [importDialog, setImportDialog] = useState<ImportFormat | undefined>();
-    const [importDraft, setImportDraft] = useState("");
     // Tagged with the `submitted` string it was computed for, so a stale result
     // from a previous puzzle never shows for whatever is loaded now — simpler
     // than clearing it from every call site that can change `submitted`.
@@ -333,92 +273,7 @@ export default function Author() {
             ? `${window.location.origin}/p/${encodePuzzle(result.parsed)}`
             : undefined;
 
-    const runImportFPuzzles = (pasted: string) => {
-        const imported = importFPuzzles(pasted);
-        if (imported instanceof Error) {
-            toast(`Import failed: ${imported.message}`, { kind: "error", key: "interop" });
-            return;
-        }
-        const json = JSON.stringify(imported.puzzle, null, 2);
-        applyText(json);
-        notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported f-puzzles JSON.");
-    };
-
-    const handleExportFPuzzles = () => {
-        if (!("parsed" in result) || !result.parsed) return;
-        const exported = exportFPuzzles(result.parsed);
-        if (exported instanceof Error) {
-            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
-            return;
-        }
-        const link = encodeFPuzzlesShareLink(exported.data);
-        window.open(link, "_blank", "noopener,noreferrer");
-        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened f-puzzles share link in a new tab.");
-    };
-
-    const handleExportSudokuPad = () => {
-        if (!("parsed" in result) || !result.parsed) return;
-        const exported = exportFPuzzles(result.parsed);
-        if (exported instanceof Error) {
-            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
-            return;
-        }
-        const link = encodeSudokuPadShareLink(exported.data);
-        window.open(link, "_blank", "noopener,noreferrer");
-        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened SudokuPad share link in a new tab.");
-    };
-
-    const runImportSudokuMaker = (pasted: string) => {
-        const imported = importSudokuMaker(pasted);
-        if (imported instanceof Error) {
-            toast(`Import failed: ${imported.message}`, { kind: "error", key: "interop" });
-            return;
-        }
-        const json = JSON.stringify(imported.puzzle, null, 2);
-        applyText(json);
-        notifyInterop(imported.warnings.length, `Imported with ${imported.warnings.length} warning(s):\n${imported.warnings.join("\n")}`, "Imported SudokuMaker JSON.");
-    };
-
-    const IMPORT_DIALOGS: Record<ImportFormat, { title: string; placeholder: string; run: (pasted: string) => void }> = {
-        fpuzzles: {
-            title: "Import from f-puzzles",
-            placeholder: "Paste f-puzzles JSON or an f-puzzles.com share link…",
-            run: runImportFPuzzles,
-        },
-        sudokumaker: {
-            title: "Import from SudokuMaker",
-            placeholder: "Paste SudokuMaker JSON or a sudokumaker.app share link…",
-            run: runImportSudokuMaker,
-        },
-    };
-
-    const openImportDialog = (format: ImportFormat) => {
-        setImportDraft("");
-        setImportDialog(format);
-    };
-
-    const closeImportDialog = () => {
-        setImportDialog(undefined);
-        setImportDraft("");
-    };
-
-    const submitImportDialog = () => {
-        const draft = importDraft.trim();
-        if (importDialog && draft) IMPORT_DIALOGS[importDialog].run(draft);
-        closeImportDialog();
-    };
-
-    const handleExportSudokuMaker = () => {
-        if (!("parsed" in result) || !result.parsed) return;
-        const exported = exportSudokuMaker(result.parsed);
-        if (exported instanceof Error) {
-            toast(`Export failed: ${exported.message}`, { kind: "error", key: "interop" });
-            return;
-        }
-        const link = encodeSudokuMakerShareLink(exported.data);
-        window.open(link, "_blank", "noopener,noreferrer");
-        notifyInterop(exported.warnings.length, `Opened in a new tab, with ${exported.warnings.length} warning(s):\n${exported.warnings.join("\n")}`, "Opened SudokuMaker share link in a new tab.");
-    };
+    const interop = useAuthorInterop("parsed" in result ? result.parsed : undefined, applyText);
 
     return (
         <div className="author">
@@ -518,7 +373,7 @@ export default function Author() {
                             </span>
                             <button
                                 className="btn btn-icon"
-                                onClick={() => openImportDialog("fpuzzles")}
+                                onClick={() => interop.openImport("fpuzzles")}
                                 aria-label="Import from f-puzzles"
                                 title="Import from f-puzzles"
                             >
@@ -527,7 +382,7 @@ export default function Author() {
                             {"parsed" in result && result.parsed && (
                                 <button
                                     className="btn btn-icon"
-                                    onClick={handleExportFPuzzles}
+                                    onClick={() => interop.exportTo("fpuzzles")}
                                     aria-label="Export to f-puzzles (opens in a new tab)"
                                     title="Export to f-puzzles (opens in a new tab)"
                                 >
@@ -541,7 +396,7 @@ export default function Author() {
                             </span>
                             <button
                                 className="btn btn-icon"
-                                onClick={() => openImportDialog("sudokumaker")}
+                                onClick={() => interop.openImport("sudokumaker")}
                                 aria-label="Import from SudokuMaker"
                                 title="Import from SudokuMaker"
                             >
@@ -550,7 +405,7 @@ export default function Author() {
                             {"parsed" in result && result.parsed && (
                                 <button
                                     className="btn btn-icon"
-                                    onClick={handleExportSudokuMaker}
+                                    onClick={() => interop.exportTo("sudokumaker")}
                                     aria-label="Export to SudokuMaker (opens in a new tab)"
                                     title="Export to SudokuMaker (opens in a new tab)"
                                 >
@@ -566,7 +421,7 @@ export default function Author() {
                             {"parsed" in result && result.parsed && (
                                 <button
                                     className="btn btn-icon"
-                                    onClick={handleExportSudokuPad}
+                                    onClick={() => interop.exportTo("sudokupad")}
                                     aria-label="Export to SudokuPad (opens in a new tab)"
                                     title="Export to SudokuPad (opens in a new tab)"
                                 >
@@ -626,16 +481,7 @@ export default function Author() {
                 </div>
             </div>
 
-            {importDialog && (
-                <ImportDialog
-                    title={IMPORT_DIALOGS[importDialog].title}
-                    placeholder={IMPORT_DIALOGS[importDialog].placeholder}
-                    value={importDraft}
-                    onChange={setImportDraft}
-                    onCancel={closeImportDialog}
-                    onSubmit={submitImportDialog}
-                />
-            )}
+            {interop.dialog && <ImportDialog {...interop.dialog} />}
         </div>
     );
 }
