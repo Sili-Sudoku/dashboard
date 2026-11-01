@@ -74,14 +74,20 @@ export const useVisualBuilder = (
 ): VisualBuilderState => {
     const [activeSchema, setActiveSchema] = useState<AuthoringSchema | undefined>();
     const [activeFieldKey, setActiveFieldKeyState] = useState<string | undefined>();
-    const [fieldValues, setFieldValues] = useState<Record<string, FieldValue>>({});
+    // Cell/cells values only: the board selection frozen when the author switches field. Cleared on
+    // every commit/cancel, since a placed constraint's cells never carry over to the next one.
+    const [cellValues, setCellValues] = useState<Record<string, FieldValue>>({});
+    // Typed params (a sum, a "strict" checkbox, ...) per schema name, remembered across placements,
+    // cancelling, and switching to another schema and back (#117) until the author changes them.
+    const [paramMemory, setParamMemory] = useState<Readonly<Record<string, Readonly<Record<string, FieldValue>>>>>({});
 
     const activeCellFields = activeSchema ? cellFieldsOf(activeSchema) : [];
     const activeField = activeCellFields.find((f) => f.key === activeFieldKey);
 
+    const baseValues: Record<string, FieldValue> = { ...cellValues, ...(activeSchema && paramMemory[activeSchema.name]) };
     const effectiveValues: Record<string, FieldValue> = activeField
-        ? { ...fieldValues, [activeField.key]: applySelectionToField(activeField, selection) }
-        : fieldValues;
+        ? { ...baseValues, [activeField.key]: applySelectionToField(activeField, selection) }
+        : baseValues;
 
     // Derived straight from the live selection every render, same as effectiveValues
     // above — not stored in state, so the shape grows/shrinks on every cell the drag
@@ -104,12 +110,12 @@ export const useVisualBuilder = (
         if (!def) return;
         const params = buildConstraintParams(schema, values);
         onChange({ ...def, constraints: [...def.constraints, { use: schema.name, ...params }] });
-        setFieldValues({});
+        setCellValues({});
         setActiveFieldKeyState(cellFieldsOf(schema)[0]?.key);
     };
 
     const startPlacing = (schema: AuthoringSchema) => {
-        setFieldValues({});
+        setCellValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
             // A global rule is either on or off — a second identical copy only
@@ -124,13 +130,19 @@ export const useVisualBuilder = (
     const cancelPlacing = () => {
         setActiveSchema(undefined);
         setActiveFieldKeyState(undefined);
-        setFieldValues({});
+        setCellValues({});
     };
 
-    const setField = (key: string, value: FieldValue) => setFieldValues((v) => ({ ...v, [key]: value }));
+    const setCellField = (key: string, value: FieldValue) => setCellValues((v) => ({ ...v, [key]: value }));
+
+    const setField = (key: string, value: FieldValue) => {
+        if (!activeSchema) return;
+        if (activeCellFields.some((f) => f.key === key)) setCellField(key, value);
+        else setParamMemory((m) => ({ ...m, [activeSchema.name]: { ...m[activeSchema.name], [key]: value } }));
+    };
 
     const setActiveField = (key: string) => {
-        if (activeField) setField(activeField.key, applySelectionToField(activeField, selection));
+        if (activeField) setCellField(activeField.key, applySelectionToField(activeField, selection));
         setActiveFieldKeyState(key);
     };
 

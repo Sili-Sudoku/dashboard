@@ -165,6 +165,40 @@ describe("VisualBuilder", () => {
         expect(next.constraints).toEqual([{ use: "arrow", bulb: ["r1c1"], cells: ["r1c2", "r1c3"] }]);
     });
 
+    it("remembers a typed param across placements and across switching schemas (#117)", () => {
+        const { container, onChange } = renderBuilder(basePuzzle);
+        const svg = container.querySelector("svg.board")!;
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        const drag = (a: number, b: number) => {
+            fireEvent.pointerDown(cells[a]);
+            fireEvent.pointerEnter(cells[b]);
+            fireEvent.pointerUp(svg);
+        };
+
+        fireEvent.click(screen.getByText("XV"));
+        fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "10" } });
+        drag(0, 1);
+        expect(onChange).toHaveBeenCalledTimes(1);
+
+        // the second placement reuses the 10 with no re-typing, so the drag alone commits it
+        expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("10");
+        drag(4, 5);
+        expect(onChange).toHaveBeenCalledTimes(2);
+        expect((onChange.mock.calls[1][0] as PuzzleDefinition).constraints).toEqual([
+            { use: "xv", cells: ["r2c1", "r2c2"], target: 10 },
+        ]);
+
+        // switch to another schema and back: still 10, and changing it sticks too
+        fireEvent.click(screen.getByText("Minimum marker"));
+        fireEvent.click(screen.getByText("XV"));
+        expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("10");
+        fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "5" } });
+        drag(8, 9);
+        expect((onChange.mock.calls[2][0] as PuzzleDefinition).constraints).toEqual([
+            { use: "xv", cells: ["r3c1", "r3c2"], target: 5 },
+        ]);
+    });
+
     it("lists already-placed constraints and removes one on click", () => {
         const withConstraint: PuzzleDefinition = {
             ...basePuzzle,
