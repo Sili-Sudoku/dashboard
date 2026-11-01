@@ -1,0 +1,16 @@
+.error-page {
+    max-width: 60ch;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.error-page-message {
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+}
+
+.error-page-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+}

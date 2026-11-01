@@ -7,6 +7,7 @@ import PuzzleList from "@/features/puzzles";
 import Play from "@/features/play";
 import Author from "@/features/author";
 import Settings from "@/features/settings";
+import { ErrorBoundary } from "@/app/error_boundary.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
@@ -84,13 +85,15 @@ export default function AppRouter() {
                             isLandingRoute ? " app-main--landing" : ""
                         }`}
                     >
-                        <Routes>
-                            <Route path="/" element={<Landing />} />
-                            <Route path="/puzzles" element={<PuzzleList />} />
-                            <Route path="/p/:ref" element={<Play />} />
-                            <Route path="/new" element={<Author />} />
-                            <Route path="/settings" element={<Settings />} />
-                        </Routes>
+                        <ErrorBoundary key={pathname}>
+                            <Routes>
+                                <Route path="/" element={<Landing />} />
+                                <Route path="/puzzles" element={<PuzzleList />} />
+                                <Route path="/p/:ref" element={<Play />} />
+                                <Route path="/new" element={<Author />} />
+                                <Route path="/settings" element={<Settings />} />
+                            </Routes>
+                        </ErrorBoundary>
                     </main>
                     <ToastViewport />
                 </div>
