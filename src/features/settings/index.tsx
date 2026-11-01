@@ -28,6 +28,20 @@ export default function Settings() {
 
                 <label className="settings-row">
                     <div>
+                        <div className="settings-row-title">Highlight matching numbers</div>
+                        <div className="settings-row-desc">
+                            Tint every other cell holding the same digit as the cell you're on.
+                        </div>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={settings.highlightSameValue}
+                        onChange={(e) => setSetting("highlightSameValue", e.target.checked)}
+                    />
+                </label>
+
+                <label className="settings-row">
+                    <div>
                         <div className="settings-row-title">Lock zoom by default</div>
                         <div className="settings-row-desc">
                             Start every board with the zoom/pan toolbar locked, ignoring wheel, pinch, and the

@@ -17,6 +17,7 @@ const cell = (over: Partial<CellShape> = {}): CellShape => ({
     flagged: false,
     incorrect: false,
     hidden: false,
+    sameValue: false,
     ...over,
 });
 

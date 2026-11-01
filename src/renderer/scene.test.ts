@@ -4,7 +4,7 @@ import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
 import { demoMixed } from "@/puzzles/demo_mixed.ts";
-import { buildScene, cageOutline, describeObject, resolvePointRef } from "@/renderer/scene.ts";
+import { buildScene, cageOutline, describeObject, resolvePointRef, type SceneInput } from "@/renderer/scene.ts";
 
 const geo = createGeometry({ type: "grid", width: 9, height: 9 });
 
@@ -98,6 +98,59 @@ describe("buildScene", () => {
         const cell = scene.cells.find((c) => c.cell === "r1c8");
         expect(cell?.tone).toBe("violated");
         expect(cell?.ring).toBe("cursor");
+    });
+
+    describe("same-value highlight (#73)", () => {
+        // r1c1=5, r1c5=7, r2c1=6 ... come from the demo's givens; fill extra 5s by hand.
+        const values: Record<string, number> = { r1c1: 5, r4c4: 5, r7c9: 5, r2c2: 3 };
+        const at = (c: string): number | null => values[c] ?? null;
+        // Not Partial<SceneInput>: its `valueOf` property collides with Object.prototype.valueOf when TS checks a partial.
+        const build = (
+            over: Partial<Pick<SceneInput, "cursor" | "selection" | "hiddenCells" | "highlightSameValue">> = {},
+            valueOf: (c: string) => number | null = at,
+        ) =>
+            buildScene({
+                puzzle,
+                valueOf,
+                notesOf: () => [],
+                centerNotesOf: () => [],
+                flaggedCells: new Set(),
+                incorrectCells: new Set(),
+                isGiven: () => false,
+                selection: new Set(),
+                cursor: "r1c1",
+                hiddenCells: new Set(),
+                evaluation: evaluate(puzzle, lookupFromRecord(values)),
+                highlightSameValue: true,
+                ...over,
+            });
+        const same = (scene: ReturnType<typeof buildScene>) =>
+            scene.cells.filter((c) => c.sameValue).map((c) => c.cell).sort();
+
+        it("flags every other cell sharing the cursor cell's value, not the cursor itself", () => {
+            expect(same(build())).toEqual(["r4c4", "r7c9"]);
+        });
+
+        it("flags nothing when the cursor cell is empty, or there is no cursor", () => {
+            expect(same(build({ cursor: "r9c9" }))).toEqual([]);
+            expect(same(build({ cursor: null }))).toEqual([]);
+        });
+
+        it("is off unless asked for", () => {
+            expect(same(build({ highlightSameValue: false }))).toEqual([]);
+        });
+
+        it("never flags a fog-hidden cell, and gives nothing away when the cursor itself is hidden", () => {
+            expect(same(build({ hiddenCells: new Set(["r4c4"]) }, (c) => (c === "r4c4" ? null : at(c))))).toEqual(["r7c9"]);
+            expect(same(build({ hiddenCells: new Set(["r1c1"]) }, (c) => (c === "r1c1" ? null : at(c))))).toEqual([]);
+        });
+
+        it("leaves selection, cursor ring and tone untouched", () => {
+            const scene = build({ selection: new Set(["r1c1", "r4c4"]) });
+            const cell = scene.cells.find((c) => c.cell === "r4c4");
+            expect(cell?.sameValue).toBe(true);
+            expect(cell?.ring).toBe("selected");
+        });
     });
 
     it("carries per-cell centre notes into the scene, distinct from corner notes", () => {

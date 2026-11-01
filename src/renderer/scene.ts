@@ -39,6 +39,9 @@ export interface SceneInput {
      *  builder, showing a constraint that conflicts with the puzzle's own
      *  declared solution rather than hiding it entirely. */
     invalidConstraintIds?: ReadonlySet<string>;
+    /** Flag every other cell showing the same value as the cursor cell (#73) —
+     *  purely visual; doesn't touch the real selection or cursor. */
+    highlightSameValue?: boolean;
 }
 
 export type CellTone = "normal" | "violated" | "invalid";
@@ -63,6 +66,8 @@ export interface CellShape {
     incorrect: boolean;
     /** Still hidden by fog — the renderer paints over it rather than leaking what's underneath. */
     hidden: boolean;
+    /** Shows the same value as the cursor cell (#73) — a passive highlight, separate from tone and ring. */
+    sameValue: boolean;
 }
 
 export type Shape =
@@ -108,6 +113,10 @@ export const buildScene = (input: SceneInput): Scene => {
     const violated = input.evaluation.violatedCells;
     const invalid = input.evaluation.invalidCells;
 
+    // The cursor cell's visible value (null while empty or fog-hidden, so a
+    // hidden cell can't be used to reveal where its digit appears).
+    const sameAs = input.highlightSameValue && input.cursor ? input.valueOf(input.cursor) : null;
+
     const cells: CellShape[] = geometry.cells.map((cell) => {
         const p = geometry.anchor(cell, "tl");
         const hidden = input.hiddenCells.has(cell);
@@ -132,6 +141,7 @@ export const buildScene = (input: SceneInput): Scene => {
             flagged: input.flaggedCells.has(cell),
             incorrect: input.incorrectCells.has(cell),
             hidden,
+            sameValue: sameAs !== null && cell !== input.cursor && !hidden && input.valueOf(cell) === sameAs,
         };
     });
 

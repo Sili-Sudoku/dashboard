@@ -9,9 +9,10 @@ afterEach(() => {
 });
 
 describe("useSettings", () => {
-    it("defaults every preference to off, and remembered view state to the original layout", () => {
+    it("defaults preferences to off (except same-value highlighting, which is on), and remembered view state to the original layout", () => {
         expect(getSettings()).toEqual({
             checkNotesOnLeave: false,
+            highlightSameValue: true,
             zoomLocked: false,
             constraintPanelOpen: false,
             hotkeyLegendOpen: false,

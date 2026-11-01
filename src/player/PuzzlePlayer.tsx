@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from 
 import { PartyPopper, Timer } from "lucide-react";
 
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
+import { useSettings } from "@/app/use_settings.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import Board from "@/renderer/Board.tsx";
 import { buildScene } from "@/renderer/scene.ts";
@@ -106,6 +107,7 @@ export default function PuzzlePlayer({
         return () => window.removeEventListener("resize", sync);
     }, []);
 
+    const [settings] = useSettings();
     const scene = useMemo(
         () =>
             buildScene({
@@ -122,10 +124,11 @@ export default function PuzzlePlayer({
                 evaluation: session.evaluation,
                 hiddenCells: session.getHiddenCells(),
                 invalidConstraintIds,
+                highlightSameValue: settings.highlightSameValue,
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution],
+        [puzzle, session, session.revision, previewObjects, invalidConstraintIds, showSolution, settings.highlightSameValue],
     );
 
     const onPaintStart = useCallback(

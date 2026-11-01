@@ -403,6 +403,16 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     ))}
             </g>
 
+            {/* same-value highlight (#73): a soft wash over matching cells, under the
+                grid and digits and separate from the tone fill and selection ring */}
+            <g pointerEvents="none">
+                {visibleScene.cells
+                    .filter((c) => c.sameValue)
+                    .map((c) => (
+                        <rect key={`same-${c.cell}`} className="cell-same" x={c.x} y={c.y} width={c.size} height={c.size} />
+                    ))}
+            </g>
+
             {/* grid + box lines, drawn before constraint graphics so a dot/marker
                 sitting on a cell boundary (kropki, XV, ...) isn't painted over by
                 the line it sits on */}

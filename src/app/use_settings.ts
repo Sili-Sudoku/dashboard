@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 export interface Settings {
     /** PuzzlePlayer: flag a cell red on cursor-leave if its remaining centre notes no longer include the solution digit. */
     checkNotesOnLeave: boolean;
+    /** Board: wash every cell matching the cursor cell's value (#73). */
+    highlightSameValue: boolean;
     /** Board: keep the zoom/pan toolbar's lock engaged (ignore wheel/pinch/fit) across puzzles and reloads. */
     zoomLocked: boolean;
     /* Remembered view state (#125): where the user left these open/closed. Not
@@ -23,6 +25,7 @@ export interface Settings {
 
 const DEFAULT_SETTINGS: Settings = {
     checkNotesOnLeave: false,
+    highlightSameValue: true,
     zoomLocked: false,
     constraintPanelOpen: false,
     hotkeyLegendOpen: false,

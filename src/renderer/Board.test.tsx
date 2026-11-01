@@ -32,6 +32,7 @@ const bigScene = (n: number, cellSize = 20): Scene => {
                 flagged: false,
                 incorrect: false,
                 hidden: false,
+                sameValue: false,
             });
         }
     }
