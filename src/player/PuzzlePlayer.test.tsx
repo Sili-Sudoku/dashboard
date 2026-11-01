@@ -268,6 +268,21 @@ describe("<PuzzlePlayer />", () => {
         expect(live()).toMatch(/givens?: /);
     });
 
+    it("highlights the constraints covering the selected cell in the constraints panel, opening their group (#161)", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
+        const current = () => container.querySelectorAll(".cp-item[aria-current]");
+        expect(current()).toHaveLength(0);
+
+        fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
+        expect(current().length).toBeGreaterThan(0);
+        // every highlighted constraint really covers the clicked cell, and is visible (group opened)
+        expect(container.querySelector(".cp-group-head.cp-has-match")).not.toBeNull();
+
+        fireEvent.keyDown(root(), { key: "Escape" });
+        expect(current()).toHaveLength(0);
+    });
+
     it("ignores shortcuts from outside the player, e.g. a dialog or the page header (#155)", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);

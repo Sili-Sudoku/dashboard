@@ -11,6 +11,7 @@ import { clearToasts } from "@/app/toast.ts";
 afterEach(() => {
     cleanup();
     clearToasts();
+    localStorage.clear(); // settings (editor mode, toolbox) persist there
 });
 
 /** Opens an import dialog, fills its textarea, and submits — the in-app
@@ -221,6 +222,38 @@ describe("Author", () => {
         fireEvent.click(redo());
         expect(textarea().value).toBe(changed);
         expect(redo().disabled).toBe(true);
+    });
+
+    it("undo/redo also covers the visual builder's toolbox, and x on a tool is one step with its cleanup (#160)", () => {
+        render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        fireEvent.click(screen.getByRole("tab", { name: "Visual" }));
+        const undo = () => screen.getByRole("button", { name: /^undo$/i });
+        const redo = () => screen.getByRole("button", { name: /^redo$/i });
+        const tile = (name: string) => screen.queryByRole("button", { name });
+
+        // pin a tool the example doesn't use
+        fireEvent.click(screen.getByRole("button", { name: "Add tool" }));
+        fireEvent.click(screen.getByRole("menuitem", { name: "XV" }));
+        expect(tile("XV")).not.toBeNull();
+        fireEvent.click(undo());
+        expect(tile("XV")).toBeNull();
+        fireEvent.click(redo());
+        expect(tile("XV")).not.toBeNull();
+
+        // x on a used tool removes it with its placed constraints, as one step...
+        const before = screen.getAllByLabelText("Remove constraint").length;
+        fireEvent.click(screen.getByLabelText(/Remove Thermometer from quick access/));
+        expect(tile("Thermometer")).toBeNull();
+        expect(screen.getAllByLabelText("Remove constraint").length).toBe(before - 1);
+
+        // ...and one undo brings back both the tile and the constraint
+        fireEvent.click(undo());
+        expect(tile("Thermometer")).not.toBeNull();
+        expect(screen.getAllByLabelText("Remove constraint").length).toBe(before);
     });
 
     it("still undoes via Ctrl+Z when the edit left the puzzle uncompilable, so there's no board to hold a button", () => {

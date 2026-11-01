@@ -25,6 +25,8 @@ export interface Settings {
     constraintPanelOpen: boolean;
     hotkeyLegendOpen: boolean;
     authorEditorMode: "json" | "visual";
+    /** Visual builder: names of the tools the author pinned to quick access (the rest sit behind "Add tool"). */
+    builderTools: readonly string[];
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +37,7 @@ const DEFAULT_SETTINGS: Settings = {
     constraintPanelOpen: false,
     hotkeyLegendOpen: false,
     authorEditorMode: "json",
+    builderTools: [],
 };
 
 const SETTINGS_KEY = "cpr:settings";
@@ -53,7 +56,12 @@ export const getSettings = (): Settings => {
         if (!raw) return DEFAULT_SETTINGS;
         const stored = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
         // A hand-edited or older blob must never hand the board a malformed palette.
-        return { ...stored, markColors: sanitizePalette(stored.markColors) };
+        const tools: unknown = stored.builderTools;
+        return {
+            ...stored,
+            markColors: sanitizePalette(stored.markColors),
+            builderTools: Array.isArray(tools) ? tools.filter((t): t is string => typeof t === "string") : [],
+        };
     } catch {
         return DEFAULT_SETTINGS;
     }

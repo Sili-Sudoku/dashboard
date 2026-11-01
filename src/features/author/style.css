@@ -433,34 +433,57 @@
     color: var(--ink-soft);
 }
 
+/* Two equal columns, so every tool sits on the same grid instead of wrapping raggedly by label length. */
 .visual-builder-palette {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
 }
 
-/* Flat pill: choosing a tool is frequent and low-stakes, so no stamp; the active tool is filled. */
+/* The tile itself is the shared .btn.btn-sm (stamp look, aria-pressed = the tool being placed). */
 .visual-builder-chip {
-    min-height: 2rem;
-    padding: 0 0.7rem;
-    border: 1px solid var(--ink-soft);
-    border-radius: 999px;
+    justify-content: flex-start;
+    /* Room on the right for the un-pin x. */
+    padding-right: 1.7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.visual-builder-tool {
+    position: relative;
+    display: flex;
+    min-width: 0;
+}
+.visual-builder-tool .visual-builder-chip {
+    flex: 1;
+    min-width: 0;
+}
+/* Tiny x on a pinned tile, tucked into its right edge so it never adds a row of its own. */
+.visual-builder-unpin {
+    position: absolute;
+    top: 50%;
+    right: 0.3rem;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
     background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 0.8rem;
+    color: var(--ink-soft);
     cursor: pointer;
 }
-.visual-builder-chip:hover:not(:disabled):not(.active) {
+.visual-builder-unpin:hover {
     background: var(--surface-alt);
+    color: var(--ink);
 }
-.visual-builder-chip.active {
-    background: var(--ink);
-    border-color: var(--ink);
+.visual-builder-chip[aria-pressed="true"] + .visual-builder-unpin {
     color: var(--bg);
 }
-.visual-builder-chip:disabled {
-    opacity: 0.4;
+.visual-builder-unpin:disabled {
+    opacity: 0.35;
     cursor: not-allowed;
 }
 

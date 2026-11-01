@@ -114,6 +114,19 @@
     color: var(--ink-soft);
 }
 
+/* Covers the cell(s) currently selected on the board. */
+.cp-item.cp-match {
+    background: var(--surface-alt);
+    box-shadow: -3px 0 0 var(--ink);
+    color: var(--ink);
+    font-weight: 600;
+    padding: 0.1rem 0.3rem;
+}
+.cp-group-head.cp-has-match .cp-source {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .cp-item.cp-violated {
     color: var(--violated-line);
 }

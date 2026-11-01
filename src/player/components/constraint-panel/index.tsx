@@ -2,12 +2,15 @@ import { useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleAlert, CircleDashed, ListChecks } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
+import type { CellId } from "@/runtime/geometry.ts";
 import type { ConstraintEvaluation, EvaluationResult } from "@/runtime/evaluate.ts";
 
 import "./style.css";
 
 interface Props {
     evaluation: EvaluationResult;
+    /** The board's selected cells: constraints covering all of them are highlighted below. */
+    selection?: ReadonlySet<CellId>;
 }
 
 interface SourceGroup {
@@ -18,7 +21,7 @@ interface SourceGroup {
     items: ConstraintEvaluation[];
 }
 
-export default function ConstraintPanel({ evaluation }: Props) {
+export default function ConstraintPanel({ evaluation, selection }: Props) {
     const groups = useMemo(() => groupBySource(evaluation.constraints), [evaluation]);
     // The whole panel is collapsed to just its toggle button by default — this
     // *is* the "Show/Hide constraints" control now, not a separate button that
@@ -26,6 +29,14 @@ export default function ConstraintPanel({ evaluation }: Props) {
     const [settings, setSetting] = useSettings();
     const open = settings.constraintPanelOpen;
     const setOpen = (next: boolean) => setSetting("constraintPanelOpen", next);
+    // Selecting cells on the board lights up the constraints that cover every one of them (a
+    // single cell: all constraints it is part of; a dragged run: just the ones containing the run).
+    const matched = useMemo(() => {
+        if (!open || !selection || selection.size === 0) return new Set<string>();
+        return new Set(
+            evaluation.constraints.filter((c) => [...selection].every((cell) => c.cells.includes(cell))).map((c) => c.id),
+        );
+    }, [open, evaluation, selection]);
     // Per-group collapse, independent of the panel-level toggle above.
     // Collapsed by default — tracking which groups were opened (rather than
     // which were closed) means a group newly appearing in `groups` starts
@@ -65,12 +76,14 @@ export default function ConstraintPanel({ evaluation }: Props) {
                 <>
                     <ul className="cp-groups">
                         {groups.map((g) => {
-                            const isCollapsed = !expandedGroups.has(g.source);
+                            const hasMatch = g.items.some((item) => matched.has(item.id));
+                            // A group holding a highlighted constraint opens by itself, so the match is visible.
+                            const isCollapsed = !expandedGroups.has(g.source) && !hasMatch;
                             return (
                                 <li key={g.source} className="cp-group">
                                     <button
                                         type="button"
-                                        className="cp-group-head"
+                                        className={`cp-group-head${hasMatch ? " cp-has-match" : ""}`}
                                         aria-expanded={!isCollapsed}
                                         onClick={() => toggleGroup(g.source)}
                                     >
@@ -89,7 +102,11 @@ export default function ConstraintPanel({ evaluation }: Props) {
                                     {!isCollapsed && (
                                         <ul className="cp-items">
                                             {g.items.map((item) => (
-                                                <li key={item.id} className={`cp-item cp-${item.status}`}>
+                                                <li
+                                                    key={item.id}
+                                                    className={`cp-item cp-${item.status}${matched.has(item.id) ? " cp-match" : ""}`}
+                                                    aria-current={matched.has(item.id) || undefined}
+                                                >
                                                     <StatusIcon status={item.status} />
                                                     <span>{item.label ?? item.id}</span>
                                                     {item.error && <span className="cp-error">{item.error}</span>}

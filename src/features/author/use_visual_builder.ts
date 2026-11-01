@@ -12,7 +12,19 @@ import {
     type FieldValue,
 } from "@/authoring/schema.ts";
 
+/** The pinned-tools list lives with the page's undo history, so the hook only reports changes to it. */
+export interface Toolbox {
+    tools: readonly string[];
+    /** Set the pinned tools, optionally along with a puzzle change, as a single undoable step. */
+    onChange: (tools: readonly string[], def?: PuzzleDefinition) => void;
+}
+
 export interface VisualBuilderState {
+    /** Names of the tools pinned to quick access. */
+    tools: readonly string[];
+    pinTool: (name: string) => void;
+    /** Un-pin a tool and delete every constraint of it from the puzzle (one undoable step). */
+    removeTool: (name: string) => void;
     activeSchema: AuthoringSchema | undefined;
     activeCellFields: readonly AuthoringField[];
     /** Which cell/cells field the board's selection is currently flowing into — see
@@ -71,8 +83,17 @@ export const useVisualBuilder = (
     def: PuzzleDefinition | undefined,
     selection: ReadonlySet<CellId>,
     onChange: (next: PuzzleDefinition) => void,
+    toolbox: Toolbox,
 ): VisualBuilderState => {
-    const [activeSchema, setActiveSchema] = useState<AuthoringSchema | undefined>();
+    const [placingSchema, setActiveSchema] = useState<AuthoringSchema | undefined>();
+    // A tool only counts as being placed while it's in the toolbox (or the puzzle uses it), so
+    // undoing past its pinning drops it instead of leaving a form for a tool that's gone.
+    const activeSchema =
+        placingSchema &&
+        (toolbox.tools.includes(placingSchema.name) ||
+            def?.constraints.some((c) => isDefinitionRef(c) && c.use === placingSchema.name))
+            ? placingSchema
+            : undefined;
     const [activeFieldKey, setActiveFieldKeyState] = useState<string | undefined>();
     // Cell/cells values only: the board selection frozen when the author switches field. Cleared on
     // every commit/cancel, since a placed constraint's cells never carry over to the next one.
@@ -157,12 +178,36 @@ export const useVisualBuilder = (
         commit(activeSchema, effectiveValues);
     };
 
+    const pinTool = (name: string) => {
+        if (!toolbox.tools.includes(name)) toolbox.onChange([...toolbox.tools, name]);
+    };
+
+    // A tool the puzzle used stays in the toolbox once its constraint is removed (#159).
     const removeConstraint = (index: number) => {
         if (!def) return;
-        onChange({ ...def, constraints: def.constraints.filter((_, i) => i !== index) });
+        const removed = def.constraints[index];
+        const next = { ...def, constraints: def.constraints.filter((_, i) => i !== index) };
+        if (removed && isDefinitionRef(removed) && !toolbox.tools.includes(removed.use)) {
+            toolbox.onChange([...toolbox.tools, removed.use], next);
+        } else onChange(next);
+    };
+
+    const removeTool = (name: string) => {
+        if (activeSchema?.name === name) cancelPlacing();
+        const next = def && {
+            ...def,
+            constraints: def.constraints.filter((c) => !(isDefinitionRef(c) && c.use === name)),
+        };
+        toolbox.onChange(
+            toolbox.tools.filter((t) => t !== name),
+            next,
+        );
     };
 
     return {
+        tools: toolbox.tools,
+        pinTool,
+        removeTool,
         activeSchema,
         activeCellFields,
         activeFieldKey,

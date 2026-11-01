@@ -326,7 +326,7 @@ export default function PuzzlePlayer({
                 </section>
 
                 <section className="pp-group pp-reference" aria-label="Reference">
-                    <ConstraintPanel evaluation={evaluation} />
+                    <ConstraintPanel evaluation={evaluation} selection={session.getSelection()} />
                     <HotkeyLegend />
                 </section>
             </aside>

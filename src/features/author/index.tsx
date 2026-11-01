@@ -91,6 +91,12 @@ const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
     }
 };
 
+/** One entry of the author undo history: the puzzle JSON plus the visual builder's pinned tools. */
+interface Snapshot {
+    text: string;
+    tools: readonly string[];
+}
+
 const DEFAULT_DIMS: GridDims = { width: 9, height: 9, boxWidth: 3, boxHeight: 3 };
 
 export default function Author() {
@@ -114,28 +120,41 @@ export default function Author() {
     // tries the board's entered digits first. Typing in the JSON box keeps the
     // textarea's own native undo; the snapshots here are what that can't see,
     // because they replace the text programmatically.
-    const [history, setHistory] = useState<{ past: readonly string[]; future: readonly string[] }>({
+    //
+    // A snapshot is the puzzle text *and* the visual builder's toolbox (its pinned tools), so
+    // undo also puts back a tool you just pinned or removed.
+    const tools = settings.builderTools;
+    const [history, setHistory] = useState<{ past: readonly Snapshot[]; future: readonly Snapshot[] }>({
         past: [],
         future: [],
     });
-    const applyText = (json: string) => {
-        if (json !== text) setHistory((h) => ({ past: [...h.past, text].slice(-HISTORY_LIMIT), future: [] }));
-        setText(json);
-        setSubmitted(json);
+    const restore = (snapshot: Snapshot) => {
+        setText(snapshot.text);
+        setSubmitted(snapshot.text);
+        setSetting("builderTools", snapshot.tools);
     };
+    /** One undoable step: change the puzzle text, the toolbox, or both together. */
+    const applyChange = (change: { text?: string; tools?: readonly string[] }) => {
+        const next = { text: change.text ?? text, tools: change.tools ?? tools };
+        if (next.text !== text || next.tools.join() !== tools.join()) {
+            setHistory((h) => ({ past: [...h.past, { text, tools }].slice(-HISTORY_LIMIT), future: [] }));
+        }
+        setText(next.text);
+        setSubmitted(next.text);
+        setSetting("builderTools", next.tools);
+    };
+    const applyText = (json: string) => applyChange({ text: json });
     const undo = () => {
         const prev = history.past[history.past.length - 1];
         if (prev === undefined) return;
-        setHistory({ past: history.past.slice(0, -1), future: [text, ...history.future] });
-        setText(prev);
-        setSubmitted(prev);
+        setHistory({ past: history.past.slice(0, -1), future: [{ text, tools }, ...history.future] });
+        restore(prev);
     };
     const redo = () => {
         const [next, ...rest] = history.future;
         if (next === undefined) return;
-        setHistory({ past: [...history.past, text], future: rest });
-        setText(next);
-        setSubmitted(next);
+        setHistory({ past: [...history.past, { text, tools }], future: rest });
+        restore(next);
     };
 
     const loadExample = (id: string) => {
@@ -248,6 +267,7 @@ export default function Author() {
         "parsed" in result ? result.parsed : undefined,
         boardSelection,
         handleVisualChange,
+        { tools, onChange: (nextTools, nextDef) => applyChange({ tools: nextTools, text: nextDef && JSON.stringify(nextDef, null, 2) }) },
     );
     const [showSolution, setShowSolution] = useState(false);
     // "Test as solver": the preview becomes the plain player a solver would get — none

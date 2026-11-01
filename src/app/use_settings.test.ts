@@ -19,6 +19,7 @@ describe("useSettings", () => {
             constraintPanelOpen: false,
             hotkeyLegendOpen: false,
             authorEditorMode: "json",
+            builderTools: [],
         });
     });
 
