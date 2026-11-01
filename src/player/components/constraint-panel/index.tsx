@@ -65,7 +65,7 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
         <section className={`constraint-panel ${open ? "cp-open" : ""}`}>
             <button
                 type="button"
-                className={`btn pp-toggle cp-toggle ${open ? `cp-${evaluation.status}` : ""}`}
+                className={`btn btn-flat pp-toggle cp-toggle ${open ? `cp-${evaluation.status}` : ""}`}
                 aria-expanded={open}
                 onClick={() => setOpen(!open)}
             >

@@ -64,10 +64,11 @@
 .pp-solve {
     align-items: center;
     padding: var(--space-3);
-    border: 2px solid var(--ink);
+    /* The keys inside already carry their own outlines, so the box is a quiet frame — a heavy
+       border plus shadow here made a second, louder box around every key. */
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     background: var(--surface);
-    box-shadow: 4px 4px 0 var(--line);
 }
 
 .pp-solve > * {

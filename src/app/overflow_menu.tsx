@@ -25,11 +25,13 @@ interface Props {
     text?: string;
     /** A low-emphasis trigger (ghost, small) for menus that sit among heavier buttons. */
     quiet?: boolean;
+    /** The thin-outline button (.btn-flat) instead of the stamp, for menus beside other flat controls. */
+    flat?: boolean;
 }
 
 /** A "⋯" button and its popup list: the home for anything that is not a primary or
  *  frequent action. Closes on Escape, outside press, or choosing an item. */
-export function OverflowMenu({ label, items, align = "end", up = false, text, quiet = false }: Props) {
+export function OverflowMenu({ label, items, align = "end", up = false, text, quiet = false, flat = false }: Props) {
     const [open, setOpen] = useState(false);
     const [armed, setArmed] = useState<number | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -105,7 +107,7 @@ export function OverflowMenu({ label, items, align = "end", up = false, text, qu
             <button
                 ref={triggerRef}
                 type="button"
-                className={`btn overflow-menu-trigger${text ? "" : " btn-icon"}${quiet ? " btn-ghost btn-sm" : ""}`}
+                className={`btn overflow-menu-trigger${text ? "" : " btn-icon"}${quiet ? " btn-ghost btn-sm" : ""}${flat ? " btn-flat" : ""}`}
                 aria-label={label}
                 aria-haspopup="menu"
                 aria-expanded={open}

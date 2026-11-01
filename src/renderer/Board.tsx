@@ -654,7 +654,7 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                         <div className="board-footer-content">{footer}</div>
                         <button
                             type="button"
-                            className="btn board-zoom-toggle"
+                            className="btn btn-flat board-zoom-toggle"
                             aria-expanded={zoomOpen}
                             aria-controls={zoomPanelId}
                             aria-label={`Zoom controls (${zoomPct}%)`}

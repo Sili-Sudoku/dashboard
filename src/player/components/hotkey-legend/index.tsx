@@ -32,7 +32,7 @@ export default function HotkeyLegend() {
         <section className={`hotkey-legend ${open ? "hk-open" : ""}`}>
             <button
                 type="button"
-                className="btn pp-toggle hk-toggle"
+                className="btn btn-flat pp-toggle hk-toggle"
                 aria-expanded={open}
                 onClick={() => setSetting("hotkeyLegendOpen", !open)}
             >

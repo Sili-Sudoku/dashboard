@@ -334,7 +334,7 @@ export default function Author() {
                 <span className="author-preview-history">
                     <button
                         type="button"
-                        className="btn btn-icon"
+                        className="btn btn-flat btn-icon"
                         aria-label="Undo puzzle edit"
                         disabled={history.past.length === 0}
                         onClick={undo}
@@ -343,7 +343,7 @@ export default function Author() {
                     </button>
                     <button
                         type="button"
-                        className="btn btn-icon"
+                        className="btn btn-flat btn-icon"
                         aria-label="Redo puzzle edit"
                         disabled={history.future.length === 0}
                         onClick={redo}

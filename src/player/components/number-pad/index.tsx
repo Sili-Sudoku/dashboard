@@ -41,7 +41,7 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
         <button
             key={v}
             disabled={v === 0 && !swatches && !values.includes(0)}
-            className={`btn pad-key pad-key-${mode}${extra}`}
+            className={`btn btn-flat pad-key pad-key-${mode}${extra}`}
             aria-label={
                 mode === "digit"
                     ? String(v)
@@ -76,7 +76,7 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
                 {MODES.map(({ mode: m, label, icon: Icon }) => (
                     <button
                         key={m}
-                        className={`btn pad-key wide ${mode === m ? "active" : ""}`}
+                        className={`btn btn-flat pad-key wide ${mode === m ? "active" : ""}`}
                         aria-pressed={mode === m}
                         onClick={() => onModeChange(m)}
                     >
@@ -86,7 +86,7 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
             </div>
             <div className="pad-actions">
                 {key(0, " pad-key-zero")}
-                <button className="btn pad-key wide pad-erase" onClick={onErase}>
+                <button className="btn btn-flat pad-key wide pad-erase" onClick={onErase}>
                     <Eraser size={16} /> Erase
                 </button>
             </div>

@@ -21,10 +21,10 @@ interface Props {
 export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck, extraItems = [] }: Props) {
     return (
         <div className="controls">
-            <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+            <button className="btn btn-flat" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
                 <Undo2 size={16} /> Undo
             </button>
-            <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
+            <button className="btn btn-flat" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
                 <Redo2 size={16} /> Redo
             </button>
             {onCheck && (
@@ -38,6 +38,7 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
             )}
             <OverflowMenu
                 label="More actions"
+                flat
                 up
                 items={[
                     ...extraItems,

@@ -538,6 +538,21 @@ button:focus-visible {
     transform: none;
 }
 
+/* Flat = quiet: a thin line instead of the stamp's heavy border and offset shadow. For dense
+   clusters of frequent, low-stakes controls (number pad, undo/redo, disclosure toggles) where
+   twenty stamps would shout equally; the one primary action in a group keeps the full stamp.
+   A pressed/active flat button still fills with ink (same rule as .btn above). */
+.btn-flat {
+    --btn-border: var(--line);
+    border-width: 1px;
+    box-shadow: none;
+}
+.btn-flat:hover:not(:disabled),
+.btn-flat:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+}
+
 .btn-sm {
     gap: var(--space-1);
     padding: var(--space-1) var(--space-2);
