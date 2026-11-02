@@ -143,6 +143,18 @@ what you could have written by hand. The compiled puzzle contains only
 primitives; `source` on each compiled constraint records which definition (or
 `"primitive"`) produced it.
 
+Any definition reference can also restyle what its definition draws, per
+instance — `color` recolours strokes and (non-empty) fills; `style` sets
+individual `VisualStyle` properties (`stroke`, `fill`, `strokeWidth`, `dashed`,
+`opacity`, `z`) on top of it. The definition's logic is untouched; this is a
+presentation choice only, applied by `compilePuzzle` so no definition needs to
+know about it:
+
+```jsonc
+{ "use": "thermometer", "cells": ["r1c1","r1c2","r1c3"], "color": "#2c7a4b" }
+{ "use": "thermometer", "cells": ["r2c1","r2c2"], "style": { "opacity": 1, "dashed": true } }
+```
+
 Built-in definitions: `sudoku`, `thermometer`, `killer`, `arrow`,
 `kropkiDifference`, `kropkiRatio`, `odd`, `even` (`src/definitions/`).
 

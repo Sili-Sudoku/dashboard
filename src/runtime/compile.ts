@@ -25,6 +25,7 @@ import {
     type PointRef,
     type PuzzleDefinition,
     type VisualObject,
+    type VisualStyle,
 } from "@/runtime/puzzle.ts";
 import type { CompileContext, DefinitionRegistry } from "@/definitions/types.ts";
 
@@ -145,7 +146,9 @@ export const compilePuzzle = (
         if (expanded.objects) {
             const objectsError = validateObjects(expanded.objects, geometry);
             if (objectsError) return objectsError;
-            objects.push(...expanded.objects.map((o) => (o.id ? o : { ...o, id: specConstraintIds.join(",") })));
+            const restyled = restyle(expanded.objects, spec);
+            if (restyled instanceof Error) return restyled;
+            objects.push(...restyled.map((o) => (o.id ? o : { ...o, id: specConstraintIds.join(",") })));
         }
     }
 
@@ -211,6 +214,55 @@ const expandSpec = (
     const out = definition(params, ctx);
     if (out instanceof Error) return out;
     return { source: use, constraints: out.constraints, objects: out.objects };
+};
+
+const STYLE_KEYS: Record<keyof VisualStyle, "string" | "number" | "boolean"> = {
+    stroke: "string",
+    fill: "string",
+    strokeWidth: "number",
+    dashed: "boolean",
+    opacity: "number",
+    z: "number",
+};
+
+/**
+ * A constraint's own look, per instance (#132): `color` recolours everything the definition drew
+ * (strokes, and fills that aren't empty), and `style` sets any individual style property on top.
+ * Done here, once, so every definition gets it without knowing about it — the definition keeps
+ * its default look; a puzzle that wants another (a whisper line in green, a renban in pastel)
+ * just says so on the constraint.
+ */
+const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readonly VisualObject[] | Error => {
+    if (!isDefinitionRef(spec)) return objects;
+    const { color, style } = spec as { color?: unknown; style?: unknown };
+    if (color === undefined && style === undefined) return objects;
+
+    if (color !== undefined && (typeof color !== "string" || color === "")) {
+        return new Error(`"${spec.use}": "color" must be a colour string, e.g. "#2c7a4b" or "var(--cage)"`);
+    }
+    if (style !== undefined) {
+        if (typeof style !== "object" || style === null || Array.isArray(style)) {
+            return new Error(`"${spec.use}": "style" must be an object of style properties`);
+        }
+        for (const [key, value] of Object.entries(style)) {
+            const expected = STYLE_KEYS[key as keyof VisualStyle];
+            if (!expected) return new Error(`"${spec.use}": unknown style property "${key}"`);
+            if (typeof value !== expected) return new Error(`"${spec.use}": style "${key}" must be a ${expected}`);
+        }
+    }
+
+    return objects.map((o) => {
+        const base = o.style ?? {};
+        const recoloured: VisualStyle =
+            typeof color === "string"
+                ? {
+                      ...base,
+                      stroke: color,
+                      ...(base.fill !== undefined && base.fill !== "none" ? { fill: color } : {}),
+                  }
+                : base;
+        return { ...o, style: { ...recoloured, ...(style as VisualStyle | undefined) } } as VisualObject;
+    });
 };
 
 const visualCells = (obj: VisualObject): readonly CellId[] => {
