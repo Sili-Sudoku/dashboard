@@ -50,6 +50,17 @@ describe("NumberPad 0 key", () => {
     });
 });
 
+describe("NumberPad colour count", () => {
+    it("has as many swatches as the puzzle has digits, so the pad keeps its size when the mode changes", () => {
+        const six = [1, 2, 3, 4, 5, 6];
+        const digitKeys = gridKeys(pad("digit", six).container).length;
+        cleanup();
+        const colorKeys = gridKeys(pad("color", six).container).length;
+        expect(colorKeys).toBe(6);
+        expect(colorKeys).toBe(digitKeys);
+    });
+});
+
 describe("NumberPad pen mode (#45)", () => {
     it("shows how the pen works in the digit keys' place, and Erase becomes Clear pen", () => {
         const { container } = render(

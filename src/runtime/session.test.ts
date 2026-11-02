@@ -700,6 +700,16 @@ describe("PuzzleSession colour marks (#35)", () => {
         session.setInputMode("color");
     });
 
+    it("has no colour past the puzzle's digit count (a 4x4 has colours 1-4), but keeps the background on 0", () => {
+        session.select("r1c2");
+        session.input(5);
+        expect(colorsAt("r1c2")).toEqual([]);
+        session.input(4);
+        expect(colorsAt("r1c2")).toEqual([3]);
+        session.input(0);
+        expect(colorsAt("r1c2")).toHaveLength(2);
+    });
+
     it("toggles a palette colour on the cursor cell with a plain digit, and off again", () => {
         session.select("r1c2");
         session.input(3);
@@ -710,9 +720,9 @@ describe("PuzzleSession colour marks (#35)", () => {
 
     it("keeps several colours on one cell, in palette order", () => {
         session.select("r1c2");
-        session.input(5);
+        session.input(4);
         session.input(2);
-        expect(colorsAt("r1c2")).toEqual([1, 4]);
+        expect(colorsAt("r1c2")).toEqual([1, 3]);
     });
 
     it("ignores a colour outside the palette", () => {
@@ -791,10 +801,10 @@ describe("PuzzleSession colour marks (#35)", () => {
         session.select("r1c2");
         session.input(2);
         session.select("r1c1");
-        session.input(7);
+        session.input(3);
         const restored = new PuzzleSession(compiled(), { initialProgress: session.toProgress() });
         expect(restored.cellState("r1c2").colors).toEqual([1]);
-        expect(restored.cellState("r1c1").colors).toEqual([6]);
+        expect(restored.cellState("r1c1").colors).toEqual([2]);
     });
 
     it("drops malformed saved colours instead of trusting them", () => {

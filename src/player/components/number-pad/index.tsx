@@ -36,8 +36,12 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
     // It has the digits and a 0 key beside Erase.
     // In colour mode, the digits are swatches 1-9 and 0 is the background colour (see mark_colors.ts).
     // In other modes, 0 is live only when the domain of the puzzle includes it.
-    const base = swatches ? palette.map((_, i) => i + 1) : values.filter((v) => v !== 0);
+    // The swatches are as many as the digits (a 6x6 shows colours 1-6), so the pad has the same size in every mode.
+    const digits = values.filter((v) => v !== 0);
+    const base = swatches ? palette.slice(0, digits.length).map((_, i) => i + 1) : digits;
     const columns = padColumns(base.length);
+    // A puzzle with more digits than colours (a 25x25) keeps the height of its digit pad in colour mode.
+    const digitRows = Math.ceil(digits.length / padColumns(digits.length));
     const key = (v: number, extra = "") => (
         <button
             key={v}
@@ -73,7 +77,14 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
             {mode === "pen" ? (
                 <PenGuide rows={Math.ceil(base.length / columns)} />
             ) : (
-                <div className="pad-grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+                <div
+                    className="pad-grid"
+                    style={{
+                        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                        minHeight: `calc(${digitRows} * 44px + ${digitRows - 1} * 0.4rem)`,
+                        alignContent: "start",
+                    }}
+                >
                     {base.map((v) => key(v))}
                 </div>
             )}

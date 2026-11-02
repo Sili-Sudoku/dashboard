@@ -544,7 +544,9 @@ export class PuzzleSession {
         if (this.inputMode === "corner") return this.toggleCornerNote(digit);
         if (this.inputMode === "center") return this.toggleCenterNote(digit);
         if (this.inputMode === "color") {
-            const index = markIndexForDigit(digit);
+            // Colour k is the k-th key of the pad. A puzzle with fewer digits has fewer colours (see the number pad).
+            const colorCount = this.puzzle.domain.filter((v) => v !== 0).length;
+            const index = digit > colorCount ? undefined : markIndexForDigit(digit);
             if (index !== undefined) this.toggleColor(index);
             return;
         }
