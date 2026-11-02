@@ -26,12 +26,11 @@ const basePuzzle: PuzzleDefinition = {
     constraints: [],
 };
 
-/** Mirrors exactly how Author's index.tsx composes these two pieces: a single
- *  PuzzlePlayer board (the same one the Author page already shows), its
- *  selection mirrored out via onSelectionChange, and onSelectionEnd wired to
- *  the hook's onBoardSelectionEnd so finishing a drag commits a constraint —
- *  see use_visual_builder.ts's own comment for why there's only ever one
- *  board, not two. */
+/** This copies how index.tsx of Author joins these two parts.
+ *  There is one PuzzlePlayer board (the same board that the Author page already shows).
+ *  `onSelectionChange` sends the selection out.
+ *  `onSelectionEnd` calls `onBoardSelectionEnd` of the hook, so the end of a drag commits a constraint.
+ *  See the comment in use_visual_builder.ts for why there is only one board. */
 const Harness = ({
     def,
     onChange,
@@ -40,7 +39,7 @@ const Harness = ({
 }: {
     def: PuzzleDefinition | undefined;
     onChange: (next: PuzzleDefinition) => void;
-    /** The toolbox the page would hand in; defaults to every tool pinned. */
+    /** The toolbox that the page passes in. The default is all tools pinned. */
     initialTools?: readonly string[];
     onTools?: (tools: readonly string[]) => void;
 }) => {
@@ -122,7 +121,7 @@ describe("VisualBuilder quick access (#158)", () => {
         expect(x.title).toMatch(/2 placed constraints/);
         fireEvent.click(x);
 
-        expect(onChange).toHaveBeenCalledTimes(1); // the cleanup goes through with the tool change, not as a second step
+        expect(onChange).toHaveBeenCalledTimes(1); // the cleanup goes with the tool change and is not a second step
         expect((onChange.mock.calls[0][0] as PuzzleDefinition).constraints).toEqual([{ use: "antiknight" }]);
         expect(onTools).toHaveBeenCalledWith(["antiknight", "thermometer"]);
     });
@@ -174,7 +173,7 @@ describe("VisualBuilder", () => {
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         fireEvent.pointerDown(cells[5]); // r2c2 on a 4x4 grid (0-indexed row-major)
-        fireEvent.pointerUp(svg); // ends the gesture -- commits since a single cell is all this schema needs
+        fireEvent.pointerUp(svg); // ends the gesture -- commits, because this schema needs only one cell
 
         expect(onChange).toHaveBeenCalledTimes(1);
         const next = onChange.mock.calls[0][0] as PuzzleDefinition;
@@ -204,13 +203,13 @@ describe("VisualBuilder", () => {
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         const polyline = () => container.querySelector(".shapes polyline");
 
-        fireEvent.pointerDown(cells[0]); // r1c1 -- thermometer needs 2+ cells, so no preview shape yet
+        fireEvent.pointerDown(cells[0]); // r1c1 -- a thermometer needs 2+ cells, so no preview shape yet
         expect(polyline()).toBeNull();
 
         fireEvent.pointerEnter(cells[1]); // r1c2 -- now enough for a path
         expect(polyline()?.getAttribute("points")?.split(" ")).toHaveLength(2);
 
-        fireEvent.pointerEnter(cells[2]); // r1c3 -- the line grows again, still mid-drag
+        fireEvent.pointerEnter(cells[2]); // r1c3 -- the line grows again, the drag continues
         expect(polyline()?.getAttribute("points")?.split(" ")).toHaveLength(3);
     });
 
@@ -222,13 +221,13 @@ describe("VisualBuilder", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
 
         fireEvent.pointerDown(cells[0]); // r1c1 -> bulb, the default active field
-        fireEvent.pointerUp(svg); // shaft still empty -- not complete yet, no commit
+        fireEvent.pointerUp(svg); // shaft is still empty -- not complete, no commit
         expect(onChange).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByText(/Shaft path/)); // switch the active field to "cells"
-        fireEvent.pointerDown(cells[1]); // r1c2 selected, replaces the board selection
+        fireEvent.click(screen.getByText(/Shaft path/)); // change the active field to "cells"
+        fireEvent.pointerDown(cells[1]); // r1c2 is selected and replaces the board selection
         fireEvent.pointerEnter(cells[2]); // + r1c3
-        fireEvent.pointerUp(svg); // both fields filled now -- commits
+        fireEvent.pointerUp(svg); // both fields are full -- commits
 
         expect(onChange).toHaveBeenCalledTimes(1);
         const next = onChange.mock.calls[0][0] as PuzzleDefinition;
@@ -250,7 +249,7 @@ describe("VisualBuilder", () => {
         drag(0, 1);
         expect(onChange).toHaveBeenCalledTimes(1);
 
-        // the second placement reuses the 10 with no re-typing, so the drag alone commits it
+        // the second placement reuses the 10 with no new typing, so the drag alone commits it
         expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("10");
         drag(4, 5);
         expect(onChange).toHaveBeenCalledTimes(2);
@@ -258,7 +257,7 @@ describe("VisualBuilder", () => {
             { use: "xv", cells: ["r2c1", "r2c2"], target: 10 },
         ]);
 
-        // switch to another schema and back: still 10, and changing it sticks too
+        // change to another schema and back: the value is still 10, and a new value also stays
         fireEvent.click(screen.getByText("Minimum marker"));
         fireEvent.click(screen.getByText("XV"));
         expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("10");
@@ -388,7 +387,7 @@ describe("VisualBuilder custom rule tool (#127)", () => {
         fireEvent.pointerDown(cells[0]!);
         fireEvent.pointerEnter(cells[1]!);
         fireEvent.pointerUp(svg);
-        expect(add.disabled).toBe(true); // right-hand side still empty
+        expect(add.disabled).toBe(true); // the right-hand side is still empty
 
         pick("Right", "A number");
         fireEvent.change(screen.getByLabelText("Right"), { target: { value: "7" } });
@@ -410,7 +409,7 @@ describe("VisualBuilder custom rule tool (#127)", () => {
         fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
 
         expect(lastDef(onChange).constraints).toEqual([{ rule: ["==", 2, 2], name: "Twos" }]);
-        expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(""); // ready for the next one
+        expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(""); // ready for the next rule
     });
 
     it("grows a variadic operator, and offers `$` only inside a count's per-cell rule", () => {

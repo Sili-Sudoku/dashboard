@@ -4,10 +4,10 @@ import { OverflowMenu } from "@/app/overflow_menu.tsx";
 import { readOverride, withOverride } from "@/authoring/style_override.ts";
 import { PATTERNS, type PatternName } from "@/runtime/puzzle.ts";
 
-/** A neutral green to start from: the colour input needs a real value to show once "Set colour" is pressed. */
+/** A neutral green as the start value. The colour input needs a real value to show after "Set colour" is pressed. */
 const STARTING_COLOR = "#3aa76d";
 
-/** Uploaded pictures are stored inside the puzzle JSON, so keep them small. */
+/** The puzzle JSON stores uploaded pictures. Thus they must be small. */
 const MAX_IMAGE_BYTES = 150_000;
 
 const PATTERN_LABELS: Record<PatternName, string> = {
@@ -22,7 +22,7 @@ interface Props {
     onChange: (next: { use: string; [key: string]: unknown }) => void;
 }
 
-/** Colour, dashed and opacity for one placed constraint (#165): the per-instance override from #132. */
+/** Colour, dashed and opacity for one placed constraint (#165). This is the override for each instance from #132. */
 export default function StyleEditor({ spec, onChange }: Props) {
     const { color, dashed, opacity, pattern, image } = readOverride(spec);
     const set = (patch: Parameters<typeof withOverride>[1]) => onChange(withOverride(spec, patch));

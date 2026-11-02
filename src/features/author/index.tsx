@@ -36,9 +36,9 @@ const SudokuMakerIcon = () => <img className="author-icon" src={sudokuMakerIcon}
 
 const SudokuPadIcon = () => <img className="author-icon" src={sudokuPadIcon} alt="" width={16} height={16} />;
 
-/** "antiking#56, antiking#73, thermometer#2" → "antiking ×2, thermometer#2" — a
- *  global rule can violate at hundreds of cell pairs, so listing every id made
- *  the notice a wall of text. */
+/** Changes "antiking#56, antiking#73, thermometer#2" to "antiking ×2, thermometer#2".
+ *  A global rule can have hundreds of violating cell pairs.
+ *  A list of every id made the notice a wall of text. */
 const summarizeConflicts = (ids: ReadonlySet<string>): string => {
     const byKind = new Map<string, string[]>();
     for (const id of ids) {
@@ -48,7 +48,7 @@ const summarizeConflicts = (ids: ReadonlySet<string>): string => {
     return [...byKind].map(([kind, list]) => (list.length > 1 ? `${kind} ×${list.length}` : list[0])).join(", ");
 };
 
-/** Snapshots kept for author undo — each is a full JSON text, so keep it bounded. */
+/** Maximum number of snapshots for author undo. Each snapshot is a full JSON text, so the number has a limit. */
 const HISTORY_LIMIT = 100;
 
 const BUILDER_EXAMPLE = `// PuzzleBuilder is in scope. Return the built puzzle; Run loads it into the editor.
@@ -71,8 +71,8 @@ interface GridDims {
     boxHeight: number;
 }
 
-/** The actual box size a grid resolves to, including the sqrt-based default — so the
- *  dimension inputs always show the real applied value, never a silent guess. */
+/** The real box size that a grid resolves to, with the sqrt-based default.
+ *  So the dimension inputs always show the real applied value and never a silent guess. */
 const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
     if (!def) return undefined;
     try {
@@ -95,7 +95,7 @@ const EDITOR_TABS: { mode: EditorMode; label: string }[] = [
     { mode: "code", label: "Code" },
 ];
 
-/** One entry of the author undo history: the puzzle JSON plus the visual builder's pinned tools. */
+/** One entry of the author undo history: the puzzle JSON and the pinned tools of the visual builder. */
 interface Snapshot {
     text: string;
     tools: readonly string[];
@@ -106,9 +106,9 @@ const DEFAULT_DIMS: GridDims = { width: 9, height: 9, boxWidth: 3, boxHeight: 3 
 export default function Author() {
     const [text, setText] = useState(() => JSON.stringify(demoMixed, null, 2));
     const [submitted, setSubmitted] = useState(text);
-    // Tagged with the `submitted` string it was computed for, so a stale result
-    // from a previous puzzle never shows for whatever is loaded now — simpler
-    // than clearing it from every call site that can change `submitted`.
+    // The result is tagged with the `submitted` string it was computed for.
+    // So an old result from a previous puzzle never shows for the puzzle that is loaded now.
+    // This is simpler than a clear at every call site that can change `submitted`.
     const [solving, setSolving] = useState(false);
     const [settings, setSetting] = useSettings();
     const editorMode = settings.authorEditorMode;
@@ -118,26 +118,27 @@ export default function Author() {
         "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
     );
 
-    // Undo/redo for changes made *to the puzzle* — visual-builder placements,
-    // grid-size edits, imports, loading an example (#116). Surfaced through the
-    // board's own Undo/Redo (and Ctrl+Z) via PuzzlePlayer's externalHistory, which
-    // tries the board's entered digits first. Typing in the JSON box keeps the
-    // textarea's own native undo; the snapshots here are what that can't see,
-    // because they replace the text programmatically.
+    // Undo/redo for changes made *to the puzzle*.
+    // These are visual-builder placements, grid-size edits, imports, and loading an example (#116).
+    // The Undo/Redo of the board (and Ctrl+Z) shows them, through externalHistory of PuzzlePlayer.
+    // That history tries the digits entered on the board first.
+    // Typing in the JSON box keeps the native undo of the textarea.
+    // The snapshots here cover what that undo cannot see, because they replace the text from code.
     //
-    // A snapshot is the puzzle text *and* the visual builder's toolbox (its pinned tools), so
-    // undo also puts back a tool you just pinned or removed.
+    // A snapshot is the puzzle text *and* the toolbox of the visual builder (its pinned tools).
+    // So undo also puts back a tool that you just pinned or removed.
     const tools = settings.builderTools;
 
-    // The Code tab (#123, #164): the loaded puzzle as PuzzleBuilder code, always in step with the
-    // JSON and Visual tabs. Typing starts a draft (kept until you Run or Discard); Run replaces the
-    // puzzle (so undo steps back), exactly as pasting the JSON it builds would.
+    // The Code tab (#123, #164) shows the loaded puzzle as PuzzleBuilder code.
+    // It is always in step with the JSON and Visual tabs.
+    // Typing starts a draft. The draft stays until you Run or Discard.
+    // Run replaces the puzzle, so undo steps back. This is the same as a paste of the JSON that the code builds.
     const [codeDraft, setCodeDraft] = useState<string>();
     const [codeError, setCodeError] = useState<string>();
     const runCode = () => {
         try {
             const built: unknown = new Function("PuzzleBuilder", code)(PuzzleBuilder);
-            // Forgetting the trailing .build() is the easy mistake, so just do it.
+            // A missing final .build() is an easy mistake, so call it here.
             const artifact = built instanceof PuzzleBuilder ? built.build() : built;
             if (!artifact || typeof artifact !== "object") {
                 throw new Error("The code must return the puzzle: end with `return PuzzleBuilder.create(…)….build();`");
@@ -158,7 +159,7 @@ export default function Author() {
         setSubmitted(snapshot.text);
         setSetting("builderTools", snapshot.tools);
     };
-    /** One undoable step: change the puzzle text, the toolbox, or both together. */
+    /** One undoable step: change the puzzle text, the toolbox, or both. */
     const applyChange = (change: { text?: string; tools?: readonly string[] }) => {
         const next = { text: change.text ?? text, tools: change.tools ?? tools };
         if (next.text !== text || next.tools.join() !== tools.join()) {
@@ -189,23 +190,22 @@ export default function Author() {
         applyText(json);
     };
 
-    // Parsed and compiled on every keystroke (both are sub-millisecond even for
-    // the largest puzzle in the repo — measured, not assumed) so the textarea's
-    // border can track validity live. Compiling doesn't apply anything by
-    // itself; `submitted` (and so the board preview) only ever picks up `text`
-    // once it's actually valid — adjusted during render just below, React's
-    // documented alternative to an effect for "derive state from a change in
-    // other state" — so a mid-edit invalid state never blanks or remounts the
-    // last-good preview.
+    // The text is parsed and compiled on every keystroke.
+    // Both steps take less than a millisecond, even for the largest puzzle in the repo (measured).
+    // So the border of the textarea can show the validity live.
+    // Compiling does not apply anything.
+    // `submitted` (and so the board preview) takes `text` only when `text` is valid.
+    // The update happens during render, just below. React documents this as the alternative
+    // to an effect to "derive state from a change in other state".
+    // So an invalid state during an edit never blanks or remounts the last-good preview.
     const liveParsed = useMemo(() => parsePuzzle(text), [text]);
     const liveDef = liveParsed instanceof Error ? undefined : liveParsed;
     const liveError = useMemo(() => {
         if (liveParsed instanceof Error) return liveParsed.message;
-        // validateSolution: false here too -- a constraint that conflicts with
-        // the declared solution shouldn't withhold the whole edit from ever
-        // reaching the preview (see `result` below, which highlights it in red
-        // instead); only a *structural* problem should still block submission
-        // and keep showing the last-good preview.
+        // validateSolution: false here too.
+        // A constraint that conflicts with the declared solution must not stop the edit from reaching the preview.
+        // (`result` below highlights the constraint in red instead.)
+        // Only a *structural* problem must still block submission and keep the last-good preview.
         const compiled = compilePuzzle(liveParsed, definitions, { validateSolution: false });
         return compiled instanceof Error ? compiled.message : undefined;
     }, [liveParsed]);
@@ -223,10 +223,10 @@ export default function Author() {
         const next = { ...dims, ...patch };
         if (Object.values(next).some((n) => !Number.isFinite(n))) return;
 
-        // Changing the box shape regroups which cells must be mutually different —
-        // any existing solution was only ever solved for the old shape, so it's
-        // not just stale, it's almost certainly wrong. Drop it rather than leave
-        // the JSON holding a "rule" the buttons no longer agree with.
+        // A change of the box shape regroups the cells that must be mutually different.
+        // An existing solution was solved for the old shape only.
+        // So it is not only stale. It is almost certainly wrong.
+        // Drop it. Do not leave the JSON with a "rule" that the buttons no longer agree with.
         const boxChanged = next.boxWidth !== dims.boxWidth || next.boxHeight !== dims.boxHeight;
         const updated: PuzzleDefinition = {
             ...liveDef,
@@ -245,19 +245,18 @@ export default function Author() {
     const result = useMemo(() => {
         const parsed = parsePuzzle(submitted);
         if (parsed instanceof Error) return { error: parsed.message };
-        // A declared solution that conflicts with a constraint is still worth
-        // surfacing, but not by blanking out the whole preview over it (that's
-        // especially rough mid-drag in the visual builder, where the thing you
-        // were just dragging would simply vanish) — validateSolution: false
-        // compiles anyway, and invalidConstraintIds (below) highlights exactly
-        // which constraint(s) conflict instead.
+        // A declared solution that conflicts with a constraint must still show to the user.
+        // But the whole preview must not go blank for it.
+        // That is bad during a drag in the visual builder, because the dragged item would vanish.
+        // validateSolution: false compiles the puzzle anyway.
+        // invalidConstraintIds (below) highlights the constraints that conflict.
         const compiled = compilePuzzle(parsed, definitions, { validateSolution: false });
         if (compiled instanceof Error) return { error: compiled.message, parsed };
         return { compiled, parsed };
     }, [submitted]);
 
-    // The code the Code tab shows: your draft, else the loaded puzzle printed as code (the sample
-    // while the JSON doesn't parse).
+    // The code that the Code tab shows: your draft, or else the loaded puzzle printed as code.
+    // The tab shows the sample while the JSON does not parse.
     const generatedCode = useMemo(() => {
         if (!("parsed" in result) || !result.parsed) return BUILDER_EXAMPLE;
         try {
@@ -268,11 +267,11 @@ export default function Author() {
     }, [result]);
     const code = codeDraft ?? generatedCode;
 
-    // While the puzzle doesn't compile there's no board, hence no Undo button or
-    // Ctrl+Z handler from the player — and an edit that broke the puzzle (a grid
-    // size it can't satisfy, say) is exactly when you want to step back. So the
-    // page answers Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y itself in that state, leaving
-    // text fields their native undo.
+    // While the puzzle does not compile, there is no board.
+    // So the player gives no Undo button and no Ctrl+Z handler.
+    // But an edit that broke the puzzle (for example, a grid size it cannot satisfy) is when you need to step back.
+    // So in that state the page handles Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y itself.
+    // Text fields keep their native undo.
     const hasBoard = "compiled" in result && !!result.compiled;
     useEffect(() => {
         if (hasBoard) return;
@@ -311,9 +310,10 @@ export default function Author() {
         },
     );
     const [showSolution, setShowSolution] = useState(false);
-    // "Test as solver": the preview becomes the plain player a solver would get — none
-    // of the author extras (builder hooks, red conflict marking, solution overlay, the
-    // puzzle-edit undo history) — so the author can play their own puzzle. Per-session.
+    // "Test as solver": the preview becomes the plain player that a solver gets.
+    // It has none of the author extras.
+    // The extras are builder hooks, red conflict marking, solution overlay, and puzzle-edit undo history.
+    // So the author can play their own puzzle. The setting lasts for one session.
     const [testing, setTesting] = useState(false);
 
     const runSolve = async () => {
@@ -321,8 +321,8 @@ export default function Author() {
         setSolving(true);
         const puzzle = result.compiled;
         const t0 = performance.now();
-        // solve() yields back to the event loop periodically, so this await
-        // doesn't freeze the page even for a multi-second search.
+        // solve() yields to the event loop at intervals.
+        // So this await does not freeze the page, even for a search of many seconds.
         const solved = await solve(puzzle);
         const ms = Math.round(performance.now() - t0);
         toast(
@@ -350,7 +350,7 @@ export default function Author() {
     const exampleItems: MenuItem[] = listPuzzles().map((p) => ({
         label: p.metadata.title,
         onSelect: () => {
-            setCodeDraft(undefined); // the Code tab should show the example, not an old draft
+            setCodeDraft(undefined); // the Code tab must show the example, not an old draft
             loadExample(p.metadata.id);
         },
     }));
@@ -397,8 +397,8 @@ export default function Author() {
                 </span>
             )}
             {!testing && invalidConstraintIds.size > 0 && (
-                // Lives in the bar (one row that is always there) rather than as a paragraph
-                // above the board, so it appearing never pushes the board down.
+                // This is in the bar (one row that is always there), not in a paragraph above the board.
+                // So when it appears, it never pushes the board down.
                 <span className="author-conflict" role="status" tabIndex={0}>
                     <TriangleAlert size={15} aria-hidden="true" />
                     <span className="author-conflict-text">

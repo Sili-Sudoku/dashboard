@@ -23,29 +23,29 @@ import {
 } from "@/authoring/schema.ts";
 import { getAt, isComplete, setAt, toExpr, type Path, type RuleNode } from "@/authoring/rule_tree.ts";
 
-/** The pinned-tools list lives with the page's undo history, so the hook only reports changes to it. */
+/** The undo history of the page holds the list of pinned tools. The hook only reports changes to it. */
 export interface Toolbox {
     tools: readonly string[];
-    /** Set the pinned tools, optionally along with a puzzle change, as a single undoable step. */
+    /** Set the pinned tools. Optionally change the puzzle in the same call. This is one undoable step. */
     onChange: (tools: readonly string[], def?: PuzzleDefinition) => void;
 }
 
-/** Fog (#129) is a tool like the others, but it edits a puzzle-level field rather than adding a constraint. */
+/** Fog (#129) is a tool like the others. It edits a field of the puzzle and does not add a constraint. */
 export const FOG_TOOL = "fog";
 
-/** The custom-rule editor (#127) is a tool too: it builds one constraint from primitive operators. */
+/** The custom-rule editor (#127) is also a tool. It builds one constraint from primitive operators. */
 export const RULE_TOOL = "rule";
 
-/** Dynamic rules (#72/#167): "when this holds, then …". Shares the custom-rule editor for its condition. */
+/** Dynamic rules (#72/#167): "when this holds, then …". The condition uses the custom-rule editor. */
 export const DYNAMIC_TOOL = "dynamic";
 
-/** The puzzle with no `fog` field at all (an empty one isn't the same as none). */
 const withoutRules = (def: PuzzleDefinition): PuzzleDefinition => {
     const copy = { ...def };
     delete copy.rules;
     return copy;
 };
 
+/** The puzzle with no `fog` field at all. An empty `fog` field is not the same as no `fog` field. */
 const withoutFog = (def: PuzzleDefinition): PuzzleDefinition => {
     const copy = { ...def };
     delete copy.fog;
@@ -53,16 +53,16 @@ const withoutFog = (def: PuzzleDefinition): PuzzleDefinition => {
 };
 
 export interface FogControls {
-    /** The fog tool is the one being used: a drag on the board hides (or reveals) the cells it covers. */
+    /** The fog tool is in use. A drag on the board hides (or reveals) the cells it covers. */
     active: boolean;
     start: () => void;
     hidden: readonly CellId[];
-    /** A drag reveals cells instead of hiding them. */
+    /** A drag reveals cells and does not hide them. */
     reveal: boolean;
     setReveal: (reveal: boolean) => void;
-    /** Fog reveals cells as they're solved, so a puzzle can only declare it once it has a `solution`. */
+    /** Fog reveals cells when the player solves them. A puzzle can declare fog only if it has a `solution`. */
     hasSolution: boolean;
-    /** Runs the solver and stores the solution it finds in the puzzle (one undoable step). */
+    /** Runs the solver and stores the solution in the puzzle. This is one undoable step. */
     findSolution: () => Promise<void>;
     finding: boolean;
     clear: () => void;
@@ -70,63 +70,62 @@ export interface FogControls {
 
 export interface RuleControls {
     active: boolean;
-    /** What the tree being built becomes: a constraint (#127) or the condition of a dynamic rule (#167). */
+    /** The tree becomes a constraint (#127) or the condition of a dynamic rule (#167). */
     kind: "constraint" | "dynamic";
     start: (kind?: "constraint" | "dynamic") => void;
-    /** The rule so far, with the board's live selection already in the slot being filled. */
+    /** The rule so far. The live selection of the board is already in the slot that the author fills. */
     tree: RuleNode | null;
-    /** The slot the board's selection flows into. */
+    /** The slot that receives the selection of the board. */
     path: Path;
     setPath: (path: Path) => void;
-    /** Put a node (or nothing) in the slot at `path`; a cells/cell leaf also becomes the slot the board fills. */
+    /** Put a node (or nothing) in the slot at `path`. A cells/cell leaf also becomes the slot that the board fills. */
     set: (path: Path, node: RuleNode | null) => void;
-    /** Replace the whole tree (adding or removing a variadic operator's slots). */
+    /** Replace the whole tree (to add or remove the slots of a variadic operator). */
     replace: (tree: RuleNode | null) => void;
     complete: boolean;
-    /** The cells selected on the board right now, for effects that name cells (#167). */
+    /** The cells that are selected on the board now, for effects that name cells (#167). */
     selected: readonly CellId[];
-    /** What the rule is called in the puzzle's list (blank: it is shown as its expression). */
+    /** The name of the rule in the list of the puzzle. If it is blank, the list shows the expression. */
     name: string;
     setName: (name: string) => void;
     add: () => void;
-    /** Add the tree as the `when` of a dynamic rule with these effects (its name becomes the rule's id). */
+    /** Add the tree as the `when` of a dynamic rule with these effects. The name becomes the id of the rule. */
     addDynamic: (then: PuzzleRule["then"]) => void;
 }
 
 export interface VisualBuilderState {
     fog: FogControls;
     rule: RuleControls;
-    /** Names of the tools pinned to quick access. */
+    /** Names of the tools that are pinned to quick access. */
     tools: readonly string[];
     pinTool: (name: string) => void;
-    /** Un-pin a tool and delete every constraint of it from the puzzle (one undoable step). */
+    /** Un-pin a tool and delete all its constraints from the puzzle. This is one undoable step. */
     removeTool: (name: string) => void;
     activeSchema: AuthoringSchema | undefined;
     activeCellFields: readonly AuthoringField[];
-    /** Which cell/cells field the board's selection is currently flowing into — see
-     *  the hook's own comment. Undefined once a schema has no cell fields at all. */
+    /** The cell/cells field that receives the selection of the board now. See the comment of the hook.
+     *  It is undefined when a schema has no cell fields. */
     activeFieldKey: string | undefined;
     fieldValues: Readonly<Record<string, FieldValue>>;
-    /** The in-progress constraint's own graphics (e.g. a thermometer's line),
-     *  straight from calling its definition with whatever cells are selected
-     *  so far — see the hook's own comment. Draw these on top of the board as
-     *  if they were real, committed objects; empty once there isn't enough
-     *  selected yet for the definition to produce anything. */
+    /** The graphics of the constraint in progress (for example the line of a thermometer).
+     *  They come from a call to its definition with the cells that are selected so far.
+     *  See the comment of the hook. Draw them on top of the board like real, committed objects.
+     *  The list is empty when too few cells are selected for the definition to produce anything. */
     previewObjects: readonly VisualObject[];
     startPlacing: (schema: AuthoringSchema) => void;
     cancelPlacing: () => void;
     setField: (key: string, value: FieldValue) => void;
     setActiveField: (key: string) => void;
-    /** Call when a drag/click on the board finishes (PuzzlePlayer's onSelectionEnd)
-     *  — commits the constraint if that finished the last thing it needed, so
-     *  dragging a definition onto the grid places it with no separate "Add" click.
-     *  A no-op if the schema still needs something a drag can't supply (e.g. xv's
-     *  required target number) — those still finish via the Add button. */
+    /** Call this when a drag or click on the board ends (`onSelectionEnd` of PuzzlePlayer).
+     *  It commits the constraint if the selection supplied the last missing value.
+     *  Thus a drag onto the grid places a definition with no separate "Add" click.
+     *  It does nothing if the schema needs a value that a drag cannot supply
+     *  (for example the required target number of xv). The Add button finishes those. */
     onBoardSelectionEnd: () => void;
     addConstraint: () => void;
     removeConstraint: (index: number) => void;
     removeRule: (index: number) => void;
-    /** Replace a placed constraint in place (its colour/style, #165), as one undoable step. */
+    /** Replace a placed constraint in place (its colour or style, #165). This is one undoable step. */
     updateConstraint: (index: number, spec: ConstraintSpec) => void;
 }
 
@@ -139,21 +138,21 @@ const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<Cel
     return field.kind === "cells" && field.max !== undefined ? cells.slice(0, field.max) : cells;
 };
 
-/** All the state/logic behind the visual builder (#54): pick a definition from
- *  the palette, then click/drag directly on the board (the Author page's
- *  single, ordinary PuzzlePlayer one — see PuzzlePlayer's onSelectionChange)
- *  to place it, same gesture as selecting cells for digit entry. Whichever
- *  cell field is "active" just mirrors the board's live selection — derived
- *  straight from it every render, not synced into state — so dragging is
- *  immediate. Switching to a different field (setActiveField; needed for
- *  multi-cell-field schemas like arrow's bulb vs shaft, or clone's cells vs
- *  cloneCells) freezes the outgoing field's then-current value first, so it
- *  survives the switch. Finishing a drag (onBoardSelectionEnd) commits the
- *  constraint outright once that was the last thing it needed — no separate
- *  "Add" click for the common case of a definition that's just cell(s) (plus
- *  maybe optional params with defaults). A definition with no fields at all
- *  (e.g. antiknight) commits the moment it's picked from the palette, same
- *  idea: picking it *is* placing it, nothing left to draw on the board. */
+/** All the state and logic of the visual builder (#54).
+ *  The author picks a definition from the palette. Then the author clicks or drags on the board
+ *  to place it. The board is the one ordinary PuzzlePlayer of the Author page (see `onSelectionChange`
+ *  of PuzzlePlayer). The gesture is the same as the selection of cells for digit entry.
+ *  The "active" cell field mirrors the live selection of the board.
+ *  The hook derives it from the selection on every render and does not copy it into state.
+ *  Thus a drag has an immediate effect.
+ *  `setActiveField` switches to a different field. Schemas with more than one cell field need it,
+ *  for example the bulb and shaft of arrow, or the cells and cloneCells of clone.
+ *  It first freezes the current value of the old field, so the value stays after the switch.
+ *  `onBoardSelectionEnd` commits the constraint when the drag supplied the last missing value.
+ *  This gives no separate "Add" click for a definition that needs only cells
+ *  (and maybe optional params that have defaults).
+ *  A definition with no fields (for example antiknight) commits when the author picks it.
+ *  Picking it is the same as placing it. Nothing is left to draw on the board. */
 /** True when `schema` takes no parameters and the puzzle already has it. */
 export const isGlobalPlaced = (def: PuzzleDefinition | undefined, schema: AuthoringSchema): boolean =>
     schema.fields.length === 0 && !!def?.constraints.some((c) => isDefinitionRef(c) && c.use === schema.name);
@@ -165,8 +164,8 @@ export const useVisualBuilder = (
     toolbox: Toolbox,
 ): VisualBuilderState => {
     const [placingSchema, setActiveSchema] = useState<AuthoringSchema | undefined>();
-    // A tool only counts as being placed while it's in the toolbox (or the puzzle uses it), so
-    // undoing past its pinning drops it instead of leaving a form for a tool that's gone.
+    // A tool counts as placed only while it is in the toolbox (or the puzzle uses it).
+    // Thus an undo past the pinning of a tool drops it. No form stays for a tool that is gone.
     const activeSchema =
         placingSchema &&
         (toolbox.tools.includes(placingSchema.name) ||
@@ -174,11 +173,11 @@ export const useVisualBuilder = (
             ? placingSchema
             : undefined;
     const [activeFieldKey, setActiveFieldKeyState] = useState<string | undefined>();
-    // Cell/cells values only: the board selection frozen when the author switches field. Cleared on
-    // every commit/cancel, since a placed constraint's cells never carry over to the next one.
+    // Cell/cells values only: the selection of the board, frozen when the author switches field.
+    // Every commit or cancel clears them. The cells of a placed constraint never carry over to the next one.
     const [cellValues, setCellValues] = useState<Record<string, FieldValue>>({});
-    // Typed params (a sum, a "strict" checkbox, ...) per schema name, remembered across placements,
-    // cancelling, and switching to another schema and back (#117) until the author changes them.
+    // Typed params (a sum, a "strict" checkbox, ...) for each schema name. The hook keeps them across
+    // placements, cancels, and a switch to another schema and back (#117) until the author changes them.
     const [paramMemory, setParamMemory] = useState<Readonly<Record<string, Readonly<Record<string, FieldValue>>>>>({});
 
     const activeCellFields = activeSchema ? cellFieldsOf(activeSchema) : [];
@@ -189,12 +188,11 @@ export const useVisualBuilder = (
         ? { ...baseValues, [activeField.key]: applySelectionToField(activeField, selection) }
         : baseValues;
 
-    // Derived straight from the live selection every render, same as effectiveValues
-    // above — not stored in state, so the shape grows/shrinks on every cell the drag
-    // touches, not just once it's complete enough to commit. Whatever the definition
-    // can't yet produce from a partial selection (e.g. thermometer needs 2+ cells)
-    // just yields no preview rather than an error, which the renderer already treats
-    // as "draw nothing for this one".
+    // The hook derives this from the live selection on every render, like effectiveValues above.
+    // It is not in state. Thus the shape grows or shrinks with each cell that the drag touches.
+    // It does not wait until the selection is complete enough to commit.
+    // A partial selection can be too small for the definition (for example a thermometer needs 2+ cells).
+    // Then the result is no preview and not an error. The renderer draws nothing for it.
     const toolPreview: readonly VisualObject[] = (() => {
         if (!def || !activeSchema) return [];
         const definition = definitions[activeSchema.name];
@@ -206,8 +204,8 @@ export const useVisualBuilder = (
         return output.objects ?? [];
     })();
 
-    // The fogged cells are tinted on the board while authoring, so you can see where the fog is even
-    // before the puzzle has a solution to reveal it against (the real fog needs one to show at all).
+    // The board tints the fogged cells during authoring. Thus the author sees where the fog is
+    // before the puzzle has a solution. (The real fog needs a solution to show at all.)
     const previewObjects: readonly VisualObject[] =
         def?.fog?.hidden.length
             ? [
@@ -220,8 +218,9 @@ export const useVisualBuilder = (
               ]
             : toolPreview;
 
-    // Fog (#129): picking the tool makes board drags hide cells (or reveal them) rather than fill a
-    // constraint's fields. Like any tool it only counts while it's in the toolbox or the puzzle has fog.
+    // Fog (#129): when the author picks the tool, a drag on the board hides cells (or reveals them).
+    // It does not fill the fields of a constraint. Like all tools, it counts only while
+    // it is in the toolbox or the puzzle has fog.
     const [fogPlacing, setFogPlacing] = useState(false);
     const [reveal, setReveal] = useState(false);
     const fogActive = fogPlacing && (toolbox.tools.includes(FOG_TOOL) || !!def?.fog);
@@ -271,7 +270,7 @@ export const useVisualBuilder = (
         clear: () => setFog([]),
     };
 
-    // Custom rule (#127): the tree under construction and the slot the board's selection flows into.
+    // Custom rule (#127): the tree in progress and the slot that receives the selection of the board.
     const [rulePlacing, setRulePlacing] = useState(false);
     const [ruleTree, setRuleTree] = useState<RuleNode | null>(null);
     const [rulePath, setRulePathState] = useState<Path>([]);
@@ -345,8 +344,7 @@ export const useVisualBuilder = (
         setCellValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
-            // A global rule is either on or off — a second identical copy only
-            // multiplies its violations (#121).
+            // A global rule is on or off. A second identical copy only multiplies its violations (#121).
             if (!isGlobalPlaced(def, schema)) commit(schema, {});
             return;
         }
@@ -403,7 +401,7 @@ export const useVisualBuilder = (
         if (!toolbox.tools.includes(name)) toolbox.onChange([...toolbox.tools, name]);
     };
 
-    // A tool the puzzle used stays in the toolbox once its constraint is removed (#159).
+    // A tool that the puzzle used stays in the toolbox after the author removes its constraint (#159).
     const removeConstraint = (index: number) => {
         if (!def) return;
         const removed = def.constraints[index];
@@ -439,7 +437,8 @@ export const useVisualBuilder = (
                 name === RULE_TOOL ? isDefinitionRef(c) : !(isDefinitionRef(c) && c.use === name),
             ),
         };
-        // Fog and dynamic rules aren't constraints: removing their tool takes the puzzle's field with it.
+        // Fog and dynamic rules are not constraints.
+        // When the author removes their tool, the field of the puzzle goes too.
         const next =
             stripped && name === FOG_TOOL
                 ? withoutFog(stripped)

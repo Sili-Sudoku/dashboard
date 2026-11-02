@@ -1,16 +1,16 @@
-/* Joins the flex-fill chain .app-main--board sets up (router.tsx now treats
- * /new as a board route too, same as /p/:ref) so .author-grid actually gets
- * a definite height to stretch its two columns into, instead of collapsing
- * to whatever height its content happens to need. .author-grid is .author's
- * *only* child now — the page's own title/description used to live here as
- * a sibling `<section>` above it (and the "…or build it in code" example as
- * one below), and because flexbox hands a flex-grow item only what's left
- * after every sibling's own natural height is subtracted, those two blocks
- * were quietly capping the live board's height no matter how much vertical
- * space the window actually had. Both are gone from this column now: the
- * title/description is registered in the navbar instead (app/page_header.ts)
- * and the code example lives inside .author-editor's sidebar (which scrolls
- * on its own) — so .author-grid gets essentially all of .author's height. */
+/* This element joins the flex-fill chain that .app-main--board sets up.
+ * The router treats /new as a board route, like /p/:ref.
+ * So .author-grid gets a definite height to stretch its two columns into.
+ * Without it, the grid collapses to the height of its content.
+ * .author-grid is the only child of .author.
+ * The page title and description used to be a sibling `<section>` above it.
+ * The "...or build it in code" example was a sibling below it.
+ * A flex-grow item gets only the height that its siblings leave.
+ * So those two blocks capped the height of the live board.
+ * Both blocks are gone from this column.
+ * The navbar shows the title and description (app/page_header.ts).
+ * The code example is in the sidebar of .author-editor, which scrolls on its own.
+ * So .author-grid gets almost all of the height of .author. */
 .author {
     display: flex;
     flex-direction: column;
@@ -18,25 +18,23 @@
     flex: 1;
 }
 
-/* A grid-based proportional split (editor 1fr / preview 1.6fr) used to live
- * here, but that handed the *board* only a fraction of the window — on a
- * 2171px-wide window it measured out to a 740px board vs. the solver page's
- * 897px for the same puzzle, because the editor column ate real layout
- * width. The solver's sidebar (.pp-side in player.css) doesn't do that: it's
- * a fixed-width position:fixed overlay that doesn't shrink the board column
- * at all. Mirroring that here — a fixed-width editor instead of a
- * proportional share — lets .author-preview (and the board inside it) claim
- * the same width the solver page would for the same window, with the editor
- * just occupying a fixed-width lane beside it rather than negotiating for a
- * cut of the board's own space. */
+/* A grid-based proportional split (editor 1fr / preview 1.6fr) was here before.
+ * It gave the *board* only a part of the window.
+ * On a 2171px-wide window, the board was 740px. The solver page gave 897px for the same puzzle.
+ * The reason: the editor column took real layout width.
+ * The solver sidebar (.pp-side in player.css) does not do this.
+ * It is a fixed-width position:fixed overlay that does not shrink the board column.
+ * This grid does the same: the editor has a fixed width, not a proportional share.
+ * So .author-preview (and the board in it) gets the same width as on the solver page.
+ * The editor takes a fixed-width lane beside it and does not take space from the board. */
 .author-grid {
     display: flex;
     align-items: stretch;
     gap: 1.4rem;
-    /* 70vh floor so a pathologically short window still leaves the board
-     * usable rather than shrinking to nothing — in practice .author-grid is
-     * .author's only child now, so flex-grow:1 almost always lands well
-     * above this. */
+    /* The 70vh floor keeps the board usable on a very short window.
+     * Without it, the board can shrink to nothing.
+     * In practice, .author-grid is the only child of .author, so flex-grow:1
+     * almost always gives a height well above this floor. */
     flex: 1 0 70vh;
     min-height: 420px;
 }
@@ -76,8 +74,8 @@
     background: var(--surface);
     color: var(--ink);
     text-align: center;
-    /* The browser's default spinner arrows are the main "ugly" part of a
-     * number input; they're dropped in favor of plain scroll/type editing. */
+    /* The default spinner arrows are the main "ugly" part of a number input.
+     * They are removed. The user can scroll or type to edit. */
     -moz-appearance: textfield;
 }
 
@@ -98,24 +96,23 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    /* Safety valve (same pattern as .pp-side in player.css): the editor's
-     * own content — dims row, textarea, interop controls, and now the SDK
-     * example appended at the end — can add up to more than .author-grid's
-     * stretched height on a short window. Scrolling the column internally
-     * keeps that from squeezing the textarea/live board instead. */
+    /* Safety valve (same pattern as .pp-side in player.css).
+     * The content of the editor can be taller than the stretched height of .author-grid on a short window.
+     * The content is the dims row, the textarea, the interop controls, and the SDK example at the end.
+     * An internal scroll in this column keeps the textarea and the live board from getting squeezed. */
     overflow-y: auto;
-    /* Right padding gives this panel's own scrollbar track daylight from the
-     * textarea's native one — without it, both scrollbars (the panel's, for
-     * its overall content; the textarea's own, once a manual resize or long
-     * text overflows its box) sit flush against each other at nearly the
-     * same edge, reading as one confusing double scrollbar instead of two. */
+    /* The right padding separates the scrollbar of this panel from the native scrollbar of the textarea.
+     * The panel scrollbar is for the overall content.
+     * The textarea scrollbar shows after a manual resize or when long text overflows.
+     * Without the padding, both scrollbars sit against each other at nearly the same edge.
+     * They then look like one confusing double scrollbar. */
     padding-right: 0.6rem;
 }
 
 .author-editor textarea {
     width: 100%;
-    /* Fills whatever height the column has left; there is no drag handle to
-     * fight the flex layout, the editor simply uses the available space. */
+    /* The textarea fills the height that the column has left.
+     * There is no drag handle, so nothing fights the flex layout. */
     flex: 1 1 auto;
     min-height: 260px;
     font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
@@ -129,34 +126,32 @@
     color: var(--ink);
 }
 
-/* Same pen-blue ring as buttons (style.css) instead of the browser's default
- * focus outline; the border stays put, so the invalid state's red border
- * below still reads while the field is focused. */
+/* Same pen-blue ring as buttons (style.css), not the default browser focus outline.
+ * The border stays in place.
+ * So the red border of the invalid state (below) is still visible while the field has focus. */
 .author-editor textarea:focus-visible,
 .author-dialog textarea:focus-visible {
     outline: 2px solid var(--brand);
-    /* Negative offset draws the ring inside the border, like a selected cell
-     * on the board, so the box keeps its outline and the invalid red border
-     * still shows. */
+    /* A negative offset draws the ring inside the border, like a selected cell on the board.
+     * The box keeps its outline, and the red border of the invalid state still shows. */
     outline-offset: -8px;
 }
 
-/* Live validity feedback: red while the current text doesn't parse/compile,
- * cleared the instant it does — the board preview itself only ever updates
- * on the valid transition (see Author's `liveError` effect), so this border
- * is what tells you an edit hasn't applied yet. */
+/* Live validity feedback: the border is red while the current text does not parse or compile.
+ * It clears when the text does parse and compile.
+ * The board preview updates only on the valid transition (see the `liveError` effect of Author).
+ * So this border shows that an edit is not applied yet. */
 .author-editor textarea.invalid {
     border-color: var(--violated-line);
-    /* Doubles the line to 2px without moving the text — an error should stand out from a quiet frame. */
+    /* Doubles the line to 2px without a move of the text. An error must stand out from a quiet frame. */
     box-shadow: inset 0 0 0 1px var(--violated-line);
 }
 
-/* Claims every pixel of width .author-grid has left over after the editor's
- * fixed 440px lane (flex:1, not the flex item default flex:0 1 auto) —
- * matching the solver page's board column, which gets the same full-width
- * treatment since its sidebar doesn't occupy layout space either (see
- * .author-grid's comment above). Stays flex-based all the way down into
- * PuzzlePlayer/Board, which already expect that chain. */
+/* Takes all the width that .author-grid has left after the fixed 440px lane of the editor.
+ * It uses flex:1, not the flex item default flex:0 1 auto.
+ * This matches the board column of the solver page, which gets the same full width.
+ * The sidebar of the solver page does not use layout space either (see the comment for .author-grid above).
+ * The layout stays flex-based down into PuzzlePlayer/Board, which expect that chain. */
 .author-preview {
     flex: 1;
     min-width: 0;
@@ -166,7 +161,7 @@
     min-height: 0;
 }
 
-/* Test-as-solver / Show solution, side by side above the board. */
+/* Test-as-solver and Show solution, side by side above the board. */
 .author-preview-bar {
     display: flex;
     flex-wrap: nowrap;
@@ -178,8 +173,9 @@
     position: relative;
 }
 
-/* "Conflicts with the declared solution": a status chip at the end of the bar, ellipsised to the room left,
- * full text in its tooltip; the conflicting constraints are also drawn red on the board. */
+/* "Conflicts with the declared solution": a status chip at the end of the bar.
+ * It is ellipsised to the room left. The tooltip has the full text.
+ * The board also draws the conflicting constraints in red. */
 .author-conflict {
     display: inline-flex;
     align-items: center;
@@ -207,8 +203,9 @@
     display: none;
 }
 
-/* The full text, as a popover in the menus' own style (not the browser's tooltip). Anchored to the bar so it can't leave the
- * screen; shown on hover and on keyboard focus (the chip is focusable, so touch can tap it too). */
+/* The full text, as a popover in the style of the menus (not the browser tooltip).
+ * It is anchored to the bar, so it cannot leave the screen.
+ * It shows on hover and on keyboard focus. The chip is focusable, so touch can tap it too. */
 .author-conflict-tip {
     display: none;
     position: absolute;
@@ -239,8 +236,8 @@
     outline-offset: 2px;
 }
 
-/* One thin-lined track holding mutually exclusive options; only the chosen one is filled ink, so
-   the track itself stays quiet (a heavy frame around every switch competed with the board). */
+/* One thin-lined track holds mutually exclusive options. Only the chosen option is filled with ink.
+   So the track stays quiet. A heavy frame around every switch competed with the board. */
 .segmented {
     display: inline-flex;
     padding: 2px;
@@ -269,7 +266,7 @@
     color: var(--bg);
 }
 
-/* The editor's footer: the one primary action, then the quiet ones, set off from the editing area. */
+/* The footer of the editor: the one primary action, then the quiet ones, separate from the editing area. */
 .author-actions {
     margin-top: auto;
     padding-top: 0.7rem;
@@ -374,8 +371,8 @@
     gap: 0.5rem;
 }
 
-/* Collapsed by default: reference material, not part of the editing flow. */
-/* The Code tab: a code box that fills the pane like the JSON box does, with Run beneath. */
+/* Collapsed by default: this is reference material, not part of the editing flow. */
+/* The Code tab: a code box that fills the pane like the JSON box, with Run below it. */
 .author-sdk {
     flex: 1 1 auto;
     min-height: 260px;
@@ -395,7 +392,7 @@
     color: var(--ink-soft);
 }
 
-/* JSON / Visual / Code tabs on the left, the "Load example" menu at the far end of the same row. */
+/* JSON / Visual / Code tabs on the left. The "Load example" menu is at the far end of the same row. */
 .author-mode-bar {
     display: flex;
     align-items: center;
@@ -418,7 +415,7 @@
     gap: 0.3rem;
 }
 
-/* Small-caps section label shared by the palette groups and the placed-constraints list. */
+/* Small-caps section label for the palette groups and the list of placed constraints. */
 .visual-builder-heading {
     margin: 0;
     font-size: 0.68rem;
@@ -428,14 +425,14 @@
     color: var(--ink-soft);
 }
 
-/* Two equal columns, so every tool sits on the same grid instead of wrapping raggedly by label length. */
+/* Two equal columns. Every tool sits on the same grid and does not wrap raggedly by label length. */
 .visual-builder-palette {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
 }
 
-/* The tile itself is the shared .btn.btn-sm (stamp look, aria-pressed = the tool being placed). */
+/* The tile is the shared .btn.btn-sm (stamp look, aria-pressed = the tool being placed). */
 .visual-builder-chip {
     justify-content: flex-start;
     /* Room on the right for the un-pin x. */
@@ -453,7 +450,7 @@
     flex: 1;
     min-width: 0;
 }
-/* Tiny x on a pinned tile, tucked into its right edge so it never adds a row of its own. */
+/* Tiny x on a pinned tile, at its right edge, so it never adds a row of its own. */
 .visual-builder-unpin {
     position: absolute;
     top: 50%;
@@ -508,7 +505,7 @@
     font-size: 0.8rem;
 }
 
-/* The field the next board drag fills: ink border like every other live input, not the pen-blue focus ring. */
+/* The field that the next board drag fills: ink border like every other live input, not the pen-blue focus ring. */
 .visual-builder-cell-field.active {
     border-color: var(--ink);
     box-shadow: inset 0 0 0 1px var(--ink);
@@ -600,19 +597,18 @@
     color: var(--ink);
 }
 
-/* At the end of the file, after every base .author-* rule it overrides, on purpose: equal specificity, so source
- * order decides, and this used to sit above them and never applied. */
+/* This block is at the end of the file, after every base .author-* rule that it overrides, on purpose.
+ * The specificity is equal, so source order decides. It was above them before and never applied. */
 @media (max-width: 900px) {
     .author-grid {
-        /* Stacked (editor, then preview) instead of side-by-side — each
-         * should size to its own natural content height, not stretch to
-         * share the row's height. */
+        /* Stacked (editor, then preview) and not side-by-side.
+         * Each part takes the height of its own content and does not stretch to share the row height. */
         flex-direction: column;
         align-items: stretch;
     }
     .author-editor {
-        /* Sized by its content and scrolled by the page, not by an inner
-         * scroll area that clips the actions and import/export rows. */
+        /* The editor takes the height of its content, and the page scrolls it.
+         * An inner scroll area would clip the actions and the import/export rows. */
         flex: 0 0 auto;
         overflow: visible;
         padding-right: 0;
@@ -622,16 +618,16 @@
         height: 22rem;
     }
     .author-preview {
-        /* Stacked under the editor, which now takes its full content height;
-         * without a floor the board would be what gets squeezed. */
+        /* Stacked under the editor, which now takes its full content height.
+         * Without a floor, the board would get squeezed. */
         flex: 0 0 auto;
         min-height: 32rem;
     }
 }
 
-/* While editing, the preview sits right next to the editor, so the board hugs the left edge of its
- * column, sharing one left edge with the bar above it and the hint below it. Testing (editor hidden)
- * is the plain solver page, so there the board is centred in its column like on /p/. */
+/* While the user edits, the preview sits next to the editor. The board stays at the left edge of its
+ * column. It shares one left edge with the bar above it and the hint below it.
+ * Testing (editor hidden) is the plain solver page. There the board is centred in its column, like on /p/. */
 .author-preview--editing .board-measure {
     justify-content: flex-start;
 }
@@ -640,31 +636,31 @@
     text-align: left;
 }
 
-/* Puzzle-edit undo/redo: with the pad hidden while editing there is no other way to step back an edit. */
+/* Puzzle-edit undo/redo: the pad is hidden while the user edits, so there is no other way to step back an edit. */
 .author-preview-history {
     display: inline-flex;
     gap: 0.4rem;
 }
 
-/* Editing is done in the editor, not on the pad, so the pad and reference panels only exist while
- * "Test as solver" turns the preview into the real player. */
+/* The user edits in the editor, not on the pad.
+ * So the pad and reference panels exist only while "Test as solver" turns the preview into the real player. */
 .author-preview--editing .pp-side {
     display: none;
 }
-/* ...and the board takes the width the pad's lane would have reserved. */
+/* ...and the board takes the width that the lane of the pad would reserve. */
 .author-preview--editing .pp-board-col {
     margin-right: 0;
 }
 
 @media (max-width: 900px) {
-    /* Phones: the board is pinned to the top while the editor scrolls beneath it, so a
-     * change made in the editor is visible the moment it's made. Editing is by the
-     * builder/JSON, not the pad, so the pad and reference panels are hidden until
-     * "Test as solver" turns the preview into the real player. */
+    /* Phones: the board is pinned to the top and the editor scrolls under it.
+     * So the user sees a change in the editor when they make it.
+     * The user edits with the builder or JSON, not the pad.
+     * So the pad and reference panels are hidden until "Test as solver" turns the preview into the real player. */
     .author-grid {
         position: relative;
     }
-    /* Testing puts the board (and its pad) first too, rather than after the whole editor; only editing pins it. */
+    /* Testing also puts the board (and its pad) first, not after the whole editor. Only editing pins it. */
     .author-preview {
         order: -1;
     }
@@ -678,7 +674,8 @@
         border-bottom: 1px solid var(--line);
     }
     .author-preview--editing .pp-board-col .board-measure {
-        /* The footer row (timer + zoom button) and the bar above the grid (~3.3rem each) are carved out of this height, so add them back. */
+        /* The footer row (timer + zoom button) and the bar above the grid (~3.3rem each) are taken from this height.
+         * So add them back. */
         min-height: calc(min(100vw - 2.4rem, 46vh) + 6.6rem);
     }
 }
@@ -698,7 +695,7 @@
     }
 }
 
-/* Quiet buttons here still need to read as buttons: a hairline outline instead of the stamp. */
+/* Quiet buttons here must still look like buttons: a hairline outline, not the stamp. */
 .author-preview-bar .btn-ghost,
 .author-mode-bar .btn-ghost,
 .author-actions .btn-ghost {
@@ -708,7 +705,7 @@
     border-color: var(--ink);
 }
 
-/* Phones: the bar must stay on one line (it is pinned above the board), so "Show solution" keeps its eye icon only. */
+/* Phones: the bar must stay on one line (it is pinned above the board), so "Show solution" keeps only its eye icon. */
 @media (max-width: 480px) {
     .author-preview-bar {
         gap: 0.3rem;
@@ -738,7 +735,7 @@
     }
 }
 
-/* A short window (a phone on its side) has no room to keep the board pinned: let it scroll like the rest. */
+/* A short window (a phone on its side) has no room to keep the board pinned. Let it scroll like the rest. */
 @media (max-width: 900px) and (max-height: 560px) {
     .author-preview--editing {
         position: static;
@@ -748,20 +745,21 @@
     }
 }
 
-/* "Test as solver" is the plain solver page: the editor steps aside (hidden, not unmounted, so its
- * text, scroll position and undo history are all still there when you switch back to Edit). */
+/* "Test as solver" is the plain solver page: the editor steps aside.
+ * It is hidden, not unmounted.
+ * So its text, scroll position and undo history are still there when the user switches back to Edit. */
 .author-grid--testing .author-editor {
     display: none;
 }
 
 @media (max-width: 900px) {
-    /* Testing: the bar above the grid (~3.3rem) is carved out of the board's height, so add it back. */
+    /* Testing: the bar above the grid (~3.3rem) is taken from the height of the board, so add it back. */
     .author-preview:not(.author-preview--editing) .pp-board-col .board-measure {
         min-height: calc(min(100vw - 2.4rem, 75vh) + 3.3rem);
     }
 }
 
-/* Custom rule editor (#127): a nested list, one indent per operator. */
+/* Custom rule editor (#127): a nested list with one indent per operator. */
 .rule-editor input[type="number"],
 .rule-editor input[type="text"] {
     min-width: 0;
@@ -864,7 +862,7 @@
     font-size: 0.85em;
 }
 
-/* Colour / dashed / opacity panel under a placed constraint (#165). */
+/* Panel for colour, dash, and opacity under a placed constraint (#165). */
 .visual-builder-list li > span:first-child {
     flex: 1;
     min-width: 0;

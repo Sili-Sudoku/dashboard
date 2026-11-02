@@ -6,7 +6,7 @@ import { OPERATOR_SIGNATURES, signatureOf, type SlotSpec } from "@/authoring/ope
 import { addArg, argSpec, bindsEachAt, getAt, leafFor, newOp, removeArg, type Path } from "@/authoring/rule_tree.ts";
 import type { RuleControls } from "@/features/author/use_visual_builder.ts";
 
-/** The operators a slot of this kind can hold, grouped for the picker. */
+/** The operators that a slot of this kind can hold, in groups for the picker. */
 const choicesFor = (spec: SlotSpec) => {
     const returns = spec.kind === "nums" ? ["nums"] : [spec.kind];
     const groups = new Map<string, { name: string; label: string }[]>();
@@ -170,7 +170,7 @@ export function Slot({ rule, path, spec }: SlotProps) {
     }
 }
 
-/** The recursive slot editor for a custom rule (#127): pick an operator, then fill each of its slots. */
+/** The recursive slot editor for a custom rule (#127). The author picks an operator, then fills each of its slots. */
 export default function RuleEditor({ rule }: { rule: RuleControls }) {
     return (
         <div className="visual-builder-form rule-editor" aria-label="Custom rule">

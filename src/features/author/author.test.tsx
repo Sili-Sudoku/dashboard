@@ -11,11 +11,11 @@ import { clearToasts } from "@/app/toast.ts";
 afterEach(() => {
     cleanup();
     clearToasts();
-    localStorage.clear(); // settings (editor mode, toolbox) persist there
+    localStorage.clear(); // settings (editor mode, toolbox) are stored there
 });
 
-/** Opens an import dialog, fills its textarea, and submits — the in-app
- *  replacement for pasting into `window.prompt`. */
+/** Opens an import dialog, fills its textarea, and submits.
+ *  This is the in-app replacement for a paste into `window.prompt`. */
 const openInteropItem = (name: RegExp) => {
     fireEvent.click(screen.getByRole("button", { name: /import \/ export/i }));
     fireEvent.click(screen.getByRole("menuitem", { name }));
@@ -70,8 +70,8 @@ describe("Author", () => {
         };
         fireEvent.change(textarea, { target: { value: JSON.stringify(bad) } });
 
-        // No blocking JSON error, and the board itself still renders -- a bad
-        // declared solution doesn't blank out the whole preview any more.
+        // There is no blocking JSON error, and the board still renders.
+        // A bad declared solution does not blank the whole preview.
         expect(container.querySelector(".author-error")).toBeNull();
         expect(screen.queryByText(/fix the errors on the left/i)).toBeNull();
         expect(container.querySelector("svg.board")).not.toBeNull();
@@ -92,7 +92,7 @@ describe("Author", () => {
         const before = container.querySelectorAll(".digit").length;
 
         fireEvent.click(toggle);
-        // demo_mixed's solution is a full board -- every cell now shows a digit.
+        // The solution of demo_mixed is a full board. Every cell shows a digit.
         expect(container.querySelectorAll(".digit").length).toBe(81);
 
         fireEvent.click(toggle);
@@ -106,19 +106,19 @@ describe("Author", () => {
                 <ToastViewport />
             </MemoryRouter>,
         );
-        // Author view first: show the solution so there's something to be rid of.
+        // Author view first: show the solution, so there is something to remove.
         fireEvent.click(screen.getByRole("button", { name: "Show solution" }));
         expect(container.querySelectorAll(".digit").length).toBe(81);
 
-        // The bar lives inside the player (so it shares the grid's left edge), which remounts
-        // when the mode flips -- look the button up fresh each time.
+        // The bar is inside the player, so it shares the left edge of the grid.
+        // The player remounts when the mode changes. So find the button again each time.
         const test = () => screen.getByRole("button", { name: "Test as solver" });
         expect(test().getAttribute("aria-pressed")).toBe("false");
         fireEvent.click(test());
 
         expect(test().getAttribute("aria-pressed")).toBe("true");
         expect(screen.queryByRole("button", { name: "Show solution" })).toBeNull();
-        // The solution overlay is gone: only the puzzle's own givens are showing.
+        // The solution overlay is gone. Only the givens of the puzzle show.
         const givens = Object.keys(demoMixed.givens ?? {}).length;
         expect(container.querySelectorAll(".digit").length).toBe(givens);
 
@@ -148,8 +148,8 @@ describe("Author", () => {
     });
 
     it("shows the actual resolved box size, not just what's in the JSON", () => {
-        // demo_mixed is a 9x9 grid with no explicit boxWidth/boxHeight — the UI
-        // should show the real sqrt-based default (3x3), not leave it blank.
+        // demo_mixed is a 9x9 grid with no explicit boxWidth/boxHeight.
+        // The UI must show the real sqrt-based default (3x3) and not leave the field blank.
         render(
             <MemoryRouter>
                 <Author />
@@ -172,8 +172,8 @@ describe("Author", () => {
         const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
         const geometry = JSON.parse(textarea.value).geometry;
         expect(geometry.width).toBe(6);
-        // box size is now written explicitly (pinned at its prior resolved value)
-        // rather than left to silently re-resolve on the next compile.
+        // The box size is now written explicitly (pinned at its previous resolved value).
+        // It is not left to re-resolve without a sign on the next compile.
         expect(geometry.boxWidth).toBe(3);
         expect((screen.getByLabelText("Box width") as HTMLInputElement).value).toBe("3");
     });
@@ -187,7 +187,7 @@ describe("Author", () => {
         );
         const width = screen.getByLabelText("Width") as HTMLInputElement;
         fireEvent.change(width, { target: { value: "" } });
-        // The field shows what you typed (nothing), and nothing was applied.
+        // The field shows what you typed (nothing). Nothing was applied.
         expect(width.value).toBe("");
         const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
         expect(JSON.parse(textarea.value).geometry.width).toBe(9);
@@ -235,7 +235,7 @@ describe("Author", () => {
         const redo = () => screen.getByRole("button", { name: /^redo$/i });
         const tile = (name: string) => screen.queryByRole("button", { name });
 
-        // pin a tool the example doesn't use
+        // pin a tool that the example does not use
         fireEvent.click(screen.getByRole("button", { name: "Add tool" }));
         fireEvent.click(screen.getByRole("menuitem", { name: "XV" }));
         expect(tile("XV")).not.toBeNull();
@@ -244,13 +244,13 @@ describe("Author", () => {
         fireEvent.click(redo());
         expect(tile("XV")).not.toBeNull();
 
-        // x on a used tool removes it with its placed constraints, as one step...
+        // x on a used tool removes it and its placed constraints, as one step...
         const before = screen.getAllByLabelText("Remove constraint").length;
         fireEvent.click(screen.getByLabelText(/Remove Thermometer from quick access/));
         expect(tile("Thermometer")).toBeNull();
         expect(screen.getAllByLabelText("Remove constraint").length).toBe(before - 1);
 
-        // ...and one undo brings back both the tile and the constraint
+        // ...and one undo restores both the tile and the constraint
         fireEvent.click(undo());
         expect(tile("Thermometer")).not.toBeNull();
         expect(screen.getAllByLabelText("Remove constraint").length).toBe(before);
@@ -269,7 +269,7 @@ describe("Author", () => {
         fireEvent.click(screen.getByRole("tab", { name: "Code" }));
         const code = screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement;
         expect(code.value).toMatch(/PuzzleBuilder\.create/);
-        // loading an example is available here too (#164: the tab shows the live puzzle)
+        // loading an example is also available here (#164: the tab shows the live puzzle)
         expect(screen.getByRole("button", { name: /load an example/i })).not.toBeNull();
 
         fireEvent.change(code, {
@@ -277,7 +277,8 @@ describe("Author", () => {
                 value: 'return PuzzleBuilder.create("from-code", "Built In Code").grid(4, 4).domain([1, 2, 3, 4]).use("sudoku");',
             },
         });
-        fireEvent.click(screen.getByRole("button", { name: "Run" })); // a builder left un-built is built for you
+        // a builder without a final build call is built for you
+        fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
         fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
         expect(textarea().value).toContain('"title": "Built In Code"');
@@ -297,7 +298,7 @@ describe("Author", () => {
         const code = screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement;
         expect(code.value).toContain(JSON.stringify(def.metadata.title));
 
-        // an edit made on the JSON tab shows up in the code
+        // an edit on the JSON tab shows in the code
         fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
         fireEvent.change(json(), { target: { value: json().value.replace(def.metadata.title, "Renamed Elsewhere") } });
         fireEvent.click(screen.getByRole("tab", { name: "Code" }));
@@ -305,7 +306,7 @@ describe("Author", () => {
             "Renamed Elsewhere",
         );
 
-        // typing makes a draft that survives a tab switch, and Discard goes back to the puzzle's code
+        // typing makes a draft that stays after a tab switch. Discard goes back to the code of the puzzle
         fireEvent.change(screen.getByLabelText("PuzzleBuilder code"), { target: { value: "// my draft" } });
         fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
         fireEvent.click(screen.getByRole("tab", { name: "Code" }));
@@ -347,7 +348,7 @@ describe("Author", () => {
         const textarea = () => container.querySelector("textarea") as HTMLTextAreaElement;
         const original = textarea().value;
 
-        // 6x6 with the demo's 1-9 domain and constraints doesn't compile.
+        // 6x6 with the 1-9 domain and the constraints of the demo does not compile.
         fireEvent.change(screen.getByLabelText("Width"), { target: { value: "6" } });
         expect(screen.queryByRole("button", { name: /^undo$/i })).toBeNull();
 

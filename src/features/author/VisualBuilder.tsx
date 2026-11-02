@@ -28,7 +28,7 @@ interface Props {
     state: VisualBuilderState;
 }
 
-/** The palette's sections, by what the author is placing: a path, a mark on cells, or a rule for the whole grid. */
+/** The sections of the palette, by what the author places: a path, a mark on cells, or a rule for the whole grid. */
 const PALETTE_GROUPS: { title: string; names: string[] }[] = [
     {
         title: "Lines & regions",
@@ -40,7 +40,7 @@ const PALETTE_GROUPS: { title: string; names: string[] }[] = [
     { title: "Custom", names: [RULE_TOOL, DYNAMIC_TOOL] },
 ];
 
-/** Every tool the palette offers: each definition that declares a builder schema, plus fog (which edits the puzzle itself). */
+/** All tools of the palette: each definition with a builder schema, and fog (which edits the puzzle itself). */
 interface PaletteTool {
     name: string;
     label: string;
@@ -49,7 +49,7 @@ const FOG_ENTRY: PaletteTool = { name: FOG_TOOL, label: "Fog" };
 const RULE_ENTRY: PaletteTool = { name: RULE_TOOL, label: "Custom rule" };
 const DYNAMIC_ENTRY: PaletteTool = { name: DYNAMIC_TOOL, label: "Dynamic rule" };
 
-/** One line for a dynamic rule: its name, the condition, and what it does. */
+/** One line for a dynamic rule: its name, its condition, and its effect. */
 const summarizeRule = (r: PuzzleRule): string => {
     const effects = Object.entries(r.then)
         .filter(([, v]) => v && v.length > 0)
@@ -58,16 +58,18 @@ const summarizeRule = (r: PuzzleRule): string => {
     return `${r.id ? `${r.id}: ` : ""}when ${describeExpr(r.when)} → ${effects}`;
 };
 
-/** Visual/drag-and-drop puzzle authoring (#54): a palette of definitions, a
- *  small param form per definition, and a list of already-placed constraints.
- *  Deliberately doesn't render its own board — pick a definition, then
- *  click/drag directly on the Author page's one PuzzlePlayer board (its
- *  normal click/drag/shift-click selection) to place it; the highlighted
- *  field below mirrors that selection live (see use_visual_builder.ts).
- *  There's exactly one board on screen, not a second one just for this.
- *  Scoped to the definitions that have an AUTHORING_SCHEMAS entry — anything
- *  else is still reachable via the JSON tab, same "cover common types, never
- *  silently drop the rest" spirit as the f-puzzles importer (#66). */
+/** Visual drag-and-drop puzzle authoring (#54).
+ *  It has a palette of definitions, a small param form for each definition,
+ *  and a list of the constraints that the author already placed.
+ *  It does not render its own board. The author picks a definition, then clicks or drags
+ *  on the one PuzzlePlayer board of the Author page to place it.
+ *  The board uses its normal click, drag and shift-click selection.
+ *  The highlighted field below mirrors that selection live (see use_visual_builder.ts).
+ *  Only one board is on screen. There is no second board for this component.
+ *  It covers only the definitions that have an AUTHORING_SCHEMAS entry.
+ *  The JSON tab still gives access to all other definitions.
+ *  The rule is the same as for the f-puzzles importer (#66): cover the common types and never
+ *  silently drop the rest. */
 export default function VisualBuilder({ def, state }: Props) {
     const {
         fog,
@@ -86,7 +88,7 @@ export default function VisualBuilder({ def, state }: Props) {
         removeTool,
     } = state;
 
-    // Which placed constraint's colour/style panel is open.
+    // The placed constraint that has its colour and style panel open.
     const [styling, setStyling] = useState<number | null>(null);
 
     if (!def) {
@@ -97,8 +99,8 @@ export default function VisualBuilder({ def, state }: Props) {
         );
     }
 
-    // Quick access = what the author pinned, plus anything the puzzle's JSON already uses; every other
-    // tool sits behind the "Add tool" dropdown.
+    // Quick access has the tools that the author pinned and the tools that the JSON of the puzzle already uses.
+    // The "Add tool" dropdown has all other tools.
     const pinned = new Set(state.tools);
     const used = new Set([
         ...def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [RULE_TOOL])),
@@ -116,8 +118,9 @@ export default function VisualBuilder({ def, state }: Props) {
         else if (tool.name === DYNAMIC_TOOL) rule.start("dynamic");
         else startPlacing(AUTHORING_SCHEMAS.find((s) => s.name === tool.name) as AuthoringSchema);
     };
-    // The tools not in quick access, as the shared dropdown's items: each group's name is a
-    // read-only heading row, then its tools. Picking one pins it and starts placing it.
+    // The tools that are not in quick access, as items of the shared dropdown.
+    // The name of each group is a read-only heading row, followed by its tools.
+    // When the author picks a tool, it is pinned and placement starts.
     const removeToolTitle = (tool: PaletteTool): string | undefined => {
         const count = isFog(tool)
             ? (def.fog?.hidden.length ?? 0)
@@ -182,7 +185,7 @@ export default function VisualBuilder({ def, state }: Props) {
                                             }
                                             onClick={() => startTool(tool)}
                                         >
-                                            {/* "Whole grid" is already the section heading, and a placed rule is ticked. */}
+                                            {/* "Whole grid" is already the section heading. A tick shows a placed rule. */}
                                             {placed && "✓ "}
                                             {tool.label.replace(/ \(global\)$/, "")}
                                         </button>
@@ -359,8 +362,8 @@ export default function VisualBuilder({ def, state }: Props) {
                         ))}
 
                     <div className="visual-builder-actions">
-                        {/* Dragging on the board places the constraint by itself; the Add button
-                            only exists for schemas that also need typed input (xv's sum, etc.). */}
+                        {/* A drag on the board places the constraint by itself. The Add button
+                            exists only for schemas that also need typed input (the sum of xv, and so on). */}
                         {activeSchema.fields.some((f) => f.kind === "number" || f.kind === "numberList") && (
                             <button
                                 type="button"

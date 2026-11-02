@@ -6,10 +6,9 @@ interface Props {
     onCommit: (n: number) => void;
 }
 
-/** One grid/box dimension field. The applied value lives in the puzzle JSON, but
- *  while you're typing the field shows your own text, so you can clear it or delete a
- *  digit mid-edit; only a whole number >= 1 is committed, and on blur the field snaps
- *  back to whatever is actually applied. */
+/** One grid/box dimension field. The applied value is in the puzzle JSON.
+ *  While you type, the field shows your own text. So you can clear it or delete a digit during an edit.
+ *  Only a whole number >= 1 is committed. On blur, the field goes back to the applied value. */
 export default function DimInput({ label, value, onCommit }: Props) {
     const [draft, setDraft] = useState<string | null>(null);
     return (
@@ -24,12 +23,13 @@ export default function DimInput({ label, value, onCommit }: Props) {
                 if (Number.isInteger(n) && n >= 1) onCommit(n);
             }}
             onBlur={() => setDraft(null)}
-            // Selecting the existing value on focus means typing a new number replaces
-            // it outright, instead of inserting at the cursor beside the old digits.
+            // Selecting the value on focus means that a new number replaces it.
+            // Without this, the new digits go in at the cursor, next to the old digits.
             onFocus={(e) => e.currentTarget.select()}
-            // Number inputs change value on scroll-wheel while focused — and these sit
-            // right above the page's scrollable content, so scrolling past them would
-            // silently rewrite the grid size. Blurring lets the scroll pass through.
+            // A number input changes its value on scroll-wheel while it has focus.
+            // These fields are directly above the scrollable content of the page.
+            // So a scroll past them would change the grid size without a sign.
+            // A blur lets the scroll pass through.
             onWheel={(e) => e.currentTarget.blur()}
         />
     );

@@ -24,12 +24,12 @@ const CONSTRAINT_EFFECTS: readonly Effect[] = ["enable", "disable"];
 
 interface Props {
     rule: RuleControls;
-    /** Names of the constraints in the puzzle, for enable/disable. */
+    /** Names of the constraints in the puzzle, for the enable and disable effects. */
     constraintNames: readonly string[];
     onAdd: (then: PuzzleRule["then"]) => void;
 }
 
-/** One effect: its targets as removable chips, and a way to add more. */
+/** One effect. It shows its targets as chips that the author can remove, and a control to add more. */
 function EffectEditor({
     effect,
     targets,
@@ -133,7 +133,7 @@ function EffectEditor({
     );
 }
 
-/** The when/then editor for a dynamic rule (#167): the condition is the custom-rule slot editor (#127). */
+/** The when/then editor for a dynamic rule (#167). The condition uses the custom-rule slot editor (#127). */
 export default function DynamicRuleEditor({ rule, constraintNames, onAdd }: Props) {
     const [targets, setTargets] = useState<Targets>({});
     const chosen = EFFECTS.filter((e) => targets[e.effect] !== undefined);

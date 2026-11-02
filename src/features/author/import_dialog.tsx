@@ -9,9 +9,9 @@ export interface ImportDialogProps {
     onSubmit: () => void;
 }
 
-/** An in-app replacement for `window.prompt`: browsers let a user permanently
- *  suppress native dialogs after a few show up (and the native one is a
- *  single-line input anyway, which is awkward for pasting multi-line JSON). */
+/** An in-app replacement for `window.prompt`.
+ *  A browser lets the user block native dialogs for good after a few show.
+ *  The native dialog is also a single-line input, which is not good for multi-line JSON. */
 export default function ImportDialog({ title, placeholder, value, onChange, onCancel, onSubmit }: ImportDialogProps) {
     const { ref, onKeyDown } = useFocusTrap<HTMLDivElement>();
     return (

@@ -19,7 +19,7 @@ interface Converted<T> {
     warnings: readonly string[];
 }
 
-/** Each import format: the dialog's copy, plus the parser and the label used in the success toast. */
+/** Each import format: the text of the dialog, the parser, and the label for the success toast. */
 const IMPORTS: Record<
     ImportFormat,
     {
@@ -43,7 +43,7 @@ const IMPORTS: Record<
     },
 };
 
-/** Each export target: how to turn a puzzle into a share link, and its display name. */
+/** Each export target: how to change a puzzle into a share link, and its display name. */
 const EXPORTS: Record<ExportTarget, { name: string; link: (puzzle: PuzzleDefinition) => Converted<string> | Error }> = {
     fpuzzles: {
         name: "f-puzzles",
@@ -74,8 +74,8 @@ const EXPORTS: Record<ExportTarget, { name: string; link: (puzzle: PuzzleDefinit
     },
 };
 
-/** Import/export outcome toast. One key, so a second action replaces the first
- *  instead of stacking; warning lists are long, so they linger. */
+/** Toast for the result of an import or export. It uses one key.
+ *  A second action replaces the first toast and does not stack. Warning lists are long, so the toast stays longer. */
 const notifyInterop = (warnings: readonly string[], withWarnings: string, plain: string): void =>
     warnings.length > 0
         ? toast(`${withWarnings}${warnings.length} warning(s):\n${warnings.join("\n")}`, {
@@ -85,9 +85,9 @@ const notifyInterop = (warnings: readonly string[], withWarnings: string, plain:
         : toast(plain, { kind: "success", key: "interop" });
 
 /**
- * The Author page's f-puzzles / SudokuMaker / SudokuPad import and export:
- * the import dialog's open/draft state plus the handlers behind its buttons.
- * `dialog` is the props for <ImportDialog>, or undefined while it's closed.
+ * Import and export for the Author page (f-puzzles, SudokuMaker, SudokuPad).
+ * It holds the open and draft state of the import dialog and the handlers for its buttons.
+ * `dialog` is the props for <ImportDialog>. It is undefined while the dialog is closed.
  */
 export function useAuthorInterop(parsed: PuzzleDefinition | undefined, applyText: (json: string) => void) {
     const [format, setFormat] = useState<ImportFormat | undefined>();
