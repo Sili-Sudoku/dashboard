@@ -280,7 +280,13 @@ const readViewBox = (svg: SVGSVGElement): { left: number; top: number; width: nu
 describe("Board — zoom controls popover", () => {
     it("keeps the controls out of the way until the zoom button is pressed", () => {
         const { container, getByRole } = render(
-            <Board scene={bigScene(9, 64)} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+            <Board
+                scene={bigScene(9, 64)}
+                onPaintStart={noop}
+                onPaintMove={noop}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
         );
         const panel = container.querySelector(".board-zoom-toolbar") as HTMLElement;
         const toggle = getByRole("button", { name: /Zoom controls/ });
@@ -365,8 +371,12 @@ describe("Board — large puzzles", () => {
         // and read standard MouseEvent fields (button/clientX/clientY) from it.
         // So a plain MouseEvent sent under that type name is caught the same way.
         act(() => {
-            viewport.dispatchEvent(new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }));
-            viewport.dispatchEvent(new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
+            viewport.dispatchEvent(
+                new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }),
+            );
+            viewport.dispatchEvent(
+                new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }),
+            );
             viewport.dispatchEvent(new MouseEvent("pointerup", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
         });
         const afterPan = readViewBox(svg);
@@ -376,12 +386,7 @@ describe("Board — large puzzles", () => {
     // jsdom has no PointerEvent constructor (see the comment above). Unlike the standard
     // button/clientX/clientY of MouseEventInit, pointerId/pointerType are not
     // part of it. So they are attached after construction instead.
-    const touchPointer = (
-        type: string,
-        pointerId: number,
-        x: number,
-        y: number,
-    ): MouseEvent => {
+    const touchPointer = (type: string, pointerId: number, x: number, y: number): MouseEvent => {
         const e = new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
         Object.defineProperty(e, "pointerId", { value: pointerId, configurable: true });
         Object.defineProperty(e, "pointerType", { value: "touch", configurable: true });
@@ -422,7 +427,13 @@ describe("Board — large puzzles", () => {
         const onPaintStart = vi.fn();
         const onPaintMove = vi.fn();
         const { container } = render(
-            <Board scene={scene} onPaintStart={onPaintStart} onPaintMove={onPaintMove} onPaintEnd={noop} onClearSelection={noop} />,
+            <Board
+                scene={scene}
+                onPaintStart={onPaintStart}
+                onPaintMove={onPaintMove}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
         );
 
         const cells = container.querySelectorAll(".cell-bg");
@@ -533,7 +544,9 @@ describe("Board — large puzzles", () => {
         expect((getByLabelText("Zoom out") as HTMLButtonElement).disabled).toBe(true);
         expect((getByLabelText("Zoom level") as HTMLInputElement).disabled).toBe(true);
         expect((getByLabelText("Fit whole board to screen") as HTMLButtonElement).disabled).toBe(true);
-        expect((getByLabelText("Reset to actual size (1 board unit per pixel)") as HTMLButtonElement).disabled).toBe(true);
+        expect((getByLabelText("Reset to actual size (1 board unit per pixel)") as HTMLButtonElement).disabled).toBe(
+            true,
+        );
 
         act(() => getByLabelText("Zoom in").click());
         expect(level()).toBe(zoomedLevel); // disabled buttons do not fire; check that the handler does nothing too
@@ -545,8 +558,12 @@ describe("Board — large puzzles", () => {
 
         // Panning still works while locked.
         act(() => {
-            viewport.dispatchEvent(new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }));
-            viewport.dispatchEvent(new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
+            viewport.dispatchEvent(
+                new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }),
+            );
+            viewport.dispatchEvent(
+                new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }),
+            );
             viewport.dispatchEvent(new MouseEvent("pointerup", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
         });
         expect(readViewBox(svg).left).toBeLessThan(zoomedView.left); // dragged right -> view shifts left
@@ -623,8 +640,79 @@ describe("Board — pen input (#45)", () => {
 
     it("has no pen surface when the pen isn't active", () => {
         const { container } = render(
-            <Board scene={bigScene(2)} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+            <Board
+                scene={bigScene(2)}
+                onPaintStart={noop}
+                onPaintMove={noop}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
         );
         expect(container.querySelector(".pen-surface")).toBeNull();
+    });
+});
+
+describe("Board — diagonal drag-selection", () => {
+    /** Draws a 3x3 board (20px cells) and gives every cell a real rect, so the corner test can run. */
+    const setup = () => {
+        const painted: string[] = [];
+        const { container } = render(
+            <Board
+                scene={bigScene(3)}
+                onPaintStart={(cell) => painted.push(cell)}
+                onPaintMove={(cell) => painted.push(cell)}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
+        );
+        const cells = [...container.querySelectorAll<SVGRectElement>(".cell-bg")];
+        cells.forEach((el, i) => {
+            const left = (i % 3) * 20;
+            const top = Math.floor(i / 3) * 20;
+            el.getBoundingClientRect = () =>
+                ({ left, top, right: left + 20, bottom: top + 20, width: 20, height: 20, x: left, y: top }) as DOMRect;
+        });
+        return { cells, painted };
+    };
+
+    it("does not pick up the side cell that a diagonal sweep crosses near the shared corner", () => {
+        const { cells, painted } = setup();
+        fireEvent.pointerDown(cells[0]); // r1c1
+        fireEvent.pointerEnter(cells[1], { clientX: 21, clientY: 19 }); // r1c2, just past the corner
+        fireEvent.pointerEnter(cells[4], { clientX: 25, clientY: 21 }); // r2c2: the diagonal cell
+        expect(painted).toEqual(["r1c1", "r2c2"]);
+    });
+
+    it("chains diagonals", () => {
+        const { cells, painted } = setup();
+        fireEvent.pointerDown(cells[0]);
+        fireEvent.pointerEnter(cells[1], { clientX: 21, clientY: 19 });
+        fireEvent.pointerEnter(cells[4], { clientX: 25, clientY: 21 });
+        fireEvent.pointerEnter(cells[5], { clientX: 41, clientY: 39 }); // r2c3, the side cell of the next step
+        fireEvent.pointerEnter(cells[8], { clientX: 45, clientY: 41 }); // r3c3, diagonal to r2c2
+        expect(painted).toEqual(["r1c1", "r2c2", "r3c3"]);
+    });
+
+    it("still paints a side cell that the pointer enters in the middle of its edge", () => {
+        const { cells, painted } = setup();
+        fireEvent.pointerDown(cells[0]);
+        fireEvent.pointerEnter(cells[1], { clientX: 21, clientY: 10 });
+        expect(painted).toEqual(["r1c1", "r1c2"]);
+    });
+
+    it("paints a corner-entered side cell once the pointer moves into it, or is released there", () => {
+        const { cells, painted } = setup();
+        fireEvent.pointerDown(cells[0]);
+        fireEvent.pointerEnter(cells[1], { clientX: 21, clientY: 19 });
+        expect(painted).toEqual(["r1c1"]); // held back for now
+        fireEvent.pointerMove(cells[1], { clientX: 30, clientY: 10 });
+        expect(painted).toEqual(["r1c1", "r1c2"]);
+
+        fireEvent.pointerUp(cells[1].ownerSVGElement as SVGElement);
+        const second = setup();
+        fireEvent.pointerDown(second.cells[0]);
+        fireEvent.pointerEnter(second.cells[1], { clientX: 21, clientY: 19 });
+        fireEvent.pointerUp(second.cells[1].ownerSVGElement as SVGElement);
+        expect(second.painted).toEqual(["r1c1", "r1c2"]);
     });
 });

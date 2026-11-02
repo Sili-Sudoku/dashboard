@@ -55,6 +55,35 @@ export interface PenInput {
     onMark: (point: PenPoint) => void;
 }
 
+/** How far from a cell's edges (a fraction of its size) the pointer counts as near a corner. */
+const CORNER_ZONE = 0.3;
+
+const parseCell = (cell: CellId): { row: number; col: number } | null => {
+    const m = /^r(\d+)c(\d+)$/.exec(cell);
+    return m ? { row: Number(m[1]), col: Number(m[2]) } : null;
+};
+
+const cellsAreNeighbours = (a: CellId, b: CellId): boolean => {
+    const p = parseCell(a);
+    const q = parseCell(b);
+    return !!p && !!q && Math.abs(p.row - q.row) + Math.abs(p.col - q.col) === 1;
+};
+
+const cellsTouchDiagonally = (a: CellId, b: CellId): boolean => {
+    const p = parseCell(a);
+    const q = parseCell(b);
+    return !!p && !!q && Math.abs(p.row - q.row) === 1 && Math.abs(p.col - q.col) === 1;
+};
+
+/** The pointer is close to both an x edge and a y edge of its cell. A bare DOM with no layout never is. */
+const inCornerZone = (e: ReactPointerEvent<SVGRectElement>): boolean => {
+    const box = e.currentTarget.getBoundingClientRect();
+    if (!box.width || !box.height) return false;
+    const fx = (e.clientX - box.left) / box.width;
+    const fy = (e.clientY - box.top) / box.height;
+    return (fx < CORNER_ZONE || fx > 1 - CORNER_ZONE) && (fy < CORNER_ZONE || fy > 1 - CORNER_ZONE);
+};
+
 interface Props {
     scene: Scene;
     /** When set, the board is in pen mode (see `PenInput`). */
@@ -435,16 +464,54 @@ export default function Board({
         // the board by hand. This is what makes Tab step between cells (see use_puzzle_session).
         (e.currentTarget as SVGElement).ownerSVGElement?.focus({ preventScroll: true });
         (e.target as Element).releasePointerCapture?.(e.pointerId);
+        lastPainted.current = cell;
+        pendingCell.current = null;
         onPaintStart(cell, e.shiftKey || e.metaKey || e.ctrlKey);
     };
 
-    const handleCellEnter = (cell: CellId) => () => {
-        if (painting.current) onPaintMove(cell);
+    // Diagonal sweep: a drag from A to the cell C diagonal to it passes a side cell B near the shared corner.
+    // Entering B close to a corner is held back ("pending"). If the pointer then enters C, B is dropped and only A and C
+    // are selected (German whispers and other diagonal lines). In any other case B is painted, as before.
+    const lastPainted = useRef<CellId | null>(null);
+    const pendingCell = useRef<CellId | null>(null);
+
+    const paint = (cell: CellId) => {
+        pendingCell.current = null;
+        lastPainted.current = cell;
+        onPaintMove(cell);
+    };
+
+    const flushPending = () => {
+        if (pendingCell.current) paint(pendingCell.current);
+    };
+
+    const handleCellEnter = (cell: CellId) => (e: ReactPointerEvent<SVGRectElement>) => {
+        if (!painting.current) return;
+        const last = lastPainted.current;
+        const pending = pendingCell.current;
+        if (last && pending && cellsTouchDiagonally(last, cell) && cellsAreNeighbours(pending, cell)) {
+            pendingCell.current = null; // the diagonal step: the side cell was only crossed on the way
+            paint(cell);
+            return;
+        }
+        flushPending();
+        if (last && cellsAreNeighbours(lastPainted.current ?? last, cell) && inCornerZone(e)) {
+            pendingCell.current = cell;
+            return;
+        }
+        paint(cell);
+    };
+
+    // Once the pointer is well inside the pending cell (not near a corner), the player means that cell.
+    const handleCellMove = (cell: CellId) => (e: ReactPointerEvent<SVGRectElement>) => {
+        if (painting.current && pendingCell.current === cell && !inCornerZone(e)) paint(cell);
     };
 
     const stopPainting = () => {
         if (!painting.current) return;
+        flushPending(); // released in the corner zone of a cell: the player ended there
         painting.current = false;
+        lastPainted.current = null;
         onPaintEnd();
     };
 
@@ -543,6 +610,7 @@ export default function Board({
                     onPointerDown={handleCellDown(c.cell)}
                     onDoubleClick={() => onCellDoubleClick?.(c.cell)}
                     onPointerEnter={handleCellEnter(c.cell)}
+                    onPointerMove={handleCellMove(c.cell)}
                 />
             ))}
 
