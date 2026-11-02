@@ -250,3 +250,26 @@
 .board-header {
     min-width: 0;
 }
+
+/* Pen tool (#45): the stroke being drawn, and the surface that takes the pen's pointer input. */
+.board .pen-draft {
+    fill: none;
+    stroke: var(--pen);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.55;
+}
+
+.board .pen-surface {
+    cursor: crosshair;
+}
+
+/* A stroke that would rub out the line beneath it: those pieces turn red and heavier, so the
+   removal is plain before the pointer is released. */
+.board .pen-erasing {
+    stroke: var(--violated-line);
+    stroke-width: 9;
+    stroke-linecap: round;
+    opacity: 0.85;
+}

@@ -1,4 +1,15 @@
-import { useCallback, useId, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { parseSegmentKey, snapToLattice, strokeSegments, type PenPoint } from "@/runtime/pen.ts";
+import {
+    useCallback,
+    useId,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+    type PointerEvent as ReactPointerEvent,
+    type ReactNode,
+} from "react";
 import { Lock, Maximize, Scan, Unlock, ZoomIn, ZoomOut } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
@@ -32,8 +43,21 @@ const EDGE_MARGIN = 16;
 // same wrap, so that gap plus the row's own height comes out of the height budget.
 const FOOTER_GAP = 8;
 
+/**
+ * Pen input (#45): while set, the board doesn't select cells. A drag draws a line; a click (no
+ * movement off its lattice point) hands that point to `onMark`, which cycles its X / O / nothing.
+ */
+export interface PenInput {
+    /** The line pieces already drawn — a stroke lying entirely on them rubs them out, and is previewed as such. */
+    segments: readonly string[];
+    onStroke: (points: PenPoint[]) => void;
+    onMark: (point: PenPoint) => void;
+}
+
 interface Props {
     scene: Scene;
+    /** When set the board is in pen mode (see `PenInput`). */
+    pen?: PenInput;
     onPaintStart: (cell: CellId, additive: boolean) => void;
     onPaintMove: (cell: CellId) => void;
     onPaintEnd: () => void;
@@ -88,10 +112,25 @@ const CENTER_NOTE_GLYPH_WIDTH_EM = 0.6;
 const centerNoteFontFactor = (charCount: number): number =>
     clamp(CENTER_NOTE_TARGET_WIDTH / (charCount * CENTER_NOTE_GLYPH_WIDTH_EM), 0.11, 0.3);
 
-export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, onClearSelection, label, describedBy, footer, header, hideFooter, onZoomControls }: Props) {
+export default function Board({
+    scene,
+    pen,
+    onPaintStart,
+    onPaintMove,
+    onPaintEnd,
+    onClearSelection,
+    label,
+    describedBy,
+    footer,
+    header,
+    hideFooter,
+    onZoomControls,
+}: Props) {
     const zoomPanelId = `zoom-${useId().replace(/:/g, "")}`;
     const hatchId = `hatch-${useId().replace(/:/g, "")}`;
     const painting = useRef(false);
+    // The pen stroke being drawn (#45), as lattice points — shown live, committed on release.
+    const [penDraft, setPenDraft] = useState<PenPoint[]>([]);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
     // Two-finger touch pan/zoom (#70 follow-up): a touchscreen has no middle/right
     // button for the desktop pan below, and a single finger is already claimed by
@@ -251,7 +290,13 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
     };
 
     // Latest handlers behind a stable surface, so publishing them doesn't re-fire every render.
-    const zoomActions = useRef({ zoomIn: () => {}, zoomOut: () => {}, fit: () => {}, actualSize: () => {}, toggleLock: () => {} });
+    const zoomActions = useRef({
+        zoomIn: () => {},
+        zoomOut: () => {},
+        fit: () => {},
+        actualSize: () => {},
+        toggleLock: () => {},
+    });
     useEffect(() => {
         zoomActions.current = {
             zoomIn: () => applyZoom(0.5, 0.5, ZOOM_STEP),
@@ -399,6 +444,57 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
         onPaintEnd();
     };
 
+    const latticePoint = (e: ReactPointerEvent<SVGElement>): PenPoint | undefined => {
+        const el = e.currentTarget as SVGGraphicsElement;
+        const matrix = el.getScreenCTM?.();
+        let x: number;
+        let y: number;
+        if (matrix) {
+            const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse());
+            x = p.x;
+            y = p.y;
+        } else {
+            // No screen matrix (a bare DOM): map through the SVG's box and its viewBox instead.
+            const svgEl = el.ownerSVGElement;
+            if (!svgEl) return undefined;
+            const box = svgEl.getBoundingClientRect();
+            const vb = view ?? { left: 0, top: 0, width: scene.width, height: scene.height };
+            if (!box.width || !box.height) return undefined;
+            x = vb.left + ((e.clientX - box.left) / box.width) * vb.width;
+            y = vb.top + ((e.clientY - box.top) / box.height) * vb.height;
+        }
+        return snapToLattice(x, y, scene.origin, scene.cellSize);
+    };
+    const erasingPieces = useMemo(() => {
+        if (!pen || penDraft.length < 2) return undefined;
+        const pieces = strokeSegments(penDraft);
+        const have = new Set(pen.segments);
+        return pieces.length > 0 && pieces.every((k) => have.has(k)) ? pieces : undefined;
+    }, [pen, penDraft]);
+    const penDown = (e: ReactPointerEvent<SVGElement>) => {
+        if (!pen || e.button !== 0) return;
+        const at = latticePoint(e);
+        if (!at) return;
+        e.preventDefault();
+        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+        setPenDraft([at]);
+    };
+    const penMove = (e: ReactPointerEvent<SVGElement>) => {
+        if (!pen || penDraft.length === 0) return;
+        const at = latticePoint(e);
+        const last = penDraft[penDraft.length - 1];
+        if (at && last && (at.x !== last.x || at.y !== last.y)) setPenDraft([...penDraft, at]);
+    };
+    const penUp = (e: ReactPointerEvent<SVGElement>) => {
+        if (!pen || penDraft.length === 0) return;
+        const at = latticePoint(e);
+        const points = at ? [...penDraft, at] : penDraft;
+        setPenDraft([]);
+        const moved = points.some((p) => p.x !== points[0]?.x || p.y !== points[0]?.y);
+        if (moved) pen.onStroke(points);
+        else if (at) pen.onMark(at);
+    };
+
     const viewBox = view ? `${view.left} ${view.top} ${view.width} ${view.height}` : scene.viewBox;
 
     const svg = (
@@ -449,7 +545,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 {visibleScene.cells
                     .filter((c) => c.tone !== "normal")
                     .map((c) => (
-                        <rect key={`hatch-${c.cell}`} x={c.x} y={c.y} width={c.size} height={c.size} fill={`url(#${hatchId})`} />
+                        <rect
+                            key={`hatch-${c.cell}`}
+                            x={c.x}
+                            y={c.y}
+                            width={c.size}
+                            height={c.size}
+                            fill={`url(#${hatchId})`}
+                        />
                     ))}
             </g>
 
@@ -478,7 +581,14 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                 {visibleScene.cells
                     .filter((c) => c.sameValue)
                     .map((c) => (
-                        <rect key={`same-${c.cell}`} className="cell-same" x={c.x} y={c.y} width={c.size} height={c.size} />
+                        <rect
+                            key={`same-${c.cell}`}
+                            className="cell-same"
+                            x={c.x}
+                            y={c.y}
+                            width={c.size}
+                            height={c.size}
+                        />
                     ))}
             </g>
 
@@ -615,6 +725,56 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                     );
                 })}
             </g>
+
+            {/* pen layer (#45): the player's lines and X/O marks over everything, plus the
+                stroke being drawn right now */}
+            <g className="pen" pointerEvents="none">
+                {visibleScene.pen.map((s, i) => (
+                    <ShapeNode key={i} shape={s} />
+                ))}
+                {penDraft.length > 1 &&
+                    (erasingPieces ? (
+                        // The stroke lies wholly on existing lines, so releasing removes them:
+                        // mark exactly those pieces in red, thicker than the line itself.
+                        erasingPieces.map((key) => {
+                            const [a, b] = parseSegmentKey(key);
+                            return (
+                                <line
+                                    key={key}
+                                    className="pen-erasing"
+                                    x1={scene.origin.x + (a.x * scene.cellSize) / 2}
+                                    y1={scene.origin.y + (a.y * scene.cellSize) / 2}
+                                    x2={scene.origin.x + (b.x * scene.cellSize) / 2}
+                                    y2={scene.origin.y + (b.y * scene.cellSize) / 2}
+                                />
+                            );
+                        })
+                    ) : (
+                        <polyline
+                            className="pen-draft"
+                            points={penDraft
+                                .map(
+                                    (p) =>
+                                        `${scene.origin.x + (p.x * scene.cellSize) / 2},${scene.origin.y + (p.y * scene.cellSize) / 2}`,
+                                )
+                                .join(" ")}
+                        />
+                    ))}
+            </g>
+            {pen && (
+                <rect
+                    className="pen-surface"
+                    x={0}
+                    y={0}
+                    width={scene.width}
+                    height={scene.height}
+                    fill="transparent"
+                    onPointerDown={penDown}
+                    onPointerMove={penMove}
+                    onPointerUp={penUp}
+                    onPointerCancel={() => setPenDraft([])}
+                />
+            )}
         </svg>
     );
 
@@ -679,11 +839,19 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                                 className={`btn btn-sm ${zoomLocked ? "active" : ""}`}
                                 onClick={() => setSetting("zoomLocked", !zoomLocked)}
                                 aria-pressed={zoomLocked}
-                                aria-label={zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"}
+                                aria-label={
+                                    zoomLocked ? "Unlock zoom (currently locked)" : "Lock zoom at its current level"
+                                }
                             >
                                 {zoomLocked ? <Lock size={16} /> : <Unlock size={16} />}
                             </button>
-                            <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)} aria-label="Zoom out" disabled={zoomLocked}>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => applyZoom(0.5, 0.5, 1 / ZOOM_STEP)}
+                                aria-label="Zoom out"
+                                disabled={zoomLocked}
+                            >
                                 <ZoomOut size={16} />
                             </button>
                             <input
@@ -698,10 +866,22 @@ export default function Board({ scene, onPaintStart, onPaintMove, onPaintEnd, on
                                 disabled={zoomLocked}
                             />
                             <span className="board-zoom-level">{zoomPct}%</span>
-                            <button type="button" className="btn btn-sm" onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)} aria-label="Zoom in" disabled={zoomLocked}>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => applyZoom(0.5, 0.5, ZOOM_STEP)}
+                                aria-label="Zoom in"
+                                disabled={zoomLocked}
+                            >
                                 <ZoomIn size={16} />
                             </button>
-                            <button type="button" className="btn btn-sm" onClick={handleFitToScreen} aria-label="Fit whole board to screen" disabled={zoomLocked}>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={handleFitToScreen}
+                                aria-label="Fit whole board to screen"
+                                disabled={zoomLocked}
+                            >
                                 <Maximize size={16} /> <span className="board-zoom-btn-label">Fit</span>
                             </button>
                             <button

@@ -165,6 +165,7 @@ export default function PuzzlePlayer({
                 highlightSameValue: settings.highlightSameValue,
                 colorsOf: (c) => session.displayState(c).colors,
                 markPalette: settings.markColors,
+                pen: session.getPen(),
             }),
         // session.revision drives re-renders via useSyncExternalStore in the hook
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,7 +217,8 @@ export default function PuzzlePlayer({
             const kind = kinds[e.key.toLowerCase()];
             const target = e.target as HTMLElement | null;
             if (!kind || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable))
+                return;
             const cursor = scene.cells.find((c) => c.ring === "cursor")?.cell;
             const selector = cursor
                 ? geometry.regionSelectors.find(
@@ -262,6 +264,15 @@ export default function PuzzlePlayer({
                     label={`${puzzle.metadata.title}, puzzle board`}
                     describedBy={hintId}
                     scene={scene}
+                    pen={
+                        session.inputMode === "pen"
+                            ? {
+                                  segments: session.getPen().segments,
+                                  onStroke: (points) => session.penStroke(points),
+                                  onMark: (point) => session.penMark(point),
+                              }
+                            : undefined
+                    }
                     onPaintStart={onPaintStart}
                     onPaintMove={onPaintMove}
                     onPaintEnd={() => onSelectionEnd?.()}

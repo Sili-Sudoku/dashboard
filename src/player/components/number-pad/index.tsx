@@ -1,4 +1,4 @@
-import { CircleDot, CornerUpLeft, Eraser, Hash, Palette } from "lucide-react";
+import { CircleDot, CornerUpLeft, Eraser, Hash, Palette, PenLine } from "lucide-react";
 
 import { cornerSlot } from "@/renderer/corner_slot.ts";
 import { BACKGROUND_MARK_INDEX, resolveMarkColor } from "@/runtime/mark_colors.ts";
@@ -21,6 +21,7 @@ const MODES: { mode: InputMode; label: string; icon: typeof Hash }[] = [
     { mode: "corner", label: "Corner", icon: CornerUpLeft },
     { mode: "center", label: "Center", icon: CircleDot },
     { mode: "color", label: "Color", icon: Palette },
+    { mode: "pen", label: "Pen", icon: PenLine },
 ];
 
 /** Position of digit `n` in the fixed 3x3 corner-note grid, as a 0..1 fraction. */
@@ -29,7 +30,14 @@ const cornerPosition = (n: number): { left: string; top: string } => {
     return { left: `${24 + col * 26}%`, top: `${26 + row * 26}%` };
 };
 
-export default function NumberPad({ values, palette, mode, onInput, onErase, onModeChange }: Props) {
+export default function NumberPad({
+    values,
+    palette,
+    mode,
+    onInput,
+    onErase,
+    onModeChange,
+}: Props) {
     const swatches = mode === "color";
     // The pad's shape never changes with the mode (as in SudokuPad): the digits, with
     // a 0 key beside Erase. In colour mode the digits become swatches 1-9 and 0 is
@@ -69,9 +77,13 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
     );
     return (
         <div className="number-pad">
-            <div className="pad-grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
-                {base.map((v) => key(v))}
-            </div>
+            {mode === "pen" ? (
+                <PenGuide rows={Math.ceil(base.length / columns)} />
+            ) : (
+                <div className="pad-grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+                    {base.map((v) => key(v))}
+                </div>
+            )}
             <div className="pad-modes" role="group" aria-label="Input mode">
                 {MODES.map(({ mode: m, label, icon: Icon }) => (
                     <button
@@ -85,12 +97,50 @@ export default function NumberPad({ values, palette, mode, onInput, onErase, onM
                 ))}
             </div>
             <div className="pad-actions">
-                {key(0, " pad-key-zero")}
+                {mode !== "pen" && key(0, " pad-key-zero")}
                 <button className="btn btn-flat pad-key wide pad-erase" onClick={onErase}>
-                    <Eraser size={16} /> Erase
+                    <Eraser size={16} /> {mode === "pen" ? "Clear pen" : "Erase"}
                 </button>
             </div>
         </div>
+    );
+}
+
+/** How the pen works, as four small tiles in the footprint the digit keys leave empty — so the pad
+ *  keeps its size when you switch to Pen. Not buttons: the pen is used on the board itself. */
+function PenGuide({ rows }: { rows: number }) {
+    const stroke = { stroke: "currentColor", strokeWidth: 3, strokeLinecap: "round", fill: "none" } as const;
+    const steps = [
+        { how: "Drag", what: "draw a line", icon: <path d="M5 21 L14 8 L23 14" {...stroke} /> },
+        {
+            how: "Click",
+            what: "add an X",
+            icon: <path d="M7 7 L21 21 M21 7 L7 21" {...stroke} />,
+        },
+        { how: "Click again", what: "make it an O", icon: <circle cx="14" cy="14" r="9" {...stroke} /> },
+        {
+            how: "Once more",
+            what: "remove it",
+            icon: <circle cx="14" cy="14" r="9" {...stroke} strokeDasharray="2 5" opacity="0.5" />,
+        },
+    ];
+    return (
+        <ol
+            className="pad-pen-guide"
+            aria-label="How the pen works"
+            style={{ height: `calc(${rows} * 44px + ${rows - 1} * 0.4rem)` }}
+        >
+            {steps.map(({ how, what, icon }) => (
+                <li key={how}>
+                    <svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true">
+                        {icon}
+                    </svg>
+                    <span>
+                        <b>{how}</b> {what}
+                    </span>
+                </li>
+            ))}
+        </ol>
     );
 }
 

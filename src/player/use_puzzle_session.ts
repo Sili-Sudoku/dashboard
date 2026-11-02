@@ -11,8 +11,10 @@ import { getSettings } from "@/app/use_settings.ts";
 import { dismissToastByKey, toast } from "@/app/toast.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
+import { sanitizePen } from "@/runtime/pen.ts";
 import {
     PuzzleSession,
+    penStorageKey,
     progressStorageKey,
     statsStorageKey,
     type InputMode,
@@ -34,6 +36,25 @@ const writeProgress = (id: string, snapshot: ProgressSnapshot): void => {
         localStorage.setItem(progressStorageKey(id), JSON.stringify(snapshot));
     } catch {
         // storage unavailable (private mode etc.) — progress just isn't persisted
+    }
+};
+
+const readPen = (id: string) => {
+    try {
+        const raw = localStorage.getItem(penStorageKey(id));
+        return raw ? sanitizePen(JSON.parse(raw)) : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const writePen = (id: string, pen: ReturnType<PuzzleSession["toPen"]>): void => {
+    try {
+        if (pen.segments.length === 0 && Object.keys(pen.marks).length === 0)
+            localStorage.removeItem(penStorageKey(id));
+        else localStorage.setItem(penStorageKey(id), JSON.stringify(pen));
+    } catch {
+        // storage unavailable — the pen layer just isn't persisted
     }
 };
 
@@ -105,6 +126,7 @@ export const usePuzzleSession = (
         () =>
             new PuzzleSession(puzzle, {
                 initialProgress: readProgress(puzzle.metadata.id),
+                initialPen: readPen(puzzle.metadata.id),
                 checkNotesOnLeave: getSettings().checkNotesOnLeave,
             }),
         [puzzle],
@@ -127,10 +149,16 @@ export const usePuzzleSession = (
             dismissToastByKey(CHECK_TOAST_KEY);
             return;
         }
-        if (outcome === "clean") toast("Everything is correct", { kind: "success", key: CHECK_TOAST_KEY, duration: 2500 });
+        if (outcome === "clean")
+            toast("Everything is correct", { kind: "success", key: CHECK_TOAST_KEY, duration: 2500 });
         else if (outcome === "mistake-value")
             toast("At least 1 digit entered is wrong", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
-        else toast("At least 1 note has eliminated the correct digit", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
+        else
+            toast("At least 1 note has eliminated the correct digit", {
+                kind: "error",
+                key: CHECK_TOAST_KEY,
+                duration: 2500,
+            });
     }, [session]);
 
     // Undo/redo: the board's own history first, then (if given) the external one.
@@ -156,6 +184,7 @@ export const usePuzzleSession = (
             window.clearTimeout(saveTimer.current);
             saveTimer.current = window.setTimeout(() => {
                 writeProgress(puzzle.metadata.id, session.toProgress());
+                writePen(puzzle.metadata.id, session.toPen());
             }, 150);
         });
     }, [session, puzzle.metadata.id]);
@@ -342,7 +371,9 @@ export const usePuzzleSession = (
 
         const isInputTarget = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;
-            return !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+            return (
+                !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+            );
         };
 
         /** Focus is on a control whose own Enter/Space behaviour must not be hijacked. */

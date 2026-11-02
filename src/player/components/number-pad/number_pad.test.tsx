@@ -49,3 +49,23 @@ describe("NumberPad 0 key", () => {
         expect(onInput).toHaveBeenCalledWith(0);
     });
 });
+
+describe("NumberPad pen mode (#45)", () => {
+    it("shows how the pen works in the digit keys' place, and Erase becomes Clear pen", () => {
+        const { container } = render(
+            <NumberPad
+                values={[1, 2, 3, 4]}
+                palette={DEFAULT_MARK_COLORS}
+                mode="pen"
+                onInput={vi.fn()}
+                onErase={() => undefined}
+                onModeChange={() => undefined}
+            />,
+        );
+        expect(gridKeys(container)).toHaveLength(0);
+        const guide = container.querySelector(".pad-pen-guide")?.textContent ?? "";
+        expect(guide).toMatch(/drag.*line.*click.*X.*click again.*O.*remove/i);
+        expect(screen.getByRole("button", { name: "Clear pen" })).not.toBeNull();
+        expect(container.querySelector(".pad-key-zero")).toBeNull(); // no digits, so no 0 key either
+    });
+});

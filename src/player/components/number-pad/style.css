@@ -21,7 +21,7 @@
     gap: 0.4rem;
 }
 
-/* Four modes in one row, each a stacked icon over its label, so the pad stays short
+/* Five modes in one row, each a stacked icon over its label, so the pad stays short
    enough for the Erase/Undo/Check rows to sit above a phone's fold. */
 .number-pad .pad-modes .pad-key.wide {
     flex: 1 1 0;
@@ -92,3 +92,35 @@
     min-height: 44px;
 }
 
+/* Pen mode (#45): four tiles say how the pen works, filling the space the digit keys take so the
+   pad doesn't change size. They look like the keys' quieter cousins — flat, not pressable. */
+.number-pad .pad-pen-guide {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.number-pad .pad-pen-guide li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0 0.5rem;
+    border: 1px dashed var(--line);
+    color: var(--pen);
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.number-pad .pad-pen-guide li span {
+    color: var(--ink-soft);
+}
+
+.number-pad .pad-pen-guide li b {
+    display: block;
+    color: var(--ink);
+}

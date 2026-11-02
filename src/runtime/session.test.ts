@@ -756,3 +756,60 @@ describe("PuzzleSession colour marks (#35)", () => {
         expect(restored.cellState("r1c2").colors).toEqual([1]);
     });
 });
+
+describe("pen layer (#45)", () => {
+    const line = [
+        { x: 1, y: 1 },
+        { x: 3, y: 1 },
+    ];
+
+    it("draws and marks, each as one undo step, and undo/redo restores the layer", () => {
+        const session = new PuzzleSession(compiled());
+        session.penStroke(line);
+        session.penMark({ x: 2, y: 2 });
+        expect(session.getPen().segments).toHaveLength(2);
+        expect(session.getPen().marks).toEqual({ "2,2": "x" });
+
+        session.undo();
+        expect(session.getPen().marks).toEqual({});
+        session.undo();
+        expect(session.getPen().segments).toEqual([]);
+        session.redo();
+        expect(session.getPen().segments).toHaveLength(2);
+    });
+
+    it("does not change the board or the evaluation", () => {
+        const session = new PuzzleSession(compiled());
+        const before = JSON.stringify(session.toProgress());
+        session.penStroke(line);
+        expect(JSON.stringify(session.toProgress())).toBe(before);
+    });
+
+    it("in pen mode digits do nothing and Erase clears the pen layer, undoably", () => {
+        const session = new PuzzleSession(compiled());
+        session.setInputMode("pen");
+        session.penStroke(line);
+        session.input(1);
+        expect(session.toProgress()).toEqual({});
+        session.erase();
+        expect(session.getPen().segments).toEqual([]);
+        session.undo();
+        expect(session.getPen().segments).toHaveLength(2);
+    });
+
+    it("reset clears it, and undoing the reset brings it back", () => {
+        const session = new PuzzleSession(compiled());
+        session.penStroke(line);
+        session.reset();
+        expect(session.getPen().segments).toEqual([]);
+        session.undo();
+        expect(session.getPen().segments).toHaveLength(2);
+    });
+
+    it("starts from a saved layer", () => {
+        const session = new PuzzleSession(compiled(), {
+            initialPen: { segments: ["1,1|2,1"], marks: { "2,2": "o" } },
+        });
+        expect(session.toPen()).toEqual({ segments: ["1,1|2,1"], marks: { "2,2": "o" } });
+    });
+});

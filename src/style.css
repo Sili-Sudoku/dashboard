@@ -60,9 +60,11 @@
     --chrome-line: var(--line);
     --chrome-moss: #3c6e52;
     --chrome-moss-tint: #e3ecdf;
+    --pen: #1f7a8c;
 }
 
 :root[data-theme="dark"] {
+    --pen: #5cc0d3;
     --raised: #352b1a;
     --raised-hover: #40341f;
     --stamp-shadow: #8a7748;

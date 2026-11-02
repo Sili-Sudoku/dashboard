@@ -731,3 +731,28 @@ describe("<PuzzlePlayer /> stacked (phone) layout", () => {
         expect(screen.queryByRole("menuitem", { name: "Zoom in" })).toBeNull();
     });
 });
+
+describe("<PuzzlePlayer /> pen mode (#45)", () => {
+    it("switches the board to pen input and the pad to a hint, and leaves digits alone", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".pen-surface")).toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: /^Pen$/ }));
+        expect(container.querySelector(".pen-surface")).not.toBeNull();
+        expect(container.querySelector(".pad-pen-guide")).not.toBeNull();
+
+        const digits = () => container.querySelectorAll(".values text").length;
+        const before = digits();
+        fireEvent.keyDown(root(), { key: "1", code: "Digit1" });
+        expect(digits()).toBe(before);
+
+        fireEvent.click(screen.getByRole("button", { name: /^Digit$/ }));
+        expect(container.querySelector(".pen-surface")).toBeNull();
+    });
+
+    it("keeps the pen layer in storage and restores it", () => {
+        localStorage.setItem("cpr:pen:mini-sudoku", JSON.stringify({ segments: ["1,1|2,1"], marks: { "3,3": "x" } }));
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelectorAll(".pen polyline").length).toBe(3); // one line piece + the two strokes of an X
+    });
+});

@@ -16,6 +16,15 @@ import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
 import { hiddenCells } from "@/runtime/fog.ts";
 import { MARK_COLOR_COUNT, markIndexForDigit } from "@/runtime/mark_colors.ts";
+import {
+    EMPTY_PEN,
+    cycleMark,
+    applyStroke,
+    isPenEmpty,
+    sanitizePen,
+    type PenPoint,
+    type PenState,
+} from "@/runtime/pen.ts";
 
 export interface CellState {
     value: number | null;
@@ -42,6 +51,7 @@ const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [], colors:
  */
 type HistoryEntry =
     | { kind: "patch"; patch: ReadonlyMap<CellId, CellState | undefined> }
+    | { kind: "pen"; pen: PenState }
     | { kind: "full"; snapshot: string };
 
 const toggleSet = (notes: readonly number[], digit: number): number[] => {
@@ -66,13 +76,15 @@ export interface SessionOptions {
     initialProgress?: ProgressSnapshot;
     /** Seeds `checkNotesOnLeave` (default false) — the player-wide default lives in Settings (#69). */
     checkNotesOnLeave?: boolean;
+    /** The saved pen layer (#45) — kept apart from `initialProgress`, whose keys are cells. */
+    initialPen?: PenState;
 }
 
 /**
  * What a plain digit press (number pad click or keyboard digit) does. In
  * "color" mode the digit picks a palette colour (1-based) instead of a value.
  */
-export type InputMode = "digit" | "corner" | "center" | "color";
+export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
 
 /**
  * Outcome of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
@@ -99,6 +111,8 @@ export class PuzzleSession {
     checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
+    /** The pen layer (#45): the player's lines and X/O marks, outside the puzzle and its evaluation. */
+    private pen: PenState = EMPTY_PEN;
     private past: HistoryEntry[] = [];
     private futureStack: HistoryEntry[] = [];
     private selection = new Set<CellId>();
@@ -120,6 +134,7 @@ export class PuzzleSession {
         this.cursor = this.geometry.cells[0] ?? null;
         if (options.onChange) this.listeners.add(options.onChange);
         if (options.initialProgress) this.applyProgress(options.initialProgress);
+        if (options.initialPen) this.pen = sanitizePen(options.initialPen);
         if (options.checkNotesOnLeave !== undefined) this.checkNotesOnLeave = options.checkNotesOnLeave;
     }
 
@@ -218,7 +233,12 @@ export class PuzzleSession {
         if (!this.cachedEvaluation) {
             this.cachedEvaluation = evaluate(this.puzzle, this.valueOf);
         } else if (this.dirtyCells.size > 0) {
-            this.cachedEvaluation = evaluateIncremental(this.puzzle, this.valueOf, this.cachedEvaluation, this.dirtyCells);
+            this.cachedEvaluation = evaluateIncremental(
+                this.puzzle,
+                this.valueOf,
+                this.cachedEvaluation,
+                this.dirtyCells,
+            );
         }
         this.dirtyCells.clear();
         return this.cachedEvaluation;
@@ -416,6 +436,36 @@ export class PuzzleSession {
         this.emit();
     }
 
+    getPen(): PenState {
+        return this.pen;
+    }
+
+    /** Draws one pen stroke along the given lattice points (#45); one undo step. */
+    penStroke(points: readonly PenPoint[]): void {
+        this.setPen(applyStroke(this.pen, points));
+    }
+
+    /** A click at a lattice point (#45): cycles nothing -> X -> O -> nothing there; one undo step. */
+    penMark(point: PenPoint): void {
+        this.setPen(cycleMark(this.pen, point));
+    }
+
+    clearPen(): void {
+        this.setPen(EMPTY_PEN);
+    }
+
+    /** The pen layer as plain data, for storage. */
+    toPen(): PenState {
+        return this.pen;
+    }
+
+    private setPen(next: PenState): void {
+        if (next === this.pen) return;
+        this.pushEntry({ kind: "pen", pen: this.pen });
+        this.pen = next;
+        this.emit();
+    }
+
     setCheckNotesOnLeave(on: boolean): void {
         this.checkNotesOnLeave = on;
         if (!on) this.flaggedCells.clear();
@@ -433,6 +483,7 @@ export class PuzzleSession {
 
     /** Applies a plain digit press according to the active `inputMode`. */
     input(digit: number): void {
+        if (this.inputMode === "pen") return; // the pen draws on the board; digits do nothing
         if (this.inputMode === "corner") return this.toggleCornerNote(digit);
         if (this.inputMode === "center") return this.toggleCenterNote(digit);
         if (this.inputMode === "color") {
@@ -546,6 +597,7 @@ export class PuzzleSession {
 
     /** Clears only the layer matching the active `inputMode` (value / corner / center / colour). */
     erase(): void {
+        if (this.inputMode === "pen") return this.clearPen();
         if (this.inputMode === "color") return this.eraseColors();
         const cells = this.targets();
         if (cells.length === 0) return;
@@ -604,9 +656,10 @@ export class PuzzleSession {
     }
 
     reset(): void {
-        if (this.board.size === 0) return;
+        if (this.board.size === 0 && isPenEmpty(this.pen)) return;
         this.pushFullSnapshot();
         this.board.clear();
+        this.pen = EMPTY_PEN;
         this.flaggedCells.clear();
         this.incorrectCells.clear();
         this.checkArmed = false;
@@ -619,7 +672,12 @@ export class PuzzleSession {
     toProgress(): ProgressSnapshot {
         const out: Record<CellId, ProgressSnapshot[CellId]> = {};
         for (const [cell, state] of this.board) {
-            const entry: { value?: number; notes?: readonly number[]; centerNotes?: readonly number[]; colors?: readonly number[] } = {};
+            const entry: {
+                value?: number;
+                notes?: readonly number[];
+                centerNotes?: readonly number[];
+                colors?: readonly number[];
+            } = {};
             if (state.value !== null) entry.value = state.value;
             else {
                 if (state.notes.length > 0) entry.notes = state.notes;
@@ -703,6 +761,11 @@ export class PuzzleSession {
      * diff, so it falls back to invalidating everything, same as before.
      */
     private applyEntry(entry: HistoryEntry): HistoryEntry {
+        if (entry.kind === "pen") {
+            const inverse: HistoryEntry = { kind: "pen", pen: this.pen };
+            this.pen = entry.pen;
+            return inverse;
+        }
         if (entry.kind === "full") {
             const inverse: HistoryEntry = { kind: "full", snapshot: this.serializeBoard() };
             this.restoreBoard(entry.snapshot);
@@ -721,13 +784,17 @@ export class PuzzleSession {
     }
 
     private serializeBoard(): string {
-        return JSON.stringify([...this.board.entries()]);
+        return JSON.stringify({ board: [...this.board.entries()], pen: this.pen });
     }
 
     private restoreBoard(serialized: string): void {
-        this.board = new Map(JSON.parse(serialized) as [CellId, CellState][]);
+        const { board, pen } = JSON.parse(serialized) as { board: [CellId, CellState][]; pen: PenState };
+        this.board = new Map(board);
+        this.pen = pen;
     }
 }
+
+export const penStorageKey = (puzzleId: string): string => `cpr:pen:${puzzleId}`;
 
 export const progressStorageKey = (puzzleId: string): string => `cpr:progress:${puzzleId}`;
 

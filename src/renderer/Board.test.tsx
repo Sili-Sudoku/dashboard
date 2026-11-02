@@ -46,6 +46,8 @@ const bigScene = (n: number, cellSize = 20): Scene => {
         gridLines: [],
         shapes: [],
         selectionOutline: [],
+        origin: { x: 0, y: 0 },
+        pen: [],
     };
 };
 
@@ -554,5 +556,74 @@ describe("Board — large puzzles", () => {
         expect((getByLabelText("Zoom in") as HTMLButtonElement).disabled).toBe(false);
         act(() => getByLabelText("Zoom in").click());
         expect(level()).not.toBe(zoomedLevel);
+    });
+});
+
+describe("Board — pen input (#45)", () => {
+    // jsdom has no PointerEvent, so fireEvent.pointerX would drop the coordinates and button.
+    beforeAll(() => {
+        if (!("PointerEvent" in window)) {
+            Object.defineProperty(window, "PointerEvent", { value: class extends MouseEvent {}, configurable: true });
+        }
+    });
+
+    const penBoard = (segments: readonly string[] = []) => {
+        const onStroke = vi.fn();
+        const onMark = vi.fn();
+        const scene = bigScene(4, 20); // 80x80, cells 20px
+        const { container } = render(
+            <Board
+                scene={scene}
+                pen={{ segments, onStroke, onMark }}
+                onPaintStart={noop}
+                onPaintMove={noop}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
+        );
+        const svg = container.querySelector("svg.board") as SVGSVGElement;
+        // jsdom lays nothing out: pretend the 80x80 board fills an 80x80 box at the origin.
+        svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 80, height: 80 }) as DOMRect;
+        const surface = container.querySelector(".pen-surface") as SVGRectElement;
+        return { surface, onStroke, onMark, container };
+    };
+
+    it("draws a stroke along the half-cell lattice when dragged, instead of selecting cells", () => {
+        const { surface, onStroke } = penBoard();
+        fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, button: 0 });
+        fireEvent.pointerMove(surface, { clientX: 30, clientY: 10 });
+        fireEvent.pointerUp(surface, { clientX: 30, clientY: 10 });
+        expect(onStroke).toHaveBeenCalledTimes(1);
+        const points = onStroke.mock.calls[0]![0] as { x: number; y: number }[];
+        expect(points[0]).toEqual({ x: 1, y: 1 });
+        expect(points[points.length - 1]).toEqual({ x: 3, y: 1 });
+    });
+
+    it("previews a stroke over existing lines as a removal, and an ordinary one as a draft", () => {
+        const { surface, container } = penBoard(["1,1|2,1", "2,1|3,1"]);
+        fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, button: 0 });
+        fireEvent.pointerMove(surface, { clientX: 30, clientY: 10 });
+        expect(container.querySelectorAll(".pen-erasing").length).toBe(2);
+        expect(container.querySelector(".pen-draft")).toBeNull();
+        // dragging on past the end of the existing line makes it a normal stroke again
+        fireEvent.pointerMove(surface, { clientX: 50, clientY: 10 });
+        expect(container.querySelector(".pen-erasing")).toBeNull();
+        expect(container.querySelector(".pen-draft")).not.toBeNull();
+    });
+
+    it("treats a click that stays on one lattice point as a mark there, not a stroke", () => {
+        const { surface, onMark, onStroke } = penBoard();
+        fireEvent.pointerDown(surface, { clientX: 41, clientY: 19, button: 0 });
+        fireEvent.pointerMove(surface, { clientX: 42, clientY: 21 }); // a little jitter, same point
+        fireEvent.pointerUp(surface, { clientX: 41, clientY: 19 });
+        expect(onMark).toHaveBeenCalledWith({ x: 4, y: 2 });
+        expect(onStroke).not.toHaveBeenCalled();
+    });
+
+    it("has no pen surface when the pen isn't active", () => {
+        const { container } = render(
+            <Board scene={bigScene(2)} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
+        );
+        expect(container.querySelector(".pen-surface")).toBeNull();
     });
 });

@@ -12,6 +12,7 @@ import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
 import type { EvaluationResult } from "@/runtime/evaluate.ts";
 import { MARK_COLOR_COUNT, resolveMarkColor } from "@/runtime/mark_colors.ts";
+import { parsePointKey, parseSegmentKey, type PenState } from "@/runtime/pen.ts";
 
 export interface SceneInput {
     puzzle: CompiledPuzzle;
@@ -46,6 +47,8 @@ export interface SceneInput {
     /** Colour marks per cell, as palette indices (#35), resolved against `markPalette`. */
     colorsOf?: (cell: CellId) => readonly number[];
     markPalette?: readonly string[];
+    /** The player's pen layer (#45): freehand lines and X/O marks, drawn over the digits. */
+    pen?: PenState;
 }
 
 export type CellTone = "normal" | "violated" | "invalid";
@@ -83,7 +86,12 @@ export type Shape =
     | { kind: "rect"; x: number; y: number; w: number; h: number; style: ResolvedStyle }
     | { kind: "text"; x: number; y: number; text: string; fontSize: number; bold?: boolean; style: ResolvedStyle }
     | { kind: "arrowhead"; at: Point; angle: number; size: number; style: ResolvedStyle }
-    | { kind: "cage"; segments: [Point, Point][]; label?: { x: number; y: number; text: string }; style: ResolvedStyle };
+    | {
+          kind: "cage";
+          segments: [Point, Point][];
+          label?: { x: number; y: number; text: string };
+          style: ResolvedStyle;
+      };
 
 export interface ResolvedStyle {
     stroke: string;
@@ -106,6 +114,10 @@ export interface Scene {
     shapes: Shape[];
     /** One combined outline around the multi-cell selection (#157), in board pixels. */
     selectionOutline: [Point, Point][];
+    /** Where the grid's top-left corner sits in the scene (the margin reserved for outside clues). */
+    origin: Point;
+    /** The pen layer (#45) as shapes, drawn above everything else. */
+    pen: Shape[];
 }
 
 const DEFAULT_CELL_SIZE = 64;
@@ -181,8 +193,66 @@ export const buildScene = (input: SceneInput): Scene => {
         gridLines: gridLines(geometry, cellSize),
         shapes,
         selectionOutline: selectionOutline(selected, input.cursor, geometry, cellSize),
+        origin: { x: 0, y: 0 },
+        pen: [],
     };
-    return margin.left === 0 && margin.top === 0 ? scene : translateScene(scene, margin.left, margin.top);
+    const placed = margin.left === 0 && margin.top === 0 ? scene : translateScene(scene, margin.left, margin.top);
+    const origin = { x: margin.left, y: margin.top };
+    return { ...placed, origin, pen: input.pen ? penShapes(input.pen, origin, cellSize) : [] };
+};
+
+const PEN_STYLE: ResolvedStyle = {
+    stroke: "var(--pen)",
+    fill: "none",
+    strokeWidth: 5,
+    dashed: false,
+    opacity: 0.85,
+    z: 0,
+};
+
+/** The pen layer as shapes: a line piece per segment, a crossed pair for X, a ring for O. */
+const penShapes = (pen: PenState, origin: Point, cellSize: number): Shape[] => {
+    const at = (p: { x: number; y: number }): Point => ({
+        x: origin.x + (p.x * cellSize) / 2,
+        y: origin.y + (p.y * cellSize) / 2,
+    });
+    const shapes: Shape[] = pen.segments.map((key) => {
+        const [a, b] = parseSegmentKey(key);
+        return { kind: "polyline", points: [at(a), at(b)], style: PEN_STYLE, rounded: true };
+    });
+    for (const [key, mark] of Object.entries(pen.marks)) {
+        const point = parsePointKey(key);
+        const c = at(point);
+        // On a cell's centre a mark is big enough to ring the digit yet stay inside the cell
+        // (the stroke's own width included); on an edge or corner it sits between cells, so smaller.
+        const centred = point.x % 2 !== 0 && point.y % 2 !== 0;
+        const reach = cellSize * (centred ? 0.38 : 0.22);
+        if (mark === "o") {
+            shapes.push({ kind: "circle", cx: c.x, cy: c.y, r: reach, style: PEN_STYLE });
+            continue;
+        }
+        shapes.push(
+            {
+                kind: "polyline",
+                points: [
+                    { x: c.x - reach, y: c.y - reach },
+                    { x: c.x + reach, y: c.y + reach },
+                ],
+                style: PEN_STYLE,
+                rounded: true,
+            },
+            {
+                kind: "polyline",
+                points: [
+                    { x: c.x - reach, y: c.y + reach },
+                    { x: c.x + reach, y: c.y - reach },
+                ],
+                style: PEN_STYLE,
+                rounded: true,
+            },
+        );
+    }
+    return shapes;
 };
 
 interface Margin {
@@ -205,7 +275,12 @@ const extent = (shape: Shape): { minX: number; minY: number; maxX: number; maxY:
         case "polygon":
             return of(shape.points);
         case "circle":
-            return { minX: shape.cx - shape.r, minY: shape.cy - shape.r, maxX: shape.cx + shape.r, maxY: shape.cy + shape.r };
+            return {
+                minX: shape.cx - shape.r,
+                minY: shape.cy - shape.r,
+                maxX: shape.cx + shape.r,
+                maxY: shape.cy + shape.r,
+            };
         case "rect":
             return { minX: shape.x, minY: shape.y, maxX: shape.x + shape.w, maxY: shape.y + shape.h };
         case "text": {
@@ -301,7 +376,11 @@ const ring = (cell: CellId, cursor: CellId | null, selected: ReadonlySet<CellId>
  *  (a filled shape like a thermometer's bulb should still read as filled). */
 const markInvalid = (shape: Shape): Shape => ({
     ...shape,
-    style: { ...shape.style, stroke: "var(--violated-line)", fill: shape.style.fill === "none" ? "none" : "var(--violated-line)" },
+    style: {
+        ...shape.style,
+        stroke: "var(--violated-line)",
+        fill: shape.style.fill === "none" ? "none" : "var(--violated-line)",
+    },
 });
 
 export const resolveStyle = (style: VisualStyle | undefined, fallback: Partial<ResolvedStyle> = {}): ResolvedStyle => ({
@@ -506,10 +585,7 @@ export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Poin
         const next = nextOf(e);
         const prev = previousOf.get(e);
         const n = normal(e);
-        return [
-            corner(e.a, prev ? normal(prev) : n, n),
-            corner(e.b, n, next ? normal(next) : n),
-        ] as [Point, Point];
+        return [corner(e.a, prev ? normal(prev) : n, n), corner(e.b, n, next ? normal(next) : n)] as [Point, Point];
     });
 };
 

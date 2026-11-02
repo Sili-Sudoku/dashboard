@@ -416,3 +416,62 @@ describe("grid line draw order", () => {
         expect(weights).toEqual([...weights].sort((a, b) => a - b));
     });
 });
+
+describe("pen layer shapes (#45)", () => {
+    const puzzle = (() => {
+        const r = compilePuzzle({
+            version: 1,
+            metadata: { id: "pen", title: "pen" },
+            geometry: { type: "grid", width: 2, height: 2 },
+            domain: { values: [1, 2] },
+            constraints: [],
+        });
+        if (r instanceof Error) throw r;
+        return r;
+    })();
+    const build = (pen: Parameters<typeof buildScene>[0]["pen"]) =>
+        buildScene({
+            puzzle,
+            valueOf: () => null,
+            notesOf: () => [],
+            centerNotesOf: () => [],
+            flaggedCells: new Set(),
+            incorrectCells: new Set(),
+            isGiven: () => false,
+            selection: new Set(),
+            cursor: null,
+            hiddenCells: new Set(),
+            evaluation: evaluate(puzzle, lookupFromRecord({})),
+            pen,
+        });
+
+    it("places lattice points at half-cell steps from the grid's corner", () => {
+        const scene = build({ segments: ["1,1|2,1"], marks: {} });
+        // cell size 64: lattice (1,1) is the first cell's centre, (2,1) the middle of its right edge
+        expect(scene.pen).toHaveLength(1);
+        expect(scene.pen[0]).toMatchObject({ kind: "polyline", points: [{ x: 32, y: 32 }, { x: 64, y: 32 }] });
+    });
+
+    it("draws an X as two crossing strokes and an O as a ring", () => {
+        const scene = build({ segments: [], marks: { "1,1": "x", "3,3": "o" } });
+        expect(scene.pen.map((s) => s.kind)).toEqual(["polyline", "polyline", "circle"]);
+    });
+
+    it("sizes a mark on a cell's centre to stay inside that cell, stroke included", () => {
+        const scene = build({ segments: [], marks: { "1,1": "x", "3,1": "o" } });
+        const half = 64 / 2;
+        const [first, second, ring] = scene.pen;
+        const cross = [...(first as { points: { x: number; y: number }[] }).points, ...(second as { points: { x: number; y: number }[] }).points];
+        for (const p of cross) {
+            expect(Math.abs(p.x - 32)).toBeLessThan(half - 5);
+            expect(Math.abs(p.y - 32)).toBeLessThan(half - 5);
+        }
+        const o = ring as { cx: number; r: number };
+        expect(o.r).toBeLessThan(half - 5);
+        expect(o.r).toBeGreaterThan(half * 0.6); // large enough to ring a digit
+    });
+
+    it("has nothing without a pen layer", () => {
+        expect(build(undefined).pen).toEqual([]);
+    });
+});
