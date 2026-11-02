@@ -28,6 +28,9 @@
                 ? "dark"
                 : "light";
           document.documentElement.setAttribute("data-theme", theme);
+          if (localStorage.getItem("cpr:palette") === "classic") {
+            document.documentElement.setAttribute("data-palette", "classic");
+          }
         } catch (e) {
           // storage or matchMedia is not available. The "light" attribute below stands.
         }

@@ -1,4 +1,5 @@
 import { useInstall } from "@/app/pwa.ts";
+import { PALETTES, usePalette } from "@/app/use_palette.ts";
 import { useSettings } from "@/app/use_settings.ts";
 import { DEFAULT_MARK_COLORS } from "@/runtime/mark_colors.ts";
 
@@ -7,6 +8,7 @@ import "./style.css";
 export default function Settings() {
     const [settings, setSetting] = useSettings();
     const install = useInstall();
+    const [palette, setPalette] = usePalette();
 
     return (
         <div className="settings-page">
@@ -14,6 +16,29 @@ export default function Settings() {
             <p className="settings-intro">The app saves settings on this device. They apply to every puzzle.</p>
 
             <section className="settings-list">
+                <div className="settings-row settings-row-static">
+                    <div>
+                        <div className="settings-row-title">Style</div>
+                        <div className="settings-row-desc">
+                            The look of the app. Classic uses the fonts of your system, white and black, and plain
+                            buttons. Use the sun or moon button in the header to switch between light and dark.
+                        </div>
+                        <div className="settings-choice" role="group" aria-label="Style">
+                            {PALETTES.map((p) => (
+                                <button
+                                    key={p.id}
+                                    type="button"
+                                    className="btn btn-sm"
+                                    aria-pressed={palette === p.id}
+                                    onClick={() => setPalette(p.id)}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <label className="settings-row">
                     <div>
                         <div className="settings-row-title">Check notes on leave</div>

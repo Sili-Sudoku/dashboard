@@ -65,3 +65,10 @@
     background: none;
     cursor: pointer;
 }
+
+.settings-choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.7rem 0 0;
+}
