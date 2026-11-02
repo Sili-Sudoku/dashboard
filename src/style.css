@@ -1,7 +1,6 @@
-/* One warm "ink & paper" palette app-wide (#139) — the board and solving
-   surfaces included. The constraint-graphic and state colors below were
-   re-tuned against cream paper, not carried over from the old cool theme;
-   see docs/DESIGN.md for the reasoning and the contrast figures. */
+/* One warm "ink & paper" palette for the whole app (#139), including the board and solving
+   surfaces. The constraint-graphic and state colors below are tuned against cream paper. They do
+   not come from the old cool theme. See docs/DESIGN.md for the reasons and the contrast figures. */
 :root[data-theme="light"] {
     --bg: #f6efe0;
     --surface: #fbf6ea;
@@ -11,15 +10,16 @@
     --line: #cdbb8d;
     --line-strong: #211a10;
 
-    /* The one cool color: pen-blue ink, for interactive state (selection,
-       active toggles, links, focus) and the player's own entered digits. It must
-       not be the red pen — red already means "this breaks a rule". */
+    /* The one cool color: pen-blue ink. It shows interactive state (selection, active toggles,
+       links, focus) and the digits the player enters. It must not be the red pen, because red
+       means "this breaks a rule". */
     --brand: #2f4b8c;
     --brand-hover: #243a70;
     --brand-tint: #e0e4f1;
-    /* Text/icons on a --brand fill: paper in both themes' own terms. */
+    /* Text and icons on a --brand fill. The color is paper in both themes. */
     --on-brand: #fbf6ea;
-    /* Stamp-style buttons: face, hover face and offset shadow (dark overrides for depth). */
+    /* Stamp-style buttons: face, hover face, and offset shadow. The dark theme overrides them
+       for depth. */
     --raised: var(--surface);
     --raised-hover: var(--surface-alt);
     --stamp-shadow: var(--ink);
@@ -37,7 +37,7 @@
     --fog: #d9ceb0;
     --fog-line: #b3a275;
 
-    /* Constraint-graphic palette referenced by definition-authored objects. */
+    /* Constraint-graphic palette. Definition-authored objects reference it. */
     --thermo: #a89c80;
     --cage: #3c6e52;
     --arrow: #4a3c28;
@@ -45,14 +45,14 @@
     --betweenline: #4f6aa8;
     --diagonal: #d1b27a;
 
-    /* Code/JSON preview blocks (author SDK panel, play-page JSON view) stay a
-       fixed dark "terminal" look in both themes — deliberately not riding on
-       --ink, which flips to near-white in dark mode. */
+    /* Code and JSON preview blocks (author SDK panel, play-page JSON view) keep a fixed dark
+       "terminal" look in both themes. They do not use --ink, because --ink changes to near-white
+       in dark mode. */
     --code-bg: #1b170f;
     --code-ink: #f1e8d3;
 
-    /* Names the landing page, header and /puzzles cards were built on (#67).
-       Where they mean the same thing as the app tokens above they alias them. */
+    /* Names that the landing page, header, and /puzzles cards use (#67). Where a name means the
+       same as an app token above, it is an alias of that token. */
     --chrome-paper: var(--bg);
     --chrome-paper-edge: #e4d6b4;
     --chrome-ink: var(--ink);
@@ -84,10 +84,9 @@
 
     --given: #f1e8d3;
     --entered: #8fa8e8;
-    /* Flagged/invalid tones: a glaring light-mode-style tint would read as a
-       harsh glow against a dark surface, so these stay dark, desaturated tints
-       distinguished mainly by hue (toward red) — the line colors carry the
-       actual contrast instead. */
+    /* Flagged and invalid tones: a bright light-mode tint gives a harsh glow on a dark surface.
+       These tones stay dark, desaturated tints that differ mainly in hue (toward red). The line
+       colors give the actual contrast. */
     --violated: #43281b;
     --violated-line: #f07b63;
     --invalid: #53301f;
@@ -117,7 +116,7 @@
     --chrome-moss-tint: #1f2c24;
 }
 
-/* Theme-independent scales shared by the .btn primitive below (#136). */
+/* Theme-independent scales that the .btn primitive below shares (#136). */
 :root {
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -126,7 +125,7 @@
     --radius-sm: 3px;
     --radius-md: 4px;
     --radius-lg: 6px;
-    /* Serif display face for headings, same stack as the landing page. */
+    /* Serif display face for headings. It uses the same stack as the landing page. */
     --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
 }
 
@@ -134,7 +133,7 @@
     box-sizing: border-box;
 }
 
-/* Present to assistive tech, invisible on screen. */
+/* Visible to assistive technology, invisible on screen. */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -174,36 +173,31 @@ code, pre {
     display: flex;
     flex-direction: column;
 }
-/* Pages with a puzzle board (#48/#49): clamp the whole shell to the window's
-   actual height instead of letting content push it taller — on a normal
-   window there's enough room and this never kicks in; overflow-y:auto (not
-   hidden) is a safety valve for a pathologically short window, so content
-   can still be reached by scrolling rather than silently clipped off-screen.
-   The sticky toolbar in board.css covers that edge case so the controls
-   don't scroll away with it. Home never renders a board, so it's unaffected;
-   Play and Author (its JSON editor sits beside a live preview) both do.
-   Driven by an explicit .app--board class set from the current
-   route in router.tsx, not a :has(.board-wrap) structural match — the board
-   needs a *definite* height from this chain to size its SVG correctly
-   (height:100% on an indefinite-height ancestor just falls back to the SVG's
-   own aspect ratio instead), so this can't be left to a selector that
-   silently no-ops wherever :has() isn't supported. */
+/* Pages with a puzzle board (#48/#49): limit the whole shell to the window height, so content
+   does not push it taller. On a normal window there is enough room and this rule has no effect.
+   overflow-y:auto (not hidden) is a safety valve for a very short window: the user can scroll to
+   the content and nothing is clipped off-screen. The sticky toolbar in board.css covers that
+   edge case, so the controls do not scroll away. Home never renders a board, so this rule does
+   not affect it. Play and Author (its JSON editor is beside a live preview) both render a board.
+   An explicit .app--board class drives this rule. router.tsx sets the class from the current
+   route. A :has(.board-wrap) structural match does not work here. The board needs a *definite*
+   height from this chain to size its SVG correctly (height:100% on an ancestor with indefinite
+   height falls back to the aspect ratio of the SVG). A selector that does nothing where :has()
+   is not supported cannot give that height. */
 .app.app--board {
     height: 100vh;
     overflow-y: auto;
-    /* Without this, the vertical scrollbar appearing/disappearing changes the
-       available *width* (#77 follow-up) — which feeds back into Board.tsx's
-       ResizeObserver-driven fit, narrowing the box, which can make the
-       scrollbar vanish again, widening it back out, back and forth. Reserving
-       the gutter unconditionally (whether or not the scrollbar is actually
-       needed right now) breaks that loop at the source. */
+    /* Without this, the vertical scrollbar changes the available *width* when it appears or
+       disappears (#77 follow-up). This feeds back into the ResizeObserver-driven fit in
+       Board.tsx. The fit narrows the box, the scrollbar can vanish, and the box widens again.
+       The loop repeats. Reserving the gutter always (if the scrollbar is needed or not) stops
+       the loop at its source. */
     scrollbar-gutter: stable;
 }
 
-/* Shell chrome runs the same warm "ink & paper" identity as the landing page
-   (#67/#139) instead of the cool blue-indigo --surface/--ink tokens — it's a
-   thin strip with no puzzle-state semantics to clash with, so it was safe to
-   move first. */
+/* Shell chrome uses the same warm "ink & paper" identity as the landing page (#67/#139), not the
+   cool blue-indigo --surface/--ink tokens. It is a thin strip with no puzzle-state meaning to
+   conflict with, so it was safe to change first. */
 .app-header {
     display: flex;
     align-items: baseline;
@@ -214,19 +208,17 @@ code, pre {
     font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
 }
 
-/* Board routes (solving/authoring) want the board itself to get as much
-   vertical room as possible -- this chrome identity's full marketing-page
-   presence isn't needed here, just enough to navigate. */
+/* Board routes (solving/authoring): the board gets as much vertical room as possible. These
+   routes do not need the full marketing-page presence of this chrome. They need only enough to
+   navigate. */
 .app--board .app-header {
     padding: 0.4rem 1.4rem;
     border-bottom-width: 1px;
-    /* The marketing header's align-items:baseline (above) is tuned for a row of
-       text (wordmark, tagline) — once icon buttons (View JSON/Share/settings/
-       theme) join the row here, baseline alignment has no shared text baseline
-       to align those to, so it falls back to each button's bottom margin edge,
-       which doesn't line up with the title text's actual baseline. That read as
-       "things are not aligned" — centering the whole row is the right fit once
-       buttons are part of the mix, not just text. */
+    /* The align-items:baseline of the marketing header (above) suits a row of text (wordmark,
+       tagline). Icon buttons (View JSON/Share/settings/theme) join the row here. They share no
+       text baseline, so each aligns at its bottom margin edge. That edge does not match the
+       baseline of the title text, and the row looked misaligned. Centering the whole row fits
+       when buttons are in the row. */
     align-items: center;
 }
 
@@ -244,11 +236,10 @@ code, pre {
     letter-spacing: 0.02em;
 }
 
-/* Play/Author's registered page title (see app/page_header.ts) — stands in
- * for the tagline on routes that have one. min-width:0 lets it actually
- * shrink/ellipsize under the header's flex row instead of forcing the row
- * wider than the window on a long puzzle title; the description (if any) is
- * just the native title-attribute tooltip, not more layout. */
+/* Registered page title of Play/Author (see app/page_header.ts). It replaces the tagline on
+ * routes that have one. min-width:0 lets it shrink and ellipsize in the flex row of the header.
+ * Without it, a long puzzle title makes the row wider than the window. The description (if any)
+ * is only the native title-attribute tooltip. It adds no layout. */
 .app-header-page {
     min-width: 0;
     display: inline-flex;
@@ -275,12 +266,11 @@ code, pre {
     font-size: 0.82rem;
 }
 
-/* Play's View JSON/Share buttons portal in here (app/page_header.ts) instead
- * of rendering their own row above the board. margin-left:auto (not nav's,
- * which is dropped below) so this and nav land flush together at the row's
- * end — two auto margins on the same side would instead split the leftover
- * space and leave a visible gap between them. Empty when no page has
- * registered an actions slot (Home, or a page that doesn't need one). */
+/* The View JSON/Share buttons of Play portal in here (app/page_header.ts). They do not render
+ * their own row above the board. margin-left:auto (not the margin of nav, which is removed
+ * below) puts this and nav flush together at the end of the row. Two auto margins on the same
+ * side split the leftover space and leave a gap between them. This is empty when no page
+ * registers an actions slot (Home, or a page that needs none). */
 .app-header-actions {
     margin-left: auto;
     display: flex;
@@ -288,11 +278,10 @@ code, pre {
     gap: 0.4rem;
 }
 
-/* Narrow viewports (#70): the logo, title, actions and nav have no give left
-   to shrink into — wrap onto a second line instead of overflowing/clipping
-   past the edge of the screen. */
+/* Narrow viewports (#70): the logo, title, actions, and nav cannot shrink more. They wrap onto a
+   second line. They do not overflow or clip past the screen edge. */
 @media (max-width: 600px) {
-    /* The tagline is the first thing to go: it was what pushed the nav onto a second row. */
+    /* The tagline goes first: it pushed the nav onto a second row. */
     .app-header .tagline {
         display: none;
     }
@@ -303,8 +292,8 @@ code, pre {
     .app-header-actions {
         margin-left: 0;
     }
-    /* Wrapped: the wordmark on its own row, then the page links at the left and the
-       settings/theme icons at the right of a full-width second row. */
+    /* Wrapped: the wordmark is on its own row. On a full-width second row, the page links are at
+       the left and the settings/theme icons are at the right. */
     .app-header nav {
         flex: 1 1 100%;
         gap: 0.9rem;
@@ -314,17 +303,15 @@ code, pre {
     }
 }
 
-/* Board routes (#70 follow-up) want more than "don't wrap" — wrapping the brand
-   wordmark/byline/full-text buttons onto up to 4 stacked rows was still eating
-   ~40% of a phone's viewport height before any puzzle content appeared. On a
-   solving screen the puzzle title matters, the site's wordmark/byline don't —
-   drop those and go icon-only on the actions/nav so everything actually fits
-   back onto one compact row instead. Same 600px cutoff as the general wrap
-   rule above (not a narrower one) — a narrower cutoff left a 480-600px gap
-   that fell through to the general rule instead, which still wraps the
-   full-text View JSON/Share buttons onto their own row or two: still no
-   overlap, but a needless multi-row header the compact layout below avoids
-   entirely once there's a board-route-specific rule active at all. */
+/* Board routes (#70 follow-up) need more than "do not wrap". The brand wordmark, byline, and
+   full-text buttons wrapped onto up to 4 stacked rows. They used ~40% of the phone viewport
+   height before any puzzle content showed. On a solving screen the puzzle title matters. The
+   wordmark and byline do not. So this rule removes them and uses icon-only actions and nav.
+   Everything then fits on one compact row. The cutoff is 600px, the same as the general wrap
+   rule above. A narrower cutoff left a 480-600px gap. That gap used the general rule, which
+   wraps the full-text View JSON/Share buttons onto one or two rows of their own. They do not
+   overlap, but the header has needless rows. The compact layout below avoids those rows when a
+   board-route rule is active. */
 @media (max-width: 600px) {
     .app--board .app-header {
         flex-wrap: nowrap;
@@ -358,10 +345,10 @@ code, pre {
     gap: 1rem;
 }
 
-/* Header controls are quiet: the stamped, shadowed look is for actions on a page, not
-   for chrome that is on screen all the time. Links are plain serif text that gain an
-   ink underline when they're the current page; icon buttons are borderless and only
-   show a paper-tint square on hover/focus, or when they're the current page. */
+/* Header controls are quiet. The stamped, shadowed look is for actions on a page, not for chrome
+   that is always on screen. Links are plain serif text. They gain an ink underline for the
+   current page. Icon buttons have no border. They show a paper-tint square only on hover/focus
+   or for the current page. */
 .app-header nav a:not(.btn) {
     padding: 0.3rem 0.1rem;
     border-bottom: 2px solid transparent;
@@ -393,8 +380,8 @@ code, pre {
     transform: none;
     box-shadow: none;
 }
-/* NavLink also adds a plain `active` class to the current page's link, which .btn would
-   otherwise read as its inverted "selected" look; the header marks it with a tint instead. */
+/* NavLink also adds a plain `active` class to the link of the current page. .btn would read that
+   class as its inverted "selected" look. The header marks the current page with a tint instead. */
 .app-header .btn.active,
 .app-header .btn[aria-current="page"],
 .app-header .btn[aria-expanded="true"] {
@@ -403,7 +390,7 @@ code, pre {
     --btn-border: transparent;
 }
 
-/* A little air between the text links and the icon buttons that follow them. */
+/* Space between the text links and the icon buttons after them. */
 .app-header nav a:not(.btn) + a.btn {
     margin-left: 0.4rem;
 }
@@ -415,14 +402,12 @@ code, pre {
     width: 100%;
     margin: 0 auto;
 }
-/* Pages with a puzzle board (#48/#49): the window is the bounding box, not a
-   centered 1100px column — drop the cap/margin and complete the flex-fill
-   chain (continued in play/style.css, player.css, board.css) so the board
-   gets every pixel of height below the header too, not just a fixed vh
-   slice. Home never renders a board, so it keeps the centered column above;
-   Author also drops the cap now, so its editor+preview grid can actually use
-   the window's width instead of being squeezed into a 1100px column. Same
-   .app-main--board route-driven class as .app--board above. */
+/* Pages with a puzzle board (#48/#49): the window is the bounding box, not a centered 1100px
+   column. Remove the cap and margin. This completes the flex-fill chain (continued in
+   play/style.css, player.css, board.css). The board gets all the height below the header, not a
+   fixed vh slice. Home never renders a board, so it keeps the centered column above. Author also
+   removes the cap, so its editor+preview grid can use the full window width, not a 1100px
+   column. It uses the same .app-main--board route-driven class as .app--board above. */
 .app-main.app-main--board {
     max-width: none;
     width: 100%;
@@ -433,9 +418,9 @@ code, pre {
     min-height: 0;
 }
 
-/* Landing (/) runs its own full-bleed sections (features/landing/style.css) —
-   drop the centered column/padding so its hero/manifesto/closer bands can
-   each run edge-to-edge and manage their own spacing. */
+/* Landing (/) has its own full-bleed sections (features/landing/style.css). Remove the centered
+   column and padding. The hero, manifesto, and closer bands then run edge-to-edge and manage
+   their own spacing. */
 .app-main.app-main--landing {
     max-width: none;
     width: 100%;
@@ -452,12 +437,11 @@ button:focus-visible {
     outline-offset: 2px;
 }
 
-/* The one shared button primitive (#136). Default look is the neutral
- * secondary; combine with a variant (.btn-primary), a shape (.btn-icon) or a
- * size (.btn-sm). A selected/toggled-on state is .active or, preferably,
- * aria-pressed="true" — so the visual state can't drift from the announced one. Colors go
- * through --btn-* so re-theming (#139) means re-pointing these in one place.
- * Reuses the global button:focus-visible ring above. */
+/* The one shared button primitive (#136). The default look is the neutral secondary. Combine it
+ * with a variant (.btn-primary), a shape (.btn-icon), or a size (.btn-sm). A selected or
+ * toggled-on state is .active or, preferably, aria-pressed="true". Then the visual state cannot
+ * differ from the announced state. Colors use --btn-*, so a re-theme (#139) changes only these
+ * in one place. It reuses the global button:focus-visible ring above. */
 .btn {
     --btn-bg: var(--raised);
     --btn-bg-hover: var(--raised-hover);
@@ -471,12 +455,12 @@ button:focus-visible {
     font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
-    /* 2rem floor so even .btn-sm is a usable touch target (#138). */
+    /* 2rem minimum, so even .btn-sm is a usable touch target (#138). */
     min-height: 2rem;
     min-width: 2rem;
     touch-action: manipulation;
-    /* The "stamp" look from the landing page: solid ink border, flat offset
-       shadow instead of a blur, a small press instead of a color fade. */
+    /* The "stamp" look from the landing page: solid ink border, flat offset shadow (no blur),
+       and a small press (no color fade). */
     border: 2px solid var(--btn-border);
     border-radius: var(--radius-sm);
     background: var(--btn-bg);
@@ -486,7 +470,7 @@ button:focus-visible {
     transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
 }
 
-/* Icons keep their size when a crowded row squeezes the button's text. */
+/* Icons keep their size when a crowded row squeezes the button text. */
 .btn svg {
     flex: none;
 }
@@ -540,10 +524,10 @@ button:focus-visible {
     transform: none;
 }
 
-/* Flat = quiet: a thin line instead of the stamp's heavy border and offset shadow. For dense
-   clusters of frequent, low-stakes controls (number pad, undo/redo, disclosure toggles) where
-   twenty stamps would shout equally; the one primary action in a group keeps the full stamp.
-   A pressed/active flat button still fills with ink (same rule as .btn above). */
+/* Flat = quiet: a thin line, not the heavy border and offset shadow of the stamp. For dense
+   clusters of frequent, low-stakes controls (number pad, undo/redo, disclosure toggles). Twenty
+   stamps there would all draw equal attention. The one primary action in a group keeps the full
+   stamp. A pressed or active flat button still fills with ink (same rule as .btn above). */
 .btn-flat {
     --btn-border: var(--line);
     border-width: 1px;
@@ -567,7 +551,7 @@ button:focus-visible {
 }
 
 
-/* Touch screens: header controls get the full 44px target (mouse layouts keep the compact bar). */
+/* Touch screens: header controls get the full 44px target. Mouse layouts keep the compact bar. */
 @media (pointer: coarse) {
     .app-header .btn,
     .app-header nav a:not(.btn) {

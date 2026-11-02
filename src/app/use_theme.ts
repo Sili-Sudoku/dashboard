@@ -16,10 +16,10 @@ const readStoredTheme = (): Theme | null => {
 const systemTheme = (): Theme => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
 /**
- * Mirrors the OS theme until the player picks one explicitly (matching the
- * synchronous check in index.html's inline script, which sets the attribute
- * before first paint to avoid a flash of the wrong theme) — once they do,
- * that choice sticks (localStorage) and no longer follows the OS.
+ * Follows the OS theme until the player picks a theme explicitly.
+ * This matches the synchronous check in the inline script of index.html.
+ * That script sets the attribute before the first paint, to prevent a flash of the wrong theme.
+ * After the player picks a theme, the choice stays (localStorage) and no longer follows the OS.
  */
 export const useTheme = (): { theme: Theme; toggleTheme: () => void } => {
     const [theme, setThemeState] = useState<Theme>(() => readStoredTheme() ?? systemTheme());
@@ -43,7 +43,7 @@ export const useTheme = (): { theme: Theme; toggleTheme: () => void } => {
         try {
             localStorage.setItem(THEME_KEY, next);
         } catch {
-            // storage unavailable (private mode etc.) — choice just isn't persisted
+            // Storage is unavailable (private mode and others). The choice is not persisted.
         }
     };
 

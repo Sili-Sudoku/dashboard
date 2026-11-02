@@ -1,12 +1,8 @@
-/**
- * Baseline perf numbers for the large-puzzle work (#47 incremental eval, #48
- * viewport virtualization, #65 patch-based undo/redo). #71 originally asked
- * for these to be measured BEFORE that work landed; by the time #71 was
- * picked up, #47/#48/#65 were already done (each with its own one-off
- * measurement buried in its own card comment) — so this exists instead as a
- * committed, reusable reference: future large-puzzle optimizations should
- * diff against these numbers rather than guessing. Run with `npm run bench`.
- */
+/** Baseline perf numbers for the large-puzzle work (#47 incremental eval, #48 viewport
+ * virtualization, #65 patch-based undo/redo). #71 first asked for these numbers BEFORE that
+ * work. When #71 started, #47/#48/#65 were already done. Each had its own one-off measurement in
+ * its card comment. So this file is a committed, reusable reference. Future large-puzzle
+ * optimizations should compare against these numbers and not guess. Run with `npm run bench`. */
 
 import { bench, describe } from "vitest";
 import { compilePuzzle } from "@/runtime/compile.ts";
@@ -57,11 +53,10 @@ describe("625-cell board (large-demo): viewport culling", () => {
             evaluation: session.evaluation,
             hiddenCells: session.getHiddenCells(),
         });
-        // Native-scale viewport (not fitView's letterboxed overview, which
-        // always shows the whole scene scaled down and so never culls
-        // anything) -- this is the scenario virtualization actually targets:
-        // scrolled/zoomed in to see real cell detail. Measured: culls 625
-        // cells down to 315 rendered (~50%) at this size.
+        // Native-scale viewport. The letterboxed overview of fitView always shows the whole scene
+        // scaled down, so it never culls anything. This scenario is the one that virtualization
+        // targets: scrolled or zoomed in to see real cell detail. Measured: culls 625 cells down to
+        // 315 rendered (~50%) at this size.
         const view = expandViewport({ left: 0, top: 0, width: 1200, height: 800 }, scene.cellSize * 2);
         scene.cells.filter((c) => cellInViewport(c, view));
     });

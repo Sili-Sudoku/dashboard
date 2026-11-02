@@ -9,9 +9,10 @@ import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { useTheme } from "@/app/use_theme.ts";
 import { PageActionsContext, PageHeaderContext, type PageHeader } from "@/app/page_header.ts";
 
-// Landing stays in the main bundle (it's the first page most visitors see);
-// everything else loads on navigation, so Play's solver/renderer and Author's
-// visual builder and interop code don't weigh down the landing page.
+// Landing stays in the main bundle. It is the first page most visitors see.
+// All other pages load on navigation.
+// This way, the solver/renderer of Play and the visual builder and interop code of Author
+// do not add weight to the landing page.
 const PuzzleList = lazy(() => import("@/features/puzzles"));
 const Play = lazy(() => import("@/features/play"));
 const Author = lazy(() => import("@/features/author"));
@@ -19,9 +20,9 @@ const Settings = lazy(() => import("@/features/settings"));
 
 const APP_TITLE = "Constraint Puzzle Runtime";
 
-// Titles for routes that don't register their own via usePageHeader (Play and
-// Author do, so theirs wins). "/" and a not-yet-loaded puzzle fall back to
-// the bare app title.
+// Titles for routes that do not register their own title with usePageHeader.
+// Play and Author register their own, and their title has priority.
+// "/" and a puzzle that is not yet loaded use the bare app title.
 const ROUTE_TITLES: Record<string, string> = {
     "/puzzles": "Puzzles",
     "/new": "Author a puzzle",
@@ -32,23 +33,24 @@ const KNOWN_PATHS = new Set(["/", ...Object.keys(ROUTE_TITLES)]);
 export default function AppRouter() {
     const { theme, toggleTheme } = useTheme();
     const [pageHeader, setPageHeader] = useState<PageHeader | null>(null);
-    // Passing useState's setter straight to `ref` is the standard "wait for
-    // the DOM node, then re-render with it" idiom — React calls it with the
-    // element on mount/unmount, so Play's View JSON/Share buttons can portal
-    // into it once it exists instead of rendering their own top-of-page row.
+    // Passing the setter of useState directly to `ref` is the standard way to wait for a DOM node
+    // and then re-render with it.
+    // React calls the setter with the element on mount and unmount.
+    // So the View JSON/Share buttons of Play can portal into the element when it exists.
+    // They do not render their own row at the top of the page.
     const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
-    // Play and Author both render a live puzzle board (Author's is the
-    // embedded preview next to the JSON editor) and want the viewport-filling
-    // layout (board.css/player.css's flex-fill chain) instead of the
-    // centered-column default — driven directly off the route rather than a
-    // CSS :has(.board-wrap) structural match, since that depends on :has()
-    // support and silently no-ops (no error, just the fallback centered
-    // layout) on anything that lacks it.
+    // Play and Author both render a live puzzle board.
+    // The board of Author is the embedded preview next to the JSON editor.
+    // Both pages want the layout that fills the viewport (the flex-fill chain of board.css/player.css).
+    // The default is a centered column.
+    // The route drives this choice directly. A CSS :has(.board-wrap) structural match is not used.
+    // That match depends on :has() support.
+    // Without that support it does nothing and gives no error. The centered layout is the fallback.
     const pathname = useLocation().pathname;
     const isBoardRoute = pathname.startsWith("/p/") || pathname === "/new";
-    // The landing page runs its own full-bleed sections (hero/manifesto/closer
-    // bands) with their own palette and padding — the centered 1100px column
-    // below is specifically for the app's working pages, not this one.
+    // The landing page has its own full-bleed sections (hero/manifesto/closer bands).
+    // They have their own palette and padding.
+    // The centered 1100px column below is for the working pages of the app, not for this page.
     const isLandingRoute = pathname === "/";
 
     const routeTitle =
@@ -67,11 +69,11 @@ export default function AppRouter() {
                         <Link to="/" className="logo">
                             Constraint Puzzle Runtime
                         </Link>
-                        {/* Play/Author register their own title here via usePageHeader
-                            instead of rendering a big in-page h1+p — the description
-                            (when there is one) is just a native hover tooltip, not
-                            another line taking up space. Falls back to the tagline
-                            on routes that don't set one (Home). */}
+                        {/* Play and Author register their own title here with usePageHeader.
+                            They do not render a big in-page h1+p.
+                            The description (when there is one) is a native hover tooltip.
+                            It does not use another line.
+                            Routes that set no title (Home) use the tagline. */}
                         {pageHeader ? (
                             <span className="app-header-page" title={pageHeader.description}>
                                 <span className="app-header-sep" aria-hidden="true">
@@ -85,8 +87,8 @@ export default function AppRouter() {
                         ) : (
                             <span className="tagline">puzzle types are definitions, not engine features</span>
                         )}
-                        {/* Play portals its View JSON/Share buttons in here (see
-                            page_header.ts) instead of rendering its own row. */}
+                        {/* Play portals its View JSON/Share buttons in here (see page_header.ts).
+                            It does not render its own row. */}
                         <span className="app-header-actions" ref={setActionsSlot} />
                         <nav>
                             <NavLink to="/puzzles">Puzzles</NavLink>

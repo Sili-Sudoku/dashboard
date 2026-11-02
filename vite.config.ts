@@ -7,9 +7,9 @@ import * as path from "node:path";
 export default defineConfig({
     plugins: [
         react(),
-        // Precaches the whole build (including lazy route chunks) so visited-once
-        // or not, the app opens offline. The manifest is the hand-written one in
-        // public/, so the plugin does not generate its own.
+        // Precaches the whole build, including lazy route chunks. The app opens offline, even for
+        // routes the user did not visit. The manifest is the hand-written one in public/, so the
+        // plugin does not generate its own.
         VitePWA({
             registerType: "autoUpdate",
             manifest: false,
@@ -26,8 +26,8 @@ export default defineConfig({
         },
     },
     test: {
-        // Default to node; component tests opt into jsdom with a
-        // `// @vitest-environment jsdom` docblock at the top of the file.
+        // Default to node. Component tests use jsdom with a `// @vitest-environment jsdom` docblock at
+        // the top of the file.
         environment: "node",
         globals: true,
         include: ["src/**/*.test.{ts,tsx}"],
@@ -37,9 +37,8 @@ export default defineConfig({
             exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.bench.ts", "src/main.tsx", "src/**/*.d.ts"],
             reporter: ["text-summary", "html"],
             reportsDirectory: "coverage",
-            // A floor just under where coverage sits today (92/85/91 in Nov 2026):
-            // not a target, a ratchet — it fails the run if coverage regresses
-            // noticeably. Raise it when coverage rises.
+            // A floor just under the current coverage (92/85/91 in Nov 2026). It is a ratchet, not a
+            // target. The run fails if coverage drops noticeably. Raise it when coverage rises.
             thresholds: { statements: 90, lines: 90, functions: 90, branches: 83 },
         },
     },

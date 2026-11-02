@@ -12,10 +12,10 @@ interface State {
 }
 
 /**
- * Catches render-time throws in the page below it (e.g. a malformed /p/<blob>
- * artifact) so the header and nav survive and the user gets a recoverable
- * message instead of a white screen. Mount it with `key={pathname}` so
- * navigating away resets it. Must be a class — React has no hook equivalent.
+ * Catches render-time throws in the page below it (for example a malformed /p/<blob> artifact).
+ * The header and nav stay, and the user gets a message to recover from instead of a white screen.
+ * Mount it with `key={pathname}`, so navigation away resets it.
+ * It must be a class. React has no hook equivalent.
  */
 export class ErrorBoundary extends Component<Props, State> {
     state: State = { error: null };

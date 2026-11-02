@@ -4,15 +4,16 @@ const FOCUSABLE =
     'a[href], button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Modal focus handling: on mount focuses the first control inside the
- * container, keeps Tab/Shift+Tab cycling within it, and on unmount returns
- * focus to whatever had it before the modal opened (the trigger button).
+ * Modal focus handling.
+ * On mount, it focuses the first control in the container.
+ * It keeps Tab/Shift+Tab in a cycle inside the container.
+ * On unmount, it returns focus to the element that had focus before the modal opened (the trigger button).
  * Spread `onKeyDown` on the container and attach `ref` to it.
  */
 export const useFocusTrap = <T extends HTMLElement>() => {
     const ref = useRef<T>(null);
-    // Read during the first render, i.e. before the modal's own autoFocus
-    // fires at commit — so this is still the trigger, not something inside.
+    // Read during the first render, before the autoFocus of the modal fires at commit.
+    // So this value is still the trigger, not an element inside the modal.
     const [opener] = useState(() => document.activeElement);
 
     useEffect(() => {

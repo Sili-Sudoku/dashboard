@@ -71,7 +71,7 @@ export default function Play() {
             ? JSON.stringify(compiled, null, 2)
             : JSON.stringify(definition, null, 2);
 
-    // Nothing here is part of solving, so the header carries one menu rather than two buttons.
+    // Nothing here is part of solving, so the header has one menu, not two buttons.
     const actions = (
         <OverflowMenu
             label="Puzzle actions"
@@ -88,9 +88,9 @@ export default function Play() {
 
     return (
         <div className="play">
-            {/* Portals into the navbar's action slot (see app/page_header.ts) when
-                rendered under AppRouter; falls back to an inline header when it
-                isn't (e.g. this component's own tests render it standalone). */}
+            {/* Portals into the action slot of the navbar (see app/page_header.ts) when
+                rendered under AppRouter. Falls back to an inline header when no slot exists
+                (for example, the tests of this component render it standalone). */}
             {actionsSlot ? createPortal(actions, actionsSlot) : <header className="play-header">{actions}</header>}
 
             <div className="play-body">

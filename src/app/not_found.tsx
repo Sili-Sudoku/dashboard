@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import "./error_boundary.css";
 
-/** Catch-all route: shares the error page's layout (error_boundary.css). */
+/** Catch-all route. It uses the layout of the error page (error_boundary.css). */
 export default function NotFound() {
     return (
         <div className="error-page">

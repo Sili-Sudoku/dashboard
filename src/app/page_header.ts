@@ -8,19 +8,16 @@ export interface PageHeader {
 
 const noop = () => undefined;
 
-/** Default is a no-op, not undefined — lets usePageHeader be called by a page
- *  rendered without AppRouter around it (e.g. Play/Author's own tests render
- *  them standalone) without needing every call site to guard for a missing
- *  provider. */
+/** The default is a no-op, not undefined.
+ *  A page can call usePageHeader without AppRouter around it (for example the tests of Play and Author).
+ *  Call sites do not need a guard for a missing provider. */
 export const PageHeaderContext = createContext<(header: PageHeader | null) => void>(noop);
 
 /**
- * Registers this page's title/description to render in the navbar instead of
- * a large in-page heading — Play and Author's own h1+p blocks were costing a
- * few hundred px of vertical space that the live board could use instead.
- * Clears itself on unmount (or when `title` goes away, e.g. a puzzle ref that
- * failed to resolve) so navigating elsewhere doesn't leave a stale title in
- * the navbar.
+ * Registers the title and description of this page. The navbar shows them instead of a large in-page heading.
+ * The h1+p blocks of Play and Author used a few hundred px of vertical space that the live board can use.
+ * The hook clears the header on unmount, or when `title` goes away (for example a puzzle ref that failed to resolve).
+ * This way, navigation elsewhere does not leave a stale title in the navbar.
  */
 export const usePageHeader = (title: string | undefined, description?: string, byline?: string): void => {
     const setHeader = useContext(PageHeaderContext);
@@ -32,14 +29,13 @@ export const usePageHeader = (title: string | undefined, description?: string, b
 };
 
 /**
- * The navbar's action-button slot (e.g. Play's View JSON/Share buttons) — a
- * DOM node, not state, because these are interactive elements with handlers,
- * not simple strings; portaling them there (see Play, which calls
- * `createPortal` against this) sidesteps re-running an effect with a
- * JSX-identity dependency on every render (which would loop: new element
- * reference -> effect fires -> setState -> re-render -> new element
- * reference -> ...). Default null so pages rendered without AppRouter around
- * them (tests) can fall back to rendering their actions inline instead.
+ * The action-button slot of the navbar (for example the View JSON/Share buttons of Play).
+ * It is a DOM node, not state, because the buttons are interactive elements with handlers, not simple strings.
+ * Play calls `createPortal` against this node.
+ * This avoids an effect with a JSX-identity dependency that re-runs on every render.
+ * That effect would loop: new element reference -> effect fires -> setState -> re-render -> new element reference.
+ * The default is null.
+ * A page rendered without AppRouter (tests) then renders its actions inline.
  */
 export const PageActionsContext = createContext<HTMLElement | null>(null);
 

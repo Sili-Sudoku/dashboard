@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-/** Whether a CSS media query currently matches, kept live. False where matchMedia doesn't exist (jsdom). */
+/** Whether a CSS media query matches now. The value stays current. False where matchMedia does not exist (jsdom). */
 export const useMediaQuery = (query: string): boolean =>
     useSyncExternalStore(
         (onChange) => {

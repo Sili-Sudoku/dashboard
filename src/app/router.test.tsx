@@ -6,8 +6,8 @@ import { MemoryRouter } from "react-router-dom";
 import AppRouter from "@/app/router.tsx";
 
 beforeEach(() => {
-    // AppRouter renders useTheme(), which reads matchMedia — jsdom doesn't
-    // implement it, same stub as use_theme.test.ts.
+    // AppRouter renders useTheme(), which reads matchMedia.
+    // jsdom does not implement matchMedia. This is the same stub as in use_theme.test.ts.
     vi.stubGlobal("matchMedia", () => ({
         matches: false,
         addEventListener: () => undefined,
@@ -21,14 +21,14 @@ afterEach(() => {
 });
 
 /**
- * The board needs a *definite* height from .app/.app-main down to size its
- * SVG correctly (#77 follow-up) — this is driven by an explicit route-based
- * class rather than a CSS :has(.board-wrap) structural match, since :has()
- * silently no-ops (no error, just falls back to the plain centered layout)
- * wherever it isn't supported, and that failure mode is exactly what broke
- * the board's sizing once already. Author embeds a live preview board too
- * (next to the JSON editor), so it gets the same treatment as Play — only
- * Home is a plain centered page.
+ * The board needs a *definite* height from .app/.app-main down, to size its SVG correctly (#77 follow-up).
+ * An explicit class that depends on the route gives this height.
+ * A CSS :has(.board-wrap) structural match is not used.
+ * Where :has() is not supported, it does nothing and gives no error.
+ * The layout then falls back to the plain centered layout.
+ * That failure already broke the board sizing once.
+ * Author also embeds a live preview board (next to the JSON editor), so it has the same treatment as Play.
+ * Only Home is a plain centered page.
  */
 describe("AppRouter — board-route layout class", () => {
     it("adds app--board/app-main--board on a puzzle route", () => {

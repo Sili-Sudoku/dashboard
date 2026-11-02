@@ -34,7 +34,7 @@ describe("Play — JSON viewer", () => {
         const panel = container.querySelector(".play-json") as HTMLElement;
         const pre = within(panel).getByText(/"metadata"/, { selector: "pre" });
         expect(pre.textContent).toContain('"id": "whisper-line"');
-        // the whisper rule is visible as primitive expressions, not a definition ref
+        // the whisper rule shows as primitive expressions, not as a definition ref
         expect(pre.textContent).toContain('"or"');
         expect(pre.textContent).not.toContain('"use": "whispers"');
     });

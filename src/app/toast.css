@@ -1,5 +1,5 @@
-/* Floats over everything and ignores the pointer except on the toasts
-   themselves, so it never blocks the board underneath. */
+/* The viewport floats over everything.
+   It ignores the pointer except on the toasts, so it never blocks the board. */
 .toast-viewport {
     position: fixed;
     left: 50%;
@@ -48,9 +48,9 @@
     color: var(--violated-line);
 }
 
-/* Countdown bar along the bottom edge: drains left-to-right over the toast's
-   lifetime, and holds while the toast is hovered or has focus (the store
-   pauses the real timer on the same events). */
+/* Countdown bar along the bottom edge.
+   It drains left-to-right over the toast's lifetime.
+   It holds while the toast has hover or focus. The store pauses the real timer on the same events. */
 .toast-timer {
     position: absolute;
     left: 0;

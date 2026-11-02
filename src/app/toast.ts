@@ -1,13 +1,13 @@
 /**
- * The one mechanism for transient feedback to an action the user just took
- * (check result, import/export outcome, solve result) — #122. A toast floats
- * over the page and never takes layout space, so showing/hiding one can't
- * shift anything. Persistent *state* (a JSON parse error, "Solved!", a missing
- * puzzle) is not a toast: it describes how things are right now, and stays
- * inline until the cause is fixed — see docs/UI_PLACEMENT.md.
+ * The one mechanism for short feedback to an action the user just did (#122).
+ * Examples are a check result, an import/export outcome, and a solve result.
+ * A toast floats over the page and takes no layout space, so it cannot shift anything.
+ * Persistent *state* is not a toast. Examples are a JSON parse error, "Solved!", and a missing puzzle.
+ * Such state describes the current situation, and stays inline until the cause is fixed.
+ * See docs/UI_PLACEMENT.md.
  *
- * Module-level store (like use_settings.ts), so callers just `toast(...)`
- * from anywhere; <ToastViewport /> is mounted once in the app shell.
+ * The store is at module level (like use_settings.ts), so callers use `toast(...)` from anywhere.
+ * <ToastViewport /> is mounted once in the app shell.
  */
 export type ToastKind = "info" | "success" | "error";
 
@@ -16,23 +16,23 @@ export interface ToastItem {
     key: string;
     kind: ToastKind;
     message: string;
-    /** Total lifetime in ms — the viewport animates its countdown bar over this. */
+    /** Total lifetime in ms. The viewport animates its countdown bar over this time. */
     duration: number;
 }
 
 interface ToastOptions {
     kind?: ToastKind;
-    /** A new toast with the same key replaces the old one instead of stacking
-     *  (e.g. pressing Check repeatedly shows one toast, not five). */
+    /** A new toast with the same key replaces the old one. It does not stack.
+     *  For example, repeated presses of Check show one toast, not five. */
     key?: string;
-    /** ms before it dismisses itself. Errors default to longer. */
+    /** ms before the toast dismisses itself. Errors default to a longer time. */
     duration?: number;
 }
 
 let nextId = 1;
 let items: readonly ToastItem[] = [];
-/** Pending auto-dismiss per toast, with enough bookkeeping to pause it (hover/
- *  focus) and resume with whatever time was left. */
+/** Pending auto-dismiss for each toast. It keeps enough data to pause (hover/focus)
+ *  and to resume with the time that remains. */
 const timers = new Map<number, { handle: ReturnType<typeof setTimeout>; startedAt: number; remaining: number }>();
 
 const startTimer = (id: number, remaining: number) => {
@@ -66,7 +66,7 @@ export const toast = (message: string, { kind = "info", key, duration }: ToastOp
     emit();
 };
 
-/** Hold a toast on screen (pointer over it, keyboard focus inside it). */
+/** Hold a toast on screen (pointer over it or keyboard focus inside it). */
 export const pauseToast = (id: number): void => {
     const t = timers.get(id);
     if (!t || paused.has(id)) return;
@@ -81,7 +81,7 @@ export const resumeToast = (id: number): void => {
     startTimer(id, t.remaining);
 };
 
-/** For tests: drop everything and cancel pending timers. */
+/** For tests: remove all toasts and cancel the pending timers. */
 export const clearToasts = (): void => {
     for (const t of timers.values()) clearTimeout(t.handle);
     timers.clear();

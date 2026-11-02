@@ -1,9 +1,8 @@
-/* Title/description/byline used to render here too (h1+p+author span), and
- * even the actions below normally portal into the navbar instead now (see
- * app/page_header.ts) — this only renders when there's no navbar slot to
- * portal into (a page rendered without AppRouter around it, e.g. this
- * component's own tests), as a functional fallback rather than the normal
- * layout. */
+/* The title, description, and byline do not render here now (h1, p, and author span). The
+ * actions below also portal into the navbar normally (see app/page_header.ts). This block
+ * renders only when no navbar slot exists. That is the case for a page rendered without
+ * AppRouter around it, for example the tests of this component. It is a functional fallback, not
+ * the normal layout. */
 .play-header {
     display: flex;
     justify-content: flex-end;
@@ -16,9 +15,9 @@
     flex-shrink: 0;
 }
 
-/* Side-by-side with the board (same shape as .author-grid/.author-editor in
- * the author page) rather than stacked above it — a fixed-width lane next to
- * the board instead of a full-width block that pushes the board down. */
+/* Side by side with the board (same shape as .author-grid/.author-editor in the author page),
+ * not stacked above it. It is a fixed-width lane next to the board. A full-width block would
+ * push the board down. */
 .play-body {
     display: flex;
     align-items: stretch;
@@ -82,9 +81,9 @@
 .play-json pre {
     margin: 0;
     padding: 0.8rem;
-    /* Fills the rest of the panel's height instead of capping at a fixed
-     * height — .play-json is now a side lane that stretches with the board
-     * (see .play-body above), not a block sized to its own content. */
+    /* Fills the rest of the panel height and has no fixed height cap. .play-json is a side lane
+     * that stretches with the board (see .play-body above). It is not a block sized to its own
+     * content. */
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
@@ -98,11 +97,10 @@
     padding: 1.5rem 0;
 }
 
-/* Let .puzzle-player flex-fill the rest of the page's height instead of
-   sizing to its content (#48/#49) — part of the chain completed in
-   player.css/board.css and the app shell's style.css. Every puzzle (not just
-   large ones) uses this layout now, so this applies unconditionally — the
-   Play route always renders a board below. */
+/* Let .puzzle-player flex-fill the rest of the page height, not size to its content (#48/#49).
+   This is part of the chain completed in player.css, board.css, and the app shell style.css.
+   Every puzzle (not only large ones) uses this layout, so the rule applies always. The Play
+   route always renders a board below. */
 .play {
     display: flex;
     flex-direction: column;

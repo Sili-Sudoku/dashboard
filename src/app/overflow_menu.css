@@ -48,13 +48,13 @@
 .overflow-menu-item:focus-visible {
     background: var(--surface-alt);
 }
-/* The armed (confirm) state of a destructive item: the red pen, because it breaks something. */
+/* The armed (confirm) state of a destructive item. It uses the red pen, because the action breaks something. */
 .overflow-menu-item.is-armed {
     background: var(--violated);
     color: var(--violated-line);
 }
 
-/* A read-only line at the top of a menu (the timer): ink-soft, not hoverable. */
+/* A read-only line at the top of a menu (the timer). It is ink-soft and has no hover state. */
 .overflow-menu-item.is-info {
     min-height: 36px;
     color: var(--ink-soft);
@@ -68,14 +68,14 @@
     background: transparent;
 }
 
-/* A destructive item is set apart from the ordinary ones above it. */
+/* A destructive item is separate from the ordinary items above it. */
 .overflow-menu-item.is-destructive {
     margin-top: var(--space-1);
     border-top: 1px solid var(--line);
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
-/* A labelled trigger ("Import / Export ⋯") reads as a normal button, not a bare icon. */
+/* A trigger with a label ("Import / Export ⋯") looks like a normal button, not a bare icon. */
 .overflow-menu-trigger:not(.btn-icon) {
     display: inline-flex;
     align-items: center;

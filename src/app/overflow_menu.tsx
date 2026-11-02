@@ -7,9 +7,9 @@ export interface MenuItem {
     label: string;
     icon?: ReactNode;
     onSelect: () => void;
-    /** A read-only line (e.g. the timer): shown in the list but not actionable. */
+    /** A read-only line (for example the timer): the list shows it, but the user cannot act on it. */
     info?: boolean;
-    /** Destructive: the first activation only arms the item ("Really …?"); a second one runs it. */
+    /** Destructive: the first activation only arms the item ("Really …?"). A second activation runs it. */
     confirm?: string;
 }
 
@@ -17,20 +17,20 @@ interface Props {
     /** Accessible name of the trigger button. */
     label: string;
     items: readonly MenuItem[];
-    /** Which edge of the trigger the menu lines up with. */
+    /** The edge of the trigger that the menu aligns with. */
     align?: "start" | "end";
     /** Open upward (for triggers near the bottom of the screen). */
     up?: boolean;
-    /** Visible text for the trigger (e.g. "Import / Export"); without it the trigger is a bare "⋯". */
+    /** Visible text for the trigger (for example "Import / Export"). Without it, the trigger is a bare "⋯". */
     text?: string;
-    /** A low-emphasis trigger (ghost, small) for menus that sit among heavier buttons. */
+    /** A low-emphasis trigger (ghost, small) for menus between heavier buttons. */
     quiet?: boolean;
-    /** The thin-outline button (.btn-flat) instead of the stamp, for menus beside other flat controls. */
+    /** The thin-outline button (.btn-flat) instead of the stamp, for menus next to other flat controls. */
     flat?: boolean;
 }
 
-/** A "⋯" button and its popup list: the home for anything that is not a primary or
- *  frequent action. Closes on Escape, outside press, or choosing an item. */
+/** A "⋯" button and its popup list. Use it for any action that is not primary or frequent.
+ *  It closes on Escape, on a press outside the menu, or when the user chooses an item. */
 export function OverflowMenu({ label, items, align = "end", up = false, text, quiet = false, flat = false }: Props) {
     const [open, setOpen] = useState(false);
     const [armed, setArmed] = useState<number | null>(null);
@@ -57,9 +57,10 @@ export function OverflowMenu({ label, items, align = "end", up = false, text, qu
         return () => document.removeEventListener("pointerdown", onPress);
     }, [open]);
 
-    // Keep the popup on screen whatever the trigger's position or the window size: flip to the
-    // other side of the trigger when it would run off the top/bottom, and slide sideways when it
-    // would run off an edge. Done on the DOM node directly (measured after layout, before paint).
+    // Keep the popup on screen for any trigger position or window size.
+    // Flip to the other side of the trigger when the popup would go past the top or bottom.
+    // Slide sideways when the popup would go past an edge.
+    // The code changes the DOM node directly (measured after layout, before paint).
     useLayoutEffect(() => {
         const list = listRef.current;
         if (!open || !list) return;
@@ -75,7 +76,7 @@ export function OverflowMenu({ label, items, align = "end", up = false, text, qu
             const goUp = roomAbove > roomBelow;
             list.style.top = goUp ? "auto" : "calc(100% + 0.4rem)";
             list.style.bottom = goUp ? "calc(100% + 0.4rem)" : "auto";
-            // Taller than either side: cap it and let it scroll.
+            // Taller than both sides: limit the height and let it scroll.
             list.style.maxHeight = `${Math.max(goUp ? roomAbove : roomBelow, 88) - 6}px`;
             list.style.overflowY = "auto";
             rect = list.getBoundingClientRect();

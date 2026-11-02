@@ -44,7 +44,7 @@
     accent-color: var(--brand);
 }
 
-/* Not a <label>: it holds several controls, so a click anywhere mustn't forward to one. */
+/* Not a <label>: it holds several controls, so a click anywhere must not forward to one. */
 .settings-row-static {
     cursor: default;
 }

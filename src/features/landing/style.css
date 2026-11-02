@@ -1,6 +1,6 @@
 /* The landing page keeps its own display type and a few decorative accents (the red "pen"
-   underline, thermometer art), but its buttons are the shared .btn — red is reserved
-   for violated constraints on the puzzle pages, so it is never an interactive color. */
+   underline, thermometer art). Its buttons are the shared .btn. Red is only for violated
+   constraints on the puzzle pages, so it is never an interactive color. */
 .landing {
     --lp-paper: #f6efe0;
     --lp-paper-edge: #e4d6b4;
@@ -83,8 +83,8 @@
     margin-top: 1.6rem;
 }
 
-/* The CTAs are ordinary .btn / .btn-primary (src/style.css) — same stamp look as the rest
-   of the app — just larger for the hero. */
+/* The CTAs are ordinary .btn / .btn-primary (src/style.css). They have the same stamp look as
+   the rest of the app, but larger for the hero. */
 .landing .lp-btn {
     padding: 0.75rem 1.4rem;
     font-size: 1rem;
@@ -270,8 +270,8 @@
     margin-top: 0;
 }
 
-/* On the inverted band the normal button colors would blend into the background, so swap
-   them: primary = filled with the page paper, secondary = outlined in it. */
+/* On the inverted band the normal button colors blend into the background, so swap them: primary
+   = filled with the page paper, secondary = outlined in it. */
 .lp-closer .btn {
     --btn-bg: transparent;
     --btn-bg-hover: color-mix(in srgb, var(--lp-paper) 15%, transparent);
