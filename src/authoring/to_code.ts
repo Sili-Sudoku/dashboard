@@ -16,6 +16,7 @@ import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
 /** A JS literal for a JSON-ish value: bare keys, `{ a: 1 }` / `[1, 2]` spacing, one line. */
+/** Every value goes into the code through here, so a value from outside can never become code. */
 const literal = (value: unknown): string => {
     if (Array.isArray(value)) return `[${value.map(literal).join(", ")}]`;
     if (value && typeof value === "object") {
@@ -62,14 +63,14 @@ export const puzzleToCode = (def: PuzzleDefinition): string => {
     if (def.geometry.type === "grid") {
         const { width, height, boxWidth, boxHeight } = def.geometry;
         const boxes = boxWidth !== undefined || boxHeight !== undefined ? `, ${literal({ boxWidth, boxHeight })}` : "";
-        calls.push(`.grid(${width}, ${height}${boxes})`);
+        calls.push(`.grid(${literal(width)}, ${literal(height)}${boxes})`);
     } else calls.push(`.geometry(${literal(def.geometry)})`);
     calls.push(`.domain(${literal(def.domain.values)})`);
 
     const cellMap = (method: string, rowsMethod: string, map: Readonly<Record<CellId, number>>) => {
         const rows = grid && asRows(map, grid.width, grid.height);
         if (rows) calls.push(`.${rowsMethod}(${literal(rows)})`);
-        else for (const [cell, value] of Object.entries(map)) calls.push(`.${method}(${literal(cell)}, ${value})`);
+        else for (const [cell, value] of Object.entries(map)) calls.push(`.${method}(${literal(cell)}, ${literal(value)})`);
     };
     if (def.givens && Object.keys(def.givens).length > 0) cellMap("given", "givensFromRows", def.givens);
 

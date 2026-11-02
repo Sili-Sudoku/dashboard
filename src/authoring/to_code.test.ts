@@ -56,3 +56,39 @@ describe("puzzleToCode", () => {
         expect(json(run(code))).toEqual(json(def));
     });
 });
+
+describe("puzzleToCode with hostile values", () => {
+    // The Code tab runs this text when the player clicks Run (features/author). A puzzle from a link or an import
+    // must therefore never add code of its own, whatever its strings and numbers contain.
+    const run = (def: PuzzleDefinition) => new Function("PuzzleBuilder", puzzleToCode(def))(PuzzleBuilder);
+
+    it("keeps quotes, line breaks and code in strings as data", () => {
+        const evil = '"); globalThis.__pwned = true; ("\u2028\n</script>`${globalThis.__pwned = true}`';
+        const def: PuzzleDefinition = {
+            version: 1,
+            metadata: { id: evil, title: evil, description: evil },
+            geometry: { type: "grid", width: 2, height: 2 },
+            domain: { values: [1, 2] },
+            regions: { [evil]: ["r1c1"] },
+            constraints: [{ use: "thermometer", cells: [evil, "r1c2"] }],
+        };
+        const built = run(def);
+        expect((globalThis as Record<string, unknown>).__pwned).toBeUndefined();
+        expect(built.metadata.title).toBe(evil);
+        expect(built.regions[evil]).toEqual(["r1c1"]);
+    });
+
+    it("keeps a value that is not a number as data, if validation ever lets one through", () => {
+        const def = {
+            version: 1,
+            metadata: { id: "x", title: "x" },
+            geometry: { type: "composite", grids: [{ width: 2, height: 2, row: 0, col: 0 }] },
+            domain: { values: [1, 2] },
+            givens: { r1c1: "globalThis.__pwned = true" },
+            constraints: [],
+        } as unknown as PuzzleDefinition;
+        const code = puzzleToCode(def);
+        expect(() => new Function("PuzzleBuilder", code)(PuzzleBuilder)).not.toThrow(ReferenceError);
+        expect((globalThis as Record<string, unknown>).__pwned).toBeUndefined();
+    });
+});
