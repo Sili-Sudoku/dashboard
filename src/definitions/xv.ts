@@ -18,7 +18,7 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 export const xv: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
     if (cells instanceof Error) return new Error(`xv: ${cells.message}`);
-    if (cells.length !== 2) return new Error("xv: needs exactly 2 cells");
+    if (cells.length !== 2) return new Error("xv: needs 2 cells");
 
     const target = requireNumber(params, "target");
     if (target instanceof Error) return new Error(`xv: ${target.message}`);
@@ -43,7 +43,7 @@ export const xv: ConstraintDefinition = (params, ctx): DefinitionOutput | Error 
 xv.schema = {
     label: "XV",
     fields: [
-        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
-        { kind: "number", key: "target", label: "Target sum (10=X, 5=V)", required: true },
+        { kind: "cells", key: "cells", label: "2 adjacent cells", min: 2, max: 2 },
+        { kind: "number", key: "target", label: "Target sum (X=10, V=5)", required: true },
     ],
 };

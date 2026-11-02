@@ -68,7 +68,7 @@ describe("compilePuzzle", () => {
     it("rejects a custom region name that collides with a built-in selector", () => {
         const result = compilePuzzle({ ...base, regions: { "row:0": ["r1c1"] } });
         expect(result).toBeInstanceOf(Error);
-        expect((result as Error).message).toMatch(/collides with a built-in selector/);
+        expect((result as Error).message).toMatch(/has the same name as a built-in selector/);
     });
 
     it("rejects a custom region named \"all\"", () => {

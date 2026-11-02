@@ -58,7 +58,7 @@ export const compilePuzzle = (
     const regions: Record<string, readonly CellId[]> = {};
     for (const [name, cells] of Object.entries(def.regions ?? {})) {
         if (builtinSelectors.has(name)) {
-            return new Error(`region "${name}" collides with a built-in selector of the same name`);
+            return new Error(`region "${name}" has the same name as a built-in selector`);
         }
         for (const c of cells) {
             if (!geometry.has(c)) return new Error(`region "${name}" references unknown cell "${c}"`);
@@ -84,7 +84,7 @@ export const compilePuzzle = (
 
     if (def.fog) {
         if (!def.solution) {
-            return new Error("puzzle declares fog but has no solution (fog needs one to know what counts as solved)");
+            return new Error("puzzle declares fog but has no solution. Fog needs a solution to know when the puzzle is solved");
         }
         for (const cell of def.fog.hidden) {
             if (!geometry.has(cell)) return new Error(`fog.hidden references unknown cell "${cell}"`);
@@ -332,7 +332,7 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
     if (color === undefined && style === undefined) return objects;
 
     if (color !== undefined && (typeof color !== "string" || color === "")) {
-        return new Error(`"${spec.use}": "color" must be a colour string, e.g. "#2c7a4b" or "var(--cage)"`);
+        return new Error(`"${spec.use}": "color" must be a color string, for example "#2c7a4b" or "var(--cage)"`);
     }
     if (style !== undefined) {
         if (typeof style !== "object" || style === null || Array.isArray(style)) {
@@ -346,7 +346,7 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
                 return new Error(`"${spec.use}": style "pattern" must be one of ${PATTERNS.join(", ")}`);
             }
             if (key === "image" && !isSafeImageUrl(value as string)) {
-                return new Error(`"${spec.use}": style "image" must be an https:, data:image/ or site-relative URL`);
+                return new Error(`"${spec.use}": style "image" must be an https: URL, a data:image/ URL, or a site-relative URL`);
             }
         }
     }
@@ -395,7 +395,7 @@ const validateObjects = (objects: readonly VisualObject[], geometry: Geometry): 
     for (const obj of objects) {
         const { image, pattern } = (obj.style ?? {}) as VisualStyle;
         if (image !== undefined && (typeof image !== "string" || !isSafeImageUrl(image))) {
-            return new Error(`visual object "${obj.kind}": style "image" must be an https:, data:image/ or site-relative URL`);
+            return new Error(`visual object "${obj.kind}": style "image" must be an https: URL, a data:image/ URL, or a site-relative URL`);
         }
         if (pattern !== undefined && !(PATTERNS as readonly string[]).includes(pattern)) {
             return new Error(`visual object "${obj.kind}": style "pattern" must be one of ${PATTERNS.join(", ")}`);

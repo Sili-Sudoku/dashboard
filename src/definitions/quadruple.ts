@@ -17,12 +17,12 @@ export const quadruple: ConstraintDefinition = (params, ctx): DefinitionOutput |
 
     const rawValues = params.values;
     if (!Array.isArray(rawValues) || rawValues.length === 0) {
-        return new Error('quadruple: "values" must be a non-empty array of numbers');
+        return new Error('quadruple: "values" must be an array of 1 or more numbers');
     }
     const values: number[] = [];
     for (const v of rawValues) {
         if (typeof v !== "number" || !Number.isFinite(v)) {
-            return new Error(`quadruple: "values" contains a non-number: ${JSON.stringify(v)}`);
+            return new Error(`quadruple: "values" contains a value that is not a number: ${JSON.stringify(v)}`);
         }
         values.push(v);
     }
@@ -47,7 +47,7 @@ export const quadruple: ConstraintDefinition = (params, ctx): DefinitionOutput |
 quadruple.schema = {
     label: "Quadruple",
     fields: [
-        { kind: "cells", key: "cells", label: "Cells (usually 4 at a corner)", min: 1 },
+        { kind: "cells", key: "cells", label: "Cells (usually 4 around a corner)", min: 1 },
         { kind: "numberList", key: "values", label: "Required values" },
     ],
 };

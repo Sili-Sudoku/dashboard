@@ -31,7 +31,7 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
                 <button
                     className="btn"
                     onClick={onCheck}
-                    title="Check against the solution (V) — a second press (with no edits in between) reveals exactly what's wrong"
+                    title="Check against the solution (V). Press again with no edits to show what is wrong."
                 >
                     <BadgeCheck size={16} /> Check
                 </button>
@@ -44,7 +44,7 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
                     ...extraItems,
                     {
                         label: "Reset puzzle",
-                        confirm: "Really clear everything?",
+                        confirm: "Clear everything?",
                         icon: <RotateCcw size={16} />,
                         onSelect: onReset,
                     },

@@ -36,7 +36,7 @@ export const evalExpr = (expr: Expr, ctx: EvalContext): Val => {
         throw new ExpressionError(`bare string "${expr}" is not a valid expression`, expr);
     }
     if (!isCall(expr) || expr.length === 0) {
-        throw new ExpressionError("empty or malformed expression", expr);
+        throw new ExpressionError("empty or invalid expression", expr);
     }
 
     const [head, ...args] = expr;
@@ -303,7 +303,7 @@ export const operatorNames = (): readonly string[] => Object.keys(OPERATORS);
 export const staticCheckExpr = (expr: Expr): void => {
     if (typeof expr === "number" || typeof expr === "boolean" || typeof expr === "string") return;
     if (!isCall(expr) || expr.length === 0) {
-        throw new ExpressionError("empty or malformed expression", expr);
+        throw new ExpressionError("empty or invalid expression", expr);
     }
     const [head, ...args] = expr;
     if (typeof head !== "string") {

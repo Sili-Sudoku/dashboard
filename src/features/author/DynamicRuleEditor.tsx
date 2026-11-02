@@ -11,12 +11,12 @@ type Effect = keyof PuzzleRule["then"];
 type Targets = Partial<Record<Effect, string[]>>;
 
 const EFFECTS: { effect: Effect; label: string; hint: string }[] = [
-    { effect: "reveal", label: "Reveal cells", hint: "hidden, as under fog, until the rule holds" },
-    { effect: "appear", label: "Add cells to the board", hint: "not on the board at all until the rule holds" },
-    { effect: "show", label: "Show objects", hint: "drawn only while the rule holds (object ids)" },
-    { effect: "hide", label: "Hide objects", hint: "drawn except while the rule holds (object ids)" },
-    { effect: "enable", label: "Enforce constraints", hint: "not enforced until the rule holds" },
-    { effect: "disable", label: "Stop enforcing constraints", hint: "enforced except while the rule holds" },
+    { effect: "reveal", label: "Reveal cells", hint: "Cells stay hidden, as with fog, until the rule holds." },
+    { effect: "appear", label: "Add cells to the board", hint: "Cells are not on the board until the rule holds." },
+    { effect: "show", label: "Show objects", hint: "Objects show only while the rule holds (object ids)." },
+    { effect: "hide", label: "Hide objects", hint: "Objects are hidden while the rule holds (object ids)." },
+    { effect: "enable", label: "Enforce constraints", hint: "Constraints are not enforced until the rule holds." },
+    { effect: "disable", label: "Stop enforcing constraints", hint: "Constraints are not enforced while the rule holds." },
 ];
 
 const CELL_EFFECTS: readonly Effect[] = ["reveal", "appear"];
@@ -102,7 +102,7 @@ function EffectEditor({
                     <input
                         type="text"
                         aria-label={`${effect.label}: ${isCells ? "cells or regions" : "object ids"}`}
-                        placeholder={isCells ? "e.g. row:3 or r4c1" : "object id"}
+                        placeholder={isCells ? "for example row:3 or r4c1" : "object id"}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         onKeyDown={(e) => {
@@ -157,14 +157,14 @@ export default function DynamicRuleEditor({ rule, constraintNames, onAdd }: Prop
     return (
         <div className="visual-builder-form rule-editor" aria-label="Dynamic rule">
             <p className="author-hint">
-                A rule that changes the puzzle as it is solved: when the condition holds on the board, the effects
-                apply; when it stops holding they switch off again.
+                A rule that changes the puzzle as the solver solves it. When the condition holds on the board, the
+                effects apply. When it stops, the effects switch off.
             </p>
             <label className="visual-builder-param">
                 Name
                 <input
                     type="text"
-                    placeholder="e.g. unlock-bottom (optional)"
+                    placeholder="for example unlock-bottom (optional)"
                     value={rule.name}
                     onChange={(e) => rule.setName(e.target.value)}
                 />

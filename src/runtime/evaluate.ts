@@ -123,7 +123,7 @@ const evaluateOneConstraint = (
         else if (value.t === "unknown") status = "incomplete";
         else {
             status = "violated";
-            error = `constraint did not evaluate to a boolean (got ${value.t})`;
+            error = `constraint does not evaluate to a boolean (got ${value.t})`;
         }
     } catch (err) {
         status = "violated";

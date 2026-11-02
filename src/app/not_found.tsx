@@ -7,7 +7,7 @@ export default function NotFound() {
     return (
         <div className="error-page">
             <h1>Page not found</h1>
-            <p className="error-page-message">There's nothing at this address.</p>
+            <p className="error-page-message">This address has no page.</p>
             <div className="error-page-actions">
                 <Link to="/" className="btn">
                     Home

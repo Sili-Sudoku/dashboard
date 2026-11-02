@@ -22,7 +22,7 @@ interface Resolved {
 }
 
 const resolve = (ref: string | undefined): Resolved => {
-    if (!ref) return { error: "No puzzle reference in the URL." };
+    if (!ref) return { error: "The URL has no puzzle reference." };
 
     const fromRegistry = getPuzzle(ref);
     const definition = fromRegistry ?? decodePuzzle(ref);
@@ -108,7 +108,7 @@ export default function Play() {
                                     className={`btn btn-sm ${jsonView === "compiled" ? "active" : ""}`}
                                     onClick={() => setJsonView("compiled")}
                                 >
-                                    Compiled (primitives the runtime sees)
+                                    Compiled (primitives that the runtime reads)
                                 </button>
                             </div>
                             <div className="pj-bar-right">
@@ -122,8 +122,8 @@ export default function Play() {
                         </div>
                         <p className="pj-note">
                             {jsonView === "artifact"
-                                ? "The serializable puzzle definition — this is what a URL, file, or database row holds."
-                                : "After compile: definition references are expanded, selectors resolved, and every constraint is a primitive expression tagged by its source."}
+                                ? "The serializable puzzle definition. A URL, file, or database row holds this."
+                                : "After compile, the runtime expands definition references and resolves selectors. Each constraint is a primitive expression with a tag for its source."}
                         </p>
                         <pre>{jsonText}</pre>
                     </section>

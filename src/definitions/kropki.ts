@@ -13,7 +13,7 @@ const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): Cons
     (params, ctx): DefinitionOutput | Error => {
         const cells = requireCellList(params, "cells", ctx);
         if (cells instanceof Error) return new Error(`kropki ${kind}: ${cells.message}`);
-        if (cells.length !== 2) return new Error(`kropki ${kind}: needs exactly 2 cells`);
+        if (cells.length !== 2) return new Error(`kropki ${kind}: needs 2 cells`);
 
         const raw = params.value;
         const value = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : defaultValue;
@@ -69,7 +69,7 @@ export const kropkiRatio = dotDefinition("ratio", 2);
 kropkiDifference.schema = {
     label: "Kropki (white dot)",
     fields: [
-        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
+        { kind: "cells", key: "cells", label: "2 adjacent cells", min: 2, max: 2 },
         { kind: "number", key: "value", label: "Difference (default 1)", required: false },
     ],
 };
@@ -77,7 +77,7 @@ kropkiDifference.schema = {
 kropkiRatio.schema = {
     label: "Kropki (black dot)",
     fields: [
-        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
+        { kind: "cells", key: "cells", label: "2 adjacent cells", min: 2, max: 2 },
         { kind: "number", key: "value", label: "Ratio (default 2)", required: false },
     ],
 };

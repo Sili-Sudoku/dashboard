@@ -10,7 +10,7 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 export const palindrome: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
     if (cells instanceof Error) return new Error(`palindrome: ${cells.message}`);
-    if (cells.length < 2) return new Error("palindrome: needs at least 2 cells");
+    if (cells.length < 2) return new Error("palindrome: needs 2 or more cells");
 
     const n = cells.length;
     const constraints: EmittedConstraint[] = [];

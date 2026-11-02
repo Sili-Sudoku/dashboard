@@ -42,7 +42,7 @@ export const demoMixed: PuzzleDefinition = {
         title: "Four Systems, One Grid",
         author: "runtime demo",
         description:
-            "Standard Sudoku + killer cage + thermometer + arrow, composed from generic constraints.",
+            "Standard Sudoku with a killer cage, a thermometer and an arrow. All use generic constraints.",
         difficulty: "medium",
         tags: ["sudoku", "killer", "thermometer", "arrow", "composite"],
     },

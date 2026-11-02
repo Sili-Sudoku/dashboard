@@ -297,7 +297,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             const decompressed = decompressFromBase64(extractShareLinkPayload(trimmed));
             if (!decompressed) {
                 return new Error(
-                    "input is neither valid f-puzzles JSON nor a decodable f-puzzles share link",
+                    "input is not f-puzzles JSON and not an f-puzzles share link that the importer can decode",
                 );
             }
             jsonText = decompressed;
@@ -313,7 +313,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
 
     const size = src.size;
     if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
-        return new Error('"size" must be a positive integer (only square grids are supported)');
+        return new Error('"size" must be a positive integer. The importer supports only square grids');
     }
 
     const grid = src.grid;
@@ -364,13 +364,13 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const root = Math.sqrt(size);
         if (Number.isInteger(root)) {
             warnings.push(
-                "not every cell declares a region; falling back to the grid's default " +
-                    `${root}x${root} box size (this is right for a standard-boxed puzzle, ` +
-                    "but wrong if the source actually uses custom/no boxes without saying so)",
+                "not every cell has a region. The importer uses the default grid " +
+                    `${root}x${root} box size. This is correct for a puzzle with standard boxes. ` +
+                    "It is wrong if the source uses custom boxes or no boxes and does not say so",
             );
             sudokuRef = { use: "sudoku" };
         } else {
-            warnings.push("not every cell declares a region; box/region all-different constraint omitted");
+            warnings.push("not every cell has a region. The importer omits the box/region all-different constraint");
             sudokuRef = { use: "sudoku", boxes: false };
         }
     } else {
@@ -384,9 +384,9 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             for (const [region, cells] of byRegion) named[`fbox:${region}`] = cells;
             regions = named;
             warnings.push(
-                "regions are not a uniform rectangular tiling (jigsaw sudoku); the box constraint is correct, " +
-                    "but the renderer currently always draws rectangular box lines from the grid's dimensions " +
-                    "(see kanban #55), so the drawn grid lines won't match these regions yet",
+                "regions are not a uniform rectangular tiling (jigsaw sudoku). The box constraint is correct. " +
+                    "The renderer always draws rectangular box lines from the grid size " +
+                    "(see kanban #55). The drawn grid lines do not match these regions yet",
             );
             sudokuRef = { use: "sudoku", boxes: false, extraRegions: Object.keys(named).sort() };
         }
@@ -424,14 +424,14 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         if (probeGeometry?.resolveRegion("box:0")) {
             constraints.push({ use: "disjointgroups" });
         } else {
-            warnings.push("disjointgroups: no uniform box layout to pair positions across; omitted");
+            warnings.push("disjointgroups: the grid has no uniform box layout to pair positions across. The importer omits it");
         }
     }
 
     for (const clue of (src.killercage as FPuzzlesCellsClue[] | undefined) ?? []) {
         const cells = mapCells(clue.cells);
         if (!cells) {
-            warnings.push("cage with an unrecognized cell id was skipped");
+            warnings.push("the importer skipped a cage with an unknown cell id");
             continue;
         }
         const sum = typeof clue.value === "string" ? Number(clue.value) : clue.value;
@@ -442,7 +442,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         for (const line of clue.lines ?? []) {
             const cells = mapCells(line);
             if (!cells || cells.length < 2) {
-                warnings.push("thermometer line with an unrecognized cell id or too few cells was skipped");
+                warnings.push("the importer skipped a thermometer line with an unknown cell id or too few cells");
                 continue;
             }
             constraints.push({ use: "thermometer", cells });
@@ -452,13 +452,13 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     for (const clue of (src.arrow as FPuzzlesArrowClue[] | undefined) ?? []) {
         const bulbCells = clue.cells ? mapCells(clue.cells) : undefined;
         if (clue.cells && !bulbCells) {
-            warnings.push("arrow with an unrecognized bulb cell was skipped");
+            warnings.push("the importer skipped an arrow with an unknown bulb cell");
             continue;
         }
         for (const line of clue.lines ?? []) {
             const cells = mapCells(line);
             if (!cells || cells.length === 0) {
-                warnings.push("arrow line with an unrecognized cell id was skipped");
+                warnings.push("the importer skipped an arrow line with an unknown cell id");
                 continue;
             }
             // The leading cell(s) of the line are always the bulb. "cells" can repeat them or not.
@@ -469,7 +469,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             const bulb = bulbCells && bulbCells.length > 0 ? bulbCells : [cells[0]];
             const shaft = cells.slice(bulb.length);
             if (shaft.length === 0) {
-                warnings.push("arrow with an empty shaft was skipped");
+                warnings.push("the importer skipped an arrow with an empty shaft");
                 continue;
             }
             constraints.push({ use: "arrow", bulb: bulb.length === 1 ? bulb[0] : bulb, cells: shaft });
@@ -486,7 +486,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         for (const clue of clues ?? []) {
             const cells = mapCells(clue.cells);
             if (!cells || cells.length !== 2) {
-                warnings.push(`${use} dot with unexpected cells was skipped`);
+                warnings.push(`the importer skipped a ${use} dot with unexpected cells`);
                 continue;
             }
             explicitPairs.push(cells);
@@ -505,7 +505,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             const raw = typeof clue === "string" ? clue : clue.cell;
             const cell = toProjectCell(raw);
             if (!cell) {
-                warnings.push(`${use} marker with an unrecognized cell id was skipped`);
+                warnings.push(`the importer skipped a ${use} marker with an unknown cell id`);
                 continue;
             }
             constraints.push({ use, cell });
@@ -520,12 +520,12 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const anchor = outsideCellCoords(clue.cell);
         const cells = anchor && littleKillerCellsFromAnchor(anchor, clue.direction, size);
         if (!cells) {
-            warnings.push("littlekillersum with an unrecognized anchor cell or direction was skipped");
+            warnings.push("the importer skipped a littlekillersum with an unknown anchor cell or direction");
             continue;
         }
         const sum = typeof clue.value === "string" ? Number(clue.value) : clue.value;
         if (typeof sum !== "number" || !Number.isFinite(sum)) {
-            warnings.push("littlekillersum without a numeric sum was skipped");
+            warnings.push("the importer skipped a littlekillersum with no numeric sum");
             continue;
         }
         constraints.push({ use: "killer", cells, sum, distinct: false });
@@ -535,12 +535,12 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const anchor = outsideCellCoords(clue.cell);
         const cells = anchor && sandwichCellsFromAnchor(anchor, size);
         if (!cells) {
-            warnings.push("sandwichsum with an unrecognized anchor cell was skipped");
+            warnings.push("the importer skipped a sandwichsum with an unknown anchor cell");
             continue;
         }
         const sum = typeof clue.value === "string" ? Number(clue.value) : clue.value;
         if (typeof sum !== "number" || !Number.isFinite(sum)) {
-            warnings.push("sandwichsum without a numeric sum was skipped");
+            warnings.push("the importer skipped a sandwichsum with no numeric sum");
             continue;
         }
         constraints.push({ use: "sandwich", cells, sum });
@@ -550,7 +550,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         for (const line of clue.lines ?? []) {
             const cells = mapCells(line);
             if (!cells || cells.length < 3) {
-                warnings.push("betweenline with an unrecognized cell id or too few cells was skipped");
+                warnings.push("the importer skipped a betweenline with an unknown cell id or too few cells");
                 continue;
             }
             constraints.push({ use: "betweenline", cells });
@@ -561,7 +561,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         for (const line of clue.lines ?? []) {
             const cells = mapCells(line);
             if (!cells || cells.length < 2) {
-                warnings.push("palindrome line with an unrecognized cell id or too few cells was skipped");
+                warnings.push("the importer skipped a palindrome line with an unknown cell id or too few cells");
                 continue;
             }
             constraints.push({ use: "palindrome", cells });
@@ -572,7 +572,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const cells = mapCells(clue.cells);
         const cloneCells = mapCells(clue.cloneCells);
         if (!cells || !cloneCells || cells.length !== cloneCells.length) {
-            warnings.push("clone with unrecognized or mismatched cells was skipped");
+            warnings.push("the importer skipped a clone with unknown or mismatched cells");
             continue;
         }
         constraints.push({ use: "clone", cells, cloneCells });
@@ -581,7 +581,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     for (const clue of (src.quadruple as FPuzzlesQuadrupleClue[] | undefined) ?? []) {
         const cells = mapCells(clue.cells);
         if (!cells || !Array.isArray(clue.values) || clue.values.length === 0) {
-            warnings.push("quadruple with unrecognized cells or no values was skipped");
+            warnings.push("the importer skipped a quadruple with unknown cells or no values");
             continue;
         }
         constraints.push({ use: "quadruple", cells, values: clue.values });
@@ -592,7 +592,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const cells = mapCells(clue.cells);
         const target = clue.value === "X" ? 10 : clue.value === "V" ? 5 : undefined;
         if (!cells || cells.length !== 2 || target === undefined) {
-            warnings.push("xv marker with unrecognized cells or marker was skipped");
+            warnings.push("the importer skipped an xv marker with unknown cells or an unknown marker");
             continue;
         }
         explicitXVPairs.push(cells);
@@ -602,12 +602,12 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     const negativeKindsSeen = new Set<"difference" | "ratio" | "xv">();
     for (const raw of (src.negative as unknown[] | undefined) ?? []) {
         if (typeof raw !== "string") {
-            warnings.push(`"negative" entry ${JSON.stringify(raw)} was ignored (not a string)`);
+            warnings.push(`the importer ignored "negative" entry ${JSON.stringify(raw)} because it is not a string`);
             continue;
         }
         const kind = NEGATIVE_KIND_ALIASES[raw.toLowerCase()];
         if (!kind) {
-            warnings.push(`"negative" entry "${raw}" is not a recognized kind and was ignored`);
+            warnings.push(`the importer ignored "negative" entry "${raw}" because it is not a known kind`);
             continue;
         }
         if (negativeKindsSeen.has(kind)) continue;
@@ -623,7 +623,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
 
     for (const key of Object.keys(src)) {
         if (!KNOWN_TOP_LEVEL_KEYS.has(key)) {
-            warnings.push(`clue type "${key}" is not supported by this importer and was ignored`);
+            warnings.push(`the importer does not support clue type "${key}" and ignores it`);
         }
     }
 
@@ -639,7 +639,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
                 }
             }
         } else {
-            warnings.push('"solution" was present but malformed; ignored');
+            warnings.push('"solution" is present but not valid. The importer ignores it');
         }
     }
 
@@ -666,9 +666,9 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
 // --- export -------------------------------------------------------------
 
 export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
-    if (def.geometry.type !== "grid") return new Error("only grid geometries can be exported to f-puzzles");
+    if (def.geometry.type !== "grid") return new Error("f-puzzles export supports only grid geometries");
     const { width, height } = def.geometry;
-    if (width !== height) return new Error("only square grids can be exported to f-puzzles");
+    if (width !== height) return new Error("f-puzzles export supports only square grids");
     const size = width;
 
     const warnings: string[] = [];
@@ -744,7 +744,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
 
     for (const spec of def.constraints) {
         if (!isDefinitionRef(spec)) {
-            warnings.push("a hand-written primitive constraint cannot be represented in f-puzzles export; dropped");
+            warnings.push("f-puzzles export cannot represent a hand-written primitive constraint. The exporter drops it");
             continue;
         }
         const { use, ...params } = spec;
@@ -756,7 +756,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 const anchor = littleKillerAnchor(cellsParam);
                 if (!anchor || typeof params.sum !== "number") {
                     warnings.push(
-                        "littlekillersum with cells that aren't a straight diagonal, or missing sum, was skipped",
+                        "the exporter skipped a littlekillersum with cells that are not a straight diagonal, or with no sum",
                     );
                     continue;
                 }
@@ -765,14 +765,14 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             }
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
-                warnings.push("killer cage with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a killer cage with a non-grid cell id");
                 continue;
             }
             cage.push({ cells, ...(typeof params.sum === "number" ? { value: String(params.sum) } : {}) });
         } else if (use === "thermometer") {
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
-                warnings.push("thermometer with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a thermometer with a non-grid cell id");
                 continue;
             }
             thermometer.push({ lines: [cells] });
@@ -782,7 +782,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const bulb = exportCells(bulbCells);
             const shaft = exportCells(params.cells as CellId[]);
             if (!bulb || !shaft) {
-                warnings.push("arrow with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped an arrow with a non-grid cell id");
                 continue;
             }
             // The line has the bulb cell(s) as its leading entries.
@@ -791,7 +791,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         } else if (use === "kropkiDifference" || use === "kropkiRatio") {
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
-                warnings.push(`${use} with a non-grid cell id was skipped`);
+                warnings.push(`the exporter skipped a ${use} with a non-grid cell id`);
                 continue;
             }
             const value = typeof params.value === "number" ? String(params.value) : undefined;
@@ -800,7 +800,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {
-                warnings.push(`${use} marker with a non-grid cell id was skipped`);
+                warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
                 continue;
             }
             (use === "odd" ? odd : even).push({ cell });
@@ -808,7 +808,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {
-                warnings.push(`${use} marker with a non-grid cell id was skipped`);
+                warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
                 continue;
             }
             (use === "minimum" ? minimumClues : maximumClues).push({ cell });
@@ -820,7 +820,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         } else if (use === "palindrome") {
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
-                warnings.push("palindrome with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a palindrome with a non-grid cell id");
                 continue;
             }
             palindromeLines.push({ lines: [cells] });
@@ -828,7 +828,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cells = exportCells(params.cells as CellId[]);
             const cloneCells = exportCells(params.cloneCells as CellId[]);
             if (!cells || !cloneCells) {
-                warnings.push("clone with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a clone with a non-grid cell id");
                 continue;
             }
             cloneClues.push({ cells, cloneCells });
@@ -836,7 +836,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cells = exportCells(params.cells as CellId[]);
             const values = Array.isArray(params.values) ? (params.values as number[]) : undefined;
             if (!cells || !values) {
-                warnings.push("quadruple with a non-grid cell id or missing values was skipped");
+                warnings.push("the exporter skipped a quadruple with a non-grid cell id or no values");
                 continue;
             }
             quadrupleClues.push({ cells, values });
@@ -844,7 +844,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cells = exportCells(params.cells as CellId[]);
             const marker = params.target === 10 ? "X" : params.target === 5 ? "V" : undefined;
             if (!cells || !marker) {
-                warnings.push("xv marker with a non-grid cell id or unrepresentable target was skipped");
+                warnings.push("the exporter skipped an xv marker with a non-grid cell id or a target it cannot represent");
                 continue;
             }
             xvClues.push({ cells, value: marker });
@@ -852,21 +852,21 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cellsParam = params.cells as CellId[];
             const anchor = sandwichAnchor(cellsParam, size);
             if (!anchor || typeof params.sum !== "number") {
-                warnings.push("sandwich with cells that aren't a full row/column, or missing sum, was skipped");
+                warnings.push("the exporter skipped a sandwich with cells that are not a full row or column, or with no sum");
                 continue;
             }
             sandwichsumClues.push({ cell: anchor, value: String(params.sum) });
         } else if (use === "betweenline") {
             const cells = exportCells(params.cells as CellId[]);
             if (!cells) {
-                warnings.push("betweenline with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a betweenline with a non-grid cell id");
                 continue;
             }
             betweenlineLines.push({ lines: [cells] });
         } else if (use === "negativeDifference" || use === "negativeRatio" || use === "negativeXV") {
             negativeKinds.add(use === "negativeDifference" ? "difference" : use === "negativeRatio" ? "ratio" : "xv");
         } else {
-            warnings.push(`constraint using definition "${use}" cannot be represented in f-puzzles export; dropped`);
+            warnings.push(`f-puzzles export cannot represent the constraint that uses definition "${use}". The exporter drops it`);
         }
     }
 
@@ -906,7 +906,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         if (cells.every((c) => def.solution?.[c] !== undefined)) {
             data.solution = cells.map((c) => String(def.solution?.[c]));
         } else {
-            warnings.push("solution is incomplete; omitted from export");
+            warnings.push("the solution is incomplete. The exporter omits it");
         }
     }
 

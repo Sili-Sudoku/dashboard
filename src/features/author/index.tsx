@@ -51,16 +51,16 @@ const summarizeConflicts = (ids: ReadonlySet<string>): string => {
 /** Maximum number of snapshots for author undo. Each snapshot is a full JSON text, so the number has a limit. */
 const HISTORY_LIMIT = 100;
 
-const BUILDER_EXAMPLE = `// PuzzleBuilder is in scope. Return the built puzzle; Run loads it into the editor.
+const BUILDER_EXAMPLE = `// PuzzleBuilder is available. Return the built puzzle. Run loads it into the editor.
 return PuzzleBuilder.create("thermo-demo", "Thermo Demo")
   .grid(9, 9)
   .domain([1, 2, 3, 4, 5, 6, 7, 8, 9])
   // add constraints (definitions compile to primitives)
   .use("sudoku")
   .use("thermometer", { cells: ["r1c1", "r1c2", "r1c3"] })
-  // or a raw primitive, no definition involved
+  // or add a raw primitive (no definition)
   .constraint(["==", ["sum", ["cells", "col:0"]], 45])
-  // add a visual object the renderer draws generically
+  // add a visual object that the renderer draws
   .visual({ kind: "text", at: "r5c5", text: "!" })
   .build(); // -> plain PuzzleDefinition (the artifact)`;
 
@@ -115,7 +115,7 @@ export default function Author() {
     const setEditorMode = (mode: EditorMode) => setSetting("authorEditorMode", mode);
     usePageHeader(
         "Author a puzzle",
-        "A puzzle is a JSON artifact — no engine release needed to invent a variant. Edit the definition below and preview it live. Everything is composed from generic constraints and definition references.",
+        "A puzzle is a JSON file. You can make a new variant without a new engine release. Edit the definition below to see a live preview. Each puzzle uses generic constraints and definition references.",
     );
 
     // Undo/redo for changes made *to the puzzle*.
@@ -141,7 +141,7 @@ export default function Author() {
             // A missing final .build() is an easy mistake, so call it here.
             const artifact = built instanceof PuzzleBuilder ? built.build() : built;
             if (!artifact || typeof artifact !== "object") {
-                throw new Error("The code must return the puzzle: end with `return PuzzleBuilder.create(…)….build();`");
+                throw new Error("The code must return the puzzle. End the code with `return PuzzleBuilder.create(…)….build();`");
             }
             applyText(JSON.stringify(artifact, null, 2));
             setCodeDraft(undefined);
@@ -339,7 +339,7 @@ export default function Author() {
         unique: "Unique solution.",
         multiple: "Multiple solutions.",
         none: "No solution. The givens conflict.",
-        unknown: "Timed out before finishing. Result unknown.",
+        unknown: "The check timed out. The result is unknown.",
     };
 
     const shareLink =
@@ -406,7 +406,7 @@ export default function Author() {
                     </span>
                     <span className="author-conflict-count">{invalidConstraintIds.size}</span>
                     <span className="author-conflict-tip">
-                        Conflicts with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
+                        These conflict with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
                     </span>
                 </span>
             )}
@@ -455,7 +455,7 @@ export default function Author() {
                 <div className="author-editor">
                     {liveDef?.geometry.type === "composite" ? (
                         <p className="author-hint">
-                            This puzzle is several grids in one space ({describeGeometry(liveDef.geometry)}); edit its
+                            This puzzle has several grids in one space ({describeGeometry(liveDef.geometry)}). Edit the
                             layout in the JSON.
                         </p>
                     ) : (
@@ -546,7 +546,7 @@ export default function Author() {
                                     </button>
                                 )}
                                 <span className="author-code-hint">
-                                    {codeDraft !== undefined ? "Edited, not run yet · " : ""}Ctrl/⌘ + Enter
+                                    {codeDraft !== undefined ? "Edited. Not run yet. " : ""}Ctrl/⌘ + Enter
                                 </span>
                             </div>
                         </div>

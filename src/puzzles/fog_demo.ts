@@ -40,7 +40,7 @@ export const fogDemo: PuzzleDefinition = {
         id: "fog-demo",
         title: "Fog of War Sudoku",
         author: "runtime demo",
-        description: "The bottom-right box starts hidden; solve toward it to clear the fog, cell by cell.",
+        description: "The bottom-right box starts hidden. Solve cells next to it to clear the fog, one cell at a time.",
         difficulty: "easy",
         tags: ["sudoku", "classic", "fog"],
     },

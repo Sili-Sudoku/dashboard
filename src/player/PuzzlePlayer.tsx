@@ -203,7 +203,7 @@ export default function PuzzlePlayer({
     const cursorCell = scene.cells.find((c) => c.ring === "cursor");
     const selectedCount = scene.cells.filter((c) => c.ring !== null).length;
     const cursorAnnouncement = cursorCell
-        ? describeCell(cursorCell) + (selectedCount > 1 ? ` — ${selectedCount} cells selected` : "")
+        ? describeCell(cursorCell) + (selectedCount > 1 ? `. ${selectedCount} cells selected` : "")
         : "";
 
     // R, C, B and G read aloud the row, column and box of the cursor, and the givens of the whole board.
@@ -292,7 +292,7 @@ export default function PuzzlePlayer({
                                 )}
                             </div>
                             <p className="pp-hint" id={hintId}>
-                                Click / drag to select · digits to enter · see keyboard shortcuts below
+                                Click or drag to select. Press digits to enter. See the keyboard shortcuts below.
                             </p>
                         </>
                     }

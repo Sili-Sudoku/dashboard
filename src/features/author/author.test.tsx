@@ -76,7 +76,7 @@ describe("Author", () => {
         expect(screen.queryByText(/fix the errors on the left/i)).toBeNull();
         expect(container.querySelector("svg.board")).not.toBeNull();
         expect(container.querySelector(".author-conflict-tip")?.textContent).toMatch(
-            /conflicts with the declared solution/i,
+            /conflict with the declared solution/i,
         );
         expect(container.querySelector(".author-conflict-text")?.textContent).toMatch(/thermometer#1/);
     });

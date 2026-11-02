@@ -31,7 +31,7 @@ export const classicSudoku: PuzzleDefinition = {
         id: "classic-sudoku",
         title: "Classic Sudoku",
         author: "runtime demo",
-        description: "The canonical 9x9. Rows, columns and boxes are all-different — nothing else.",
+        description: "The standard 9x9 puzzle. Each row, column and box has all different digits. There are no other rules.",
         difficulty: "easy",
         tags: ["sudoku", "classic"],
     },

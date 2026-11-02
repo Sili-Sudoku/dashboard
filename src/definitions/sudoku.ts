@@ -25,7 +25,7 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
     for (const sel of extraRegions) {
         const cells = ctx.regions[sel] ?? ctx.geometry.resolveRegion(sel);
         if (!cells) {
-            return new Error(`sudoku: unknown extra region "${sel}"`);
+            return new Error(`sudoku: extra region is not known: "${sel}"`);
         }
         selectors.push(sel);
         // "diagonal:*" is the naming convention of this project for the two main
@@ -47,7 +47,7 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
 };
 
 sudoku.schema = {
-    label: "Sudoku (rows/cols/boxes)",
+    label: "Sudoku (rows, columns, boxes)",
     fields: [
         { kind: "boolean", key: "boxes", label: "Include boxes", default: true },
     ],

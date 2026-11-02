@@ -11,7 +11,7 @@ export const givensFromRows = (rows: readonly string[]): Record<CellId, number> 
         [...row].forEach((ch, c) => {
             if (ch === "." || ch === " ") return;
             const n = Number(ch);
-            if (Number.isNaN(n)) throw new Error(`bad given char "${ch}" at r${r + 1}c${c + 1}`);
+            if (Number.isNaN(n)) throw new Error(`invalid given character "${ch}" at r${r + 1}c${c + 1}`);
             out[GridCellId(r, c)] = n;
         });
     });

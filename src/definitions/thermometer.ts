@@ -10,7 +10,7 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 export const thermometer: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
     if (cells instanceof Error) return new Error(`thermometer: ${cells.message}`);
-    if (cells.length < 2) return new Error("thermometer: needs at least 2 cells");
+    if (cells.length < 2) return new Error("thermometer: needs 2 or more cells");
 
     const strict = params.strict !== false;
     const op = strict ? "strictIncreasing" : "increasing";
@@ -44,7 +44,7 @@ export const thermometer: ConstraintDefinition = (params, ctx): DefinitionOutput
 thermometer.schema = {
     label: "Thermometer",
     fields: [
-        { kind: "cells", key: "cells", label: "Path, bulb first", min: 2 },
-        { kind: "boolean", key: "strict", label: "Strictly increasing", default: true },
+        { kind: "cells", key: "cells", label: "Path (bulb first)", min: 2 },
+        { kind: "boolean", key: "strict", label: "Digits always increase", default: true },
     ],
 };

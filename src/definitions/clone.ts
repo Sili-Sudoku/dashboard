@@ -25,6 +25,6 @@ clone.schema = {
     label: "Clone region",
     fields: [
         { kind: "cells", key: "cells", label: "Region A", min: 1 },
-        { kind: "cells", key: "cloneCells", label: "Region B (same size, same order)", min: 1 },
+        { kind: "cells", key: "cloneCells", label: "Region B (same size and order)", min: 1 },
     ],
 };

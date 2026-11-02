@@ -19,9 +19,9 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
 
     const rawBulb = params.bulb;
     const bulbCells: string[] = Array.isArray(rawBulb) ? rawBulb : typeof rawBulb === "string" ? [rawBulb] : [];
-    if (bulbCells.length === 0) return new Error('arrow: "bulb" must be a cell id or array of cell ids');
+    if (bulbCells.length === 0) return new Error('arrow: "bulb" must be a cell id or an array of cell ids');
     for (const c of bulbCells) {
-        if (!ctx.geometry.has(c)) return new Error(`arrow: invalid bulb cell ${JSON.stringify(c)}`);
+        if (!ctx.geometry.has(c)) return new Error(`arrow: bulb cell is not valid: ${JSON.stringify(c)}`);
     }
 
     const bulbValue: Expr = bulbNumberExpr(bulbCells as CellId[], ctx.domain);
@@ -73,7 +73,7 @@ const bulbNumberExpr = (bulbCells: readonly CellId[], domain: readonly number[])
 arrow.schema = {
     label: "Arrow",
     fields: [
-        { kind: "cells", key: "bulb", label: "Bulb cell(s)", min: 1 },
+        { kind: "cells", key: "bulb", label: "Bulb cells", min: 1 },
         { kind: "cells", key: "cells", label: "Shaft path", min: 1 },
     ],
 };

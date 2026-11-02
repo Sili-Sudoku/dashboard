@@ -362,7 +362,7 @@ export class CompositeGeometry implements Geometry {
             const id = g.id ?? `g${i + 1}`;
             if (id === "" || /[:/]/.test(id))
                 throw new Error(`grid id "${id}" must be non-empty and contain no ":" or "/"`);
-            if (ids.has(id)) throw new Error(`two grids are both called "${id}"`);
+            if (ids.has(id)) throw new Error(`two grids have the same id "${id}"`);
             ids.add(id);
             if (!Number.isInteger(g.row) || g.row < 0 || !Number.isInteger(g.col) || g.col < 0) {
                 throw new Error(`grid "${id}": row and col must be non-negative integers`);

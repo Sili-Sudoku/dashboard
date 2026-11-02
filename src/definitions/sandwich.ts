@@ -12,14 +12,14 @@ import type { Expr } from "@/runtime/expression.ts";
 export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
     if (cells instanceof Error) return new Error(`sandwich: ${cells.message}`);
-    if (cells.length < 2) return new Error("sandwich: needs at least 2 cells");
+    if (cells.length < 2) return new Error("sandwich: needs 2 or more cells");
 
     const sum = requireNumber(params, "sum");
     if (sum instanceof Error) return new Error(`sandwich: ${sum.message}`);
 
     const minV = Math.min(...ctx.domain);
     const maxV = Math.max(...ctx.domain);
-    if (minV === maxV) return new Error("sandwich: puzzle domain has only one value; the clue is meaningless");
+    if (minV === maxV) return new Error("sandwich: the puzzle domain has only one value, so the clue has no meaning");
 
     const terms: Expr[] = [];
     for (let i = 0; i < cells.length; i++) {

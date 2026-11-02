@@ -33,7 +33,7 @@ export default function StyleEditor({ spec, onChange }: Props) {
         if (!file) return;
         if (!/^image\/(png|jpeg|gif|webp|svg\+xml)$/.test(file.type))
             return setProblem("Use a PNG, JPEG, GIF, WebP or SVG.");
-        if (file.size > MAX_IMAGE_BYTES) return setProblem("That picture is over 150 KB; use a smaller one.");
+        if (file.size > MAX_IMAGE_BYTES) return setProblem("The picture is more than 150 KB. Use a smaller picture.");
         const reader = new FileReader();
         reader.onload = () => {
             setProblem(null);

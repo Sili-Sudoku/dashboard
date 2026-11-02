@@ -56,10 +56,10 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
     // There is one row, not a "Hide constraints" row above an "In progress — n/m cells" row.
     const label = open
         ? evaluation.complete
-            ? "Solved — every constraint satisfied"
+            ? "Solved: all constraints satisfied"
             : evaluation.status === "invalid"
               ? "Some constraints are broken"
-              : `In progress — ${evaluation.filledCount}/${evaluation.cellCount} cells`
+              : `In progress: ${evaluation.filledCount}/${evaluation.cellCount} cells`
         : "Show constraints";
 
     return (

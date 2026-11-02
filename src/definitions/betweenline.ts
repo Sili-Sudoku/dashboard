@@ -11,7 +11,7 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 export const betweenline: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
     if (cells instanceof Error) return new Error(`betweenline: ${cells.message}`);
-    if (cells.length < 3) return new Error("betweenline: needs at least 2 endpoints and 1 interior cell");
+    if (cells.length < 3) return new Error("betweenline: needs 2 endpoints and 1 or more inner cells");
 
     const end0 = cells[0];
     const end1 = cells[cells.length - 1];
@@ -40,6 +40,6 @@ export const betweenline: ConstraintDefinition = (params, ctx): DefinitionOutput
 betweenline.schema = {
     label: "Between line",
     fields: [
-        { kind: "cells", key: "cells", label: "Path, endpoints first/last", min: 3 },
+        { kind: "cells", key: "cells", label: "Path (endpoints first and last)", min: 3 },
     ],
 };

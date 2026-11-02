@@ -58,7 +58,7 @@ describe("per-instance style override (#132)", () => {
             const r = compilePuzzle(puzzle(c), definitions);
             return r instanceof Error ? r.message : "";
         };
-        expect(failure({ ...thermo, color: 5 })).toMatch(/"color" must be a colour string/);
+        expect(failure({ ...thermo, color: 5 })).toMatch(/"color" must be a color string/);
         expect(failure({ ...thermo, style: "red" })).toMatch(/"style" must be an object/);
         expect(failure({ ...thermo, style: { glow: 1 } })).toMatch(/unknown style property "glow"/);
         expect(failure({ ...thermo, style: { opacity: "half" } })).toMatch(/style "opacity" must be a number/);

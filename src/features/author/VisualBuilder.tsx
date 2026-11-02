@@ -94,7 +94,7 @@ export default function VisualBuilder({ def, state }: Props) {
     if (!def) {
         return (
             <p className="author-notice">
-                Fix the JSON errors above (or switch to the JSON tab) to use the visual builder.
+                Fix the JSON errors in the JSON tab to use the visual builder.
             </p>
         );
     }
@@ -131,7 +131,7 @@ export default function VisualBuilder({ def, state }: Props) {
               ).length;
         const what = isFog(tool) ? "hidden cell" : tool.name === DYNAMIC_TOOL ? "rule" : "placed constraint";
         return count > 0
-            ? `Remove from quick access and delete its ${count} ${what}${count === 1 ? "" : "s"} (undo brings them back)`
+            ? `Remove from quick access. This deletes its ${count} ${what}${count === 1 ? "" : "s"}. Undo restores them.`
             : undefined;
     };
 
@@ -180,7 +180,7 @@ export default function VisualBuilder({ def, state }: Props) {
                                             disabled={placed}
                                             title={
                                                 placed
-                                                    ? "Already added — remove it from the list below to change it"
+                                                    ? "Already added. To change it, remove it from the list below."
                                                     : undefined
                                             }
                                             onClick={() => startTool(tool)}
@@ -223,14 +223,14 @@ export default function VisualBuilder({ def, state }: Props) {
                         <p className="author-hint">
                             {fog.reveal
                                 ? "Drag on the board to reveal cells."
-                                : "Drag on the board to hide cells until they're solved."}
+                                : "Drag on the board to hide cells. Each cell shows when it is solved."}
                             {fog.hidden.length > 0 &&
                                 ` ${fog.hidden.length} cell${fog.hidden.length === 1 ? " is" : "s are"} hidden.`}
                         </p>
                     ) : (
                         <>
                             <p className="author-hint">
-                                Fog reveals cells as they're solved, so the puzzle needs a solution first.
+                                Fog shows cells when they are solved. The puzzle needs a solution first.
                             </p>
                             <div className="visual-builder-actions">
                                 <button

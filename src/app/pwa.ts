@@ -15,10 +15,10 @@ const emit = () => listeners.forEach((l) => l());
 /** Call once at startup. It registers the service worker and connects the toasts and the install prompt. */
 export const initPwa = (): void => {
     if (import.meta.env.DEV) return; // no service worker in the dev server
-    registerSW({ onOfflineReady: () => toast("Ready to work offline.", { key: "pwa" }) });
+    registerSW({ onOfflineReady: () => toast("The app now works offline.", { key: "pwa" }) });
 
     window.addEventListener("offline", () =>
-        toast("You're offline. Saved puzzles and progress still work.", { key: "net" }),
+        toast("The device is offline. Saved puzzles and progress still work.", { key: "net" }),
     );
     window.addEventListener("online", () => toast("Back online.", { key: "net", kind: "success" }));
     window.addEventListener("beforeinstallprompt", (e) => {

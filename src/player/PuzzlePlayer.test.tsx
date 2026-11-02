@@ -501,7 +501,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: "Center note 3" })); // candidates {1,3} miss '2'
 
         fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
-        expect(screen.queryByText(/eliminated the correct digit/i)).not.toBeNull();
+        expect(screen.queryByText(/removes the correct digit/i)).not.toBeNull();
         expect(screen.queryByText(/digit entered is wrong/i)).toBeNull();
     });
 
@@ -670,7 +670,7 @@ describe("<PuzzlePlayer />", () => {
             fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
             fireEvent.click(screen.getByRole("button", { name: "More actions" }));
             fireEvent.click(screen.getByRole("menuitem", { name: "Reset puzzle" }));
-            fireEvent.click(screen.getByRole("menuitem", { name: "Really clear everything?" }));
+            fireEvent.click(screen.getByRole("menuitem", { name: "Clear everything?" }));
             expect(screen.getByText("0:00")).toBeTruthy();
 
             act(() => {

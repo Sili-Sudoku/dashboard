@@ -26,7 +26,7 @@ export const describeCell = (cell: CellShape): string => {
         cell.tone === "violated" && "breaks a rule",
         cell.tone === "invalid" && "not allowed here",
         cell.incorrect && "wrong",
-        cell.flagged && "a note rules out the right digit",
+        cell.flagged && "a note removes the correct digit",
     ].filter(Boolean);
 
     if (cell.marks.length > 0) {

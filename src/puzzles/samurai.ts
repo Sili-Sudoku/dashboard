@@ -65,7 +65,7 @@ export const samuraiSudoku: PuzzleDefinition = {
         title: "Samurai Sudoku",
         author: "runtime demo",
         description:
-            "Five 9x9 grids sharing their corner boxes with the centre grid, built on the composite geometry. Has a single solution.",
+            "Five 9x9 grids. Four grids share corner boxes with the center grid. The puzzle uses the composite geometry and has one solution.",
         difficulty: "easy",
         tags: ["sudoku", "samurai", "composite-geometry"],
     },

@@ -15,9 +15,9 @@ export default function PuzzleList() {
             <section className="puzzles-intro">
                 <h1>Puzzles</h1>
                 <p>
-                    Classic Sudoku plus variants — thermometers, killer cages, arrows, and kropki dots — all
-                    on the same board. Already have a puzzle from f-puzzles, SudokuPad, or SudokuMaker?{" "}
-                    <Link to="/new">Bring it in</Link> and solve it here instead.
+                    Play classic Sudoku and variants on one board. Variants include thermometers, killer cages,
+                    arrows, and kropki dots. Do you have a puzzle from f-puzzles, SudokuPad, or SudokuMaker?{" "}
+                    <Link to="/new">Import it</Link> and solve it here.
                 </p>
             </section>
 

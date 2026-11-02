@@ -32,7 +32,7 @@ export const ROOT_SLOT: SlotSpec = { label: "Rule", kind: "bool" };
 
 export const newOp = (name: string): RuleNode => {
     const sig = signatureOf(name);
-    if (!sig) throw new Error(`unknown operator "${name}"`);
+    if (!sig) throw new Error(`operator is not known: "${name}"`);
     const count = sig.args.length + (sig.rest?.min ?? 0);
     return { k: "op", name, args: Array.from({ length: count }, () => null) };
 };

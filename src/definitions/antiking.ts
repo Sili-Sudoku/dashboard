@@ -10,7 +10,7 @@ export const antiking: ConstraintDefinition = (_params, ctx): DefinitionOutput |
     const coords = new Map<string, { row: number; col: number }>();
     for (const cell of ctx.geometry.cells) {
         const rc = parseGridCellId(cell);
-        if (!rc) return new Error("antiking: geometry is not a grid (cell ids aren't r{row}c{col})");
+        if (!rc) return new Error("antiking: the geometry is not a grid. The cell ids are not r{row}c{col}");
         coords.set(cell, rc);
     }
 

@@ -17,7 +17,7 @@ export const rulesDemo: PuzzleDefinition = {
         title: "Growing Sudoku (dynamic rules)",
         author: "runtime demo",
         description:
-            "Starts as a 4x3 board. Fill the three rows with distinct digits and a fourth row appears; solve the left column to light it up. Both are rules in the puzzle's JSON.",
+            "The puzzle starts as a 4x3 board. Fill the three rows with different digits and a fourth row appears. Solve the left column to light it up. Both are rules in the JSON of the puzzle.",
         difficulty: "trivial",
         tags: ["sudoku", "dynamic-rules"],
     },

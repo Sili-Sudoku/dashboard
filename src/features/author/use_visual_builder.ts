@@ -241,14 +241,14 @@ export const useVisualBuilder = (
         setFinding(false);
         if (!found.solution) {
             toast(
-                found.status === "none" ? "No solution: the givens conflict." : "Timed out looking for a solution.",
+                found.status === "none" ? "No solution. The givens conflict." : "The search for a solution timed out.",
                 { kind: "error", key: "fog-solution" },
             );
             return;
         }
         onChange({ ...def, solution: found.solution });
         if (found.status === "multiple") {
-            toast("The puzzle has several solutions; the first one found is used.", { kind: "info", key: "fog-solution" });
+            toast("The puzzle has several solutions. The app uses the first solution that it finds.", { kind: "info", key: "fog-solution" });
         }
     };
     const fogHidden = def?.fog?.hidden ?? [];

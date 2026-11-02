@@ -126,7 +126,7 @@ export function useAuthorInterop(parsed: PuzzleDefinition | undefined, applyText
             return;
         }
         window.open(result.value, "_blank", "noopener,noreferrer");
-        notifyInterop(result.warnings, "Opened in a new tab, with ", `Opened ${name} share link in a new tab.`);
+        notifyInterop(result.warnings, "Opened in a new tab with ", `Opened the ${name} share link in a new tab.`);
     };
 
     const dialog: ImportDialogProps | undefined = format && {

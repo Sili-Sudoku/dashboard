@@ -11,14 +11,14 @@ export default function Settings() {
     return (
         <div className="settings-page">
             <h1>Settings</h1>
-            <p className="settings-intro">Preferences persist on this device and apply to every puzzle.</p>
+            <p className="settings-intro">The app saves settings on this device. They apply to every puzzle.</p>
 
             <section className="settings-list">
                 <label className="settings-row">
                     <div>
                         <div className="settings-row-title">Check notes on leave</div>
                         <div className="settings-row-desc">
-                            When you move off a cell, flag it in red if its remaining centre notes no longer include the
+                            When you leave a cell, the app flags it in red if its center notes do not include the
                             correct digit.
                         </div>
                     </div>
@@ -33,7 +33,7 @@ export default function Settings() {
                     <div>
                         <div className="settings-row-title">Highlight matching numbers</div>
                         <div className="settings-row-desc">
-                            Tint every other cell holding the same digit as the cell you're on.
+                            Tint each cell that has the same digit as the selected cell.
                         </div>
                     </div>
                     <input
@@ -48,9 +48,9 @@ export default function Settings() {
                         <div className="settings-row-title">Mark colors</div>
                         <div className="settings-row-desc">
                             The palette for Color mode on the number pad. Press 1-9 in Color mode to paint with the
-                            matching color, or 0 for the board background (always the paper color, so it isn't
-                            editable); a cell can hold several, e.g. color 1 plus background. Changing a color recolors
-                            cells already marked with it.
+                            matching color. Press 0 to paint the board background. The background is always the paper
+                            color, so you cannot change it. A cell can have more than one color, for example color 1
+                            and the background. If you change a color, the cells that have it change too.
                         </div>
                         <div className="settings-palette">
                             {settings.markColors.map((color, i) => (
@@ -82,8 +82,8 @@ export default function Settings() {
                     <div>
                         <div className="settings-row-title">Lock zoom by default</div>
                         <div className="settings-row-desc">
-                            Start every board with the zoom/pan toolbar locked, ignoring wheel, pinch, and the
-                            fit-to-screen button until unlocked.
+                            Start each board with the zoom toolbar locked. A locked toolbar ignores the wheel, pinch,
+                            and fit-to-screen button until you unlock it.
                         </div>
                     </div>
                     <input
@@ -98,8 +98,7 @@ export default function Settings() {
                         <div>
                             <div className="settings-row-title">Install app</div>
                             <div className="settings-row-desc">
-                                Add this to your device as its own app. It opens without the browser bar and works
-                                offline.
+                                Add this app to your device. It opens without the browser bar. It works offline.
                             </div>
                         </div>
                         <button type="button" className="btn btn-sm" onClick={install}>

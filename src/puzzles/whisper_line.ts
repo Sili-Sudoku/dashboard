@@ -48,7 +48,7 @@ export const whisperLinePuzzle: PuzzleDefinition = {
         title: "Whisper Line (ad-hoc variant)",
         author: "runtime demo",
         description:
-            "The green line is a German-Whispers line — but it is not a built-in feature. Its rule is the primitive constraints written directly in this puzzle's JSON.",
+            "The green line is a German Whispers line. It is not a built-in feature. Its rule is primitive constraints in the JSON of this puzzle.",
         difficulty: "medium",
         tags: ["sudoku", "german-whispers", "primitive-variant"],
     },

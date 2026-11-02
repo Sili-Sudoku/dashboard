@@ -120,7 +120,7 @@ export const OPERATOR_SIGNATURES: readonly OperatorSignature[] = [
         returns: "num",
         args: [
             { label: "Among", kind: "cells" },
-            { label: "Where (use $ for the cell's value)", kind: "bool", bindsEach: true },
+            { label: "Where (use $ for the value of the cell)", kind: "bool", bindsEach: true },
         ],
     },
     {

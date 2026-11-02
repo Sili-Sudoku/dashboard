@@ -176,7 +176,7 @@ describe("CompositeGeometry", () => {
                     { id: "a", row: 0, col: 6, width: 4, height: 4 },
                 ],
             }),
-        ).toThrow(/both called/);
+        ).toThrow(/have the same id/);
         expect(() => createGeometry({ type: "composite", grids: [{ row: -1, col: 0, width: 4, height: 4 }] })).toThrow();
     });
 });

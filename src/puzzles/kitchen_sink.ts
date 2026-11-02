@@ -42,7 +42,7 @@ export const kitchenSink: PuzzleDefinition = {
         title: "Every Variant, One Grid",
         author: "runtime demo",
         description:
-            "Every registered constraint definition exercised once on a single board. Not a playable puzzle — see the file's header comment.",
+            "One board that uses every registered constraint definition once. This is not a playable puzzle. See the header comment of the file.",
         difficulty: "n/a",
         tags: [
             "sudoku",

@@ -98,15 +98,15 @@ const decodePayload = (payload: string): string | Error => {
             const bytes = fromBase64Url(payload.slice(1));
             return new TextDecoder().decode(inflateRaw(bytes));
         } catch (err) {
-            return new Error(`could not inflate SudokuMaker payload: ${err instanceof Error ? err.message : String(err)}`);
+            return new Error(`cannot inflate the SudokuMaker data:  ${err instanceof Error ? err.message : String(err)}`);
         }
     }
     if (payload.startsWith("N")) {
         const decompressed = decompressFromEncodedURIComponent(payload.slice(1));
-        if (!decompressed) return new Error("could not decode legacy (lz-string) SudokuMaker payload");
+        if (!decompressed) return new Error("cannot decode the old (lz-string) SudokuMaker data");
         return decompressed;
     }
-    return new Error(`unrecognized SudokuMaker payload prefix "${payload[0] ?? ""}"`);
+    return new Error(`unknown SudokuMaker data prefix "${payload[0] ?? ""}"`);
 };
 
 // --- cell / edge id helpers ------------------------------------------------
@@ -198,12 +198,12 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
         return new Error("puzzle width/height must be positive integers");
     }
     if (!Number.isInteger(minDigit) || !Number.isInteger(maxDigit) || maxDigit < minDigit) {
-        return new Error("puzzle minDigit/maxDigit must be integers with maxDigit >= minDigit");
+        return new Error("puzzle minDigit and maxDigit must be integers. maxDigit must not be less than minDigit");
     }
 
     const cellsRaw = src.cells;
     if (!Array.isArray(cellsRaw) || cellsRaw.length !== width * height) {
-        return new Error(`"cells" must be an array of length width*height (${width * height})`);
+        return new Error(`"cells" must be an array with width*height items (${width * height})`);
     }
 
     const warnings: string[] = [];
@@ -254,9 +254,9 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     regions = named;
                     sudokuRef = { use: "sudoku", boxes: false, extraRegions: Object.keys(named).sort() };
                     warnings.push(
-                        "regions are not a uniform rectangular tiling (jigsaw sudoku); the box constraint is " +
-                            "correct, but the renderer currently always draws rectangular box lines from the " +
-                            "grid's dimensions (see kanban #55), so the drawn grid lines won't match these " +
+                        "regions are not a uniform rectangular tiling (jigsaw sudoku). The box constraint is " +
+                            "correct. The renderer always draws rectangular box lines from the " +
+                            "grid size (see kanban #55). The drawn grid lines do not match these " +
                             "regions yet",
                     );
                 }
@@ -269,7 +269,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 const cellIds = Array.isArray(c.cells) ? (c.cells as unknown[]) : [];
                 for (const id of cellIds) {
                     if (typeof id !== "number") {
-                        warnings.push(`${use} marker with an unrecognized cell id was skipped`);
+                        warnings.push(`the importer skipped a ${use} marker with an unknown cell id`);
                         continue;
                     }
                     constraints.push({ use, cell: idToCell(id, width) });
@@ -283,8 +283,8 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 const negative = Array.isArray(c.negative) ? (c.negative as unknown[]) : [];
                 if (negative.length > 0) {
                     warnings.push(
-                        `${use} "negative" constraints (asserting no other such relationship exists ` +
-                            "anywhere else) are not supported and were ignored",
+                        `${use} "negative" constraints say that no other such relationship exists ` +
+                            "anywhere else. The importer does not support this and ignores it",
                     );
                 }
                 const clues = Array.isArray(c.clues) ? (c.clues as unknown[]) : [];
@@ -292,12 +292,12 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     const edge = (clue as { edge?: unknown })?.edge;
                     const value = (clue as { value?: unknown })?.value;
                     if (typeof edge !== "number") {
-                        warnings.push(`${use} clue with a missing edge id was skipped`);
+                        warnings.push(`the importer skipped a ${use} clue with no edge id`);
                         continue;
                     }
                     const pair = edgeToCells(edge, width, height);
                     if (!pair) {
-                        warnings.push(`${use} clue with an unresolvable edge id was skipped`);
+                        warnings.push(`the importer skipped a ${use} clue with an invalid edge id`);
                         continue;
                     }
                     constraints.push({ use, cells: pair, ...(typeof value === "number" ? { value } : {}) });
@@ -309,7 +309,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 const thermos = Array.isArray(c.thermometers) ? (c.thermometers as unknown[]) : [];
                 for (const line of thermos) {
                     if (!Array.isArray(line) || line.length < 2 || !line.every((id) => typeof id === "number")) {
-                        warnings.push("thermometer with an unrecognized shape was skipped");
+                        warnings.push("the importer skipped a thermometer with an unknown shape");
                         continue;
                     }
                     constraints.push({ use: "thermometer", cells: (line as number[]).map((id) => idToCell(id, width)) });
@@ -322,7 +322,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 for (const cage of cages) {
                     const cellIds = (cage as { cells?: unknown })?.cells;
                     if (!Array.isArray(cellIds) || !cellIds.every((id) => typeof id === "number")) {
-                        warnings.push("killer cage with an unrecognized shape was skipped");
+                        warnings.push("the importer skipped a killer cage with an unknown shape");
                         continue;
                     }
                     const sum = (cage as { value?: unknown })?.value;
@@ -341,14 +341,14 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     const bulbIdsRaw = (group as { bulbCells?: unknown })?.bulbCells;
                     const bulbIds = Array.isArray(bulbIdsRaw) ? (bulbIdsRaw as unknown[]) : [];
                     if (!bulbIds.every((id) => typeof id === "number")) {
-                        warnings.push("arrow with an unrecognized bulb was skipped");
+                        warnings.push("the importer skipped an arrow with an unknown bulb");
                         continue;
                     }
                     const bulb = (bulbIds as number[]).map((id) => idToCell(id, width));
                     const arrows = (group as { arrows?: unknown })?.arrows;
                     for (const line of Array.isArray(arrows) ? (arrows as unknown[]) : []) {
                         if (!Array.isArray(line) || line.length === 0 || !line.every((id) => typeof id === "number")) {
-                            warnings.push("arrow line with an unrecognized shape was skipped");
+                            warnings.push("the importer skipped an arrow line with an unknown shape");
                             continue;
                         }
                         const cells = (line as number[]).map((id) => idToCell(id, width));
@@ -360,7 +360,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                         const resolvedBulb = bulb.length > 0 ? bulb : [cells[0]];
                         const shaft = cells.slice(resolvedBulb.length);
                         if (shaft.length === 0) {
-                            warnings.push("arrow with an empty shaft was skipped");
+                            warnings.push("the importer skipped an arrow with an empty shaft");
                             continue;
                         }
                         constraints.push({
@@ -374,13 +374,13 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
             }
 
             default:
-                warnings.push(`constraint type ${c.type} is not supported by this importer and was ignored`);
+                warnings.push(`the importer does not support constraint type ${c.type} and ignores it`);
         }
     }
 
     if (sawGivensMarker) constraints.unshift(sudokuRef);
     else if (sawRegionsConstraint) {
-        warnings.push('a Regions constraint was present without the "normal sudoku rules" marker; applied as a box-only constraint');
+        warnings.push('the puzzle has a Regions constraint but no "normal sudoku rules" marker. The importer applies it as a box-only constraint');
         constraints.unshift(sudokuRef);
     }
 
@@ -393,7 +393,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
             solution = {};
             for (let i = 0; i < parsed.length; i++) solution[idToCell(i, width)] = parsed[i] as number;
         } else {
-            warnings.push('"export.sudokuPad.solution" was present but malformed; ignored');
+            warnings.push('"export.sudokuPad.solution" is present but not valid. The importer ignores it');
         }
     }
 
@@ -420,7 +420,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
 // --- export -------------------------------------------------------------
 
 export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error => {
-    if (def.geometry.type !== "grid") return new Error("only grid geometries can be exported to SudokuMaker");
+    if (def.geometry.type !== "grid") return new Error("SudokuMaker export supports only grid geometries");
     const { width, height } = def.geometry;
 
     const domain = [...def.domain.values].sort((a, b) => a - b);
@@ -428,7 +428,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
     const maxDigit = domain[domain.length - 1];
     const contiguous = domain.length === maxDigit - minDigit + 1 && domain.every((v, i) => v === minDigit + i);
     if (!contiguous) {
-        return new Error("SudokuMaker export requires a contiguous integer domain (minDigit..maxDigit)");
+        return new Error("SudokuMaker export needs a contiguous integer domain (minDigit..maxDigit)");
     }
 
     const warnings: string[] = [];
@@ -485,7 +485,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
 
     for (const spec of def.constraints) {
         if (!isDefinitionRef(spec)) {
-            warnings.push("a hand-written primitive constraint cannot be represented in SudokuMaker export; dropped");
+            warnings.push("SudokuMaker export cannot represent a hand-written primitive constraint. The exporter drops it");
             continue;
         }
         const { use, ...params } = spec;
@@ -494,14 +494,14 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
         if (use === "killer") {
             const ids = exportIds(params.cells as CellId[]);
             if (!ids) {
-                warnings.push("killer cage with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a killer cage with a non-grid cell id");
                 continue;
             }
             cages.push({ cells: ids, ...(typeof params.sum === "number" ? { value: params.sum } : {}) });
         } else if (use === "thermometer") {
             const ids = exportIds(params.cells as CellId[]);
             if (!ids) {
-                warnings.push("thermometer with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped a thermometer with a non-grid cell id");
                 continue;
             }
             thermometers.push(ids);
@@ -511,7 +511,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             const bulbIds = exportIds(bulbCells);
             const shaftIds = exportIds(params.cells as CellId[]);
             if (!bulbIds || !shaftIds) {
-                warnings.push("arrow with a non-grid cell id was skipped");
+                warnings.push("the exporter skipped an arrow with a non-grid cell id");
                 continue;
             }
             bulbsWithArrows.push({ bulbCells: bulbIds, arrows: [[...bulbIds, ...shaftIds]] });
@@ -519,7 +519,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             const pair = params.cells as CellId[];
             const edge = Array.isArray(pair) && pair.length === 2 ? cellsToEdge(pair[0], pair[1], width) : undefined;
             if (edge === undefined) {
-                warnings.push(`${use} with cells that aren't orthogonally adjacent grid cells was skipped`);
+                warnings.push(`the exporter skipped a ${use} with cells that are not orthogonally adjacent grid cells`);
                 continue;
             }
             const clue = { edge, ...(typeof params.value === "number" ? { value: params.value } : {}) };
@@ -528,12 +528,12 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
             const id = typeof raw === "string" ? cellToId(raw, width) : undefined;
             if (id === undefined) {
-                warnings.push(`${use} marker with a non-grid cell id was skipped`);
+                warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
                 continue;
             }
             (use === "odd" ? odd : even).push(id);
         } else {
-            warnings.push(`constraint using definition "${use}" cannot be represented in SudokuMaker export; dropped`);
+            warnings.push(`SudokuMaker export cannot represent the constraint that uses definition "${use}". The exporter drops it`);
         }
     }
 

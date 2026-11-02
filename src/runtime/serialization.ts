@@ -146,7 +146,7 @@ export const decodePuzzle = (encoded: string): PuzzleDefinition | Error => {
         const json = new TextDecoder().decode(fromBase64Url(payload));
         return parsePuzzle(json);
     } catch (err) {
-        return new Error(`could not decode puzzle: ${err instanceof Error ? err.message : String(err)}`);
+        return new Error(`cannot decode puzzle:  ${err instanceof Error ? err.message : String(err)}`);
     }
 };
 

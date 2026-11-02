@@ -16,11 +16,11 @@ export const disjointgroups: ConstraintDefinition = (_params, ctx): DefinitionOu
         groups.push([...g]);
     }
     if (groups.length === 0) {
-        return new Error("disjointgroups: geometry has no box regions to pair positions across");
+        return new Error("disjointgroups: the geometry has no box regions to pair positions");
     }
     const size = groups[0].length;
     if (groups.some((g) => g.length !== size)) {
-        return new Error("disjointgroups: box regions are not uniform in size");
+        return new Error("disjointgroups: box regions are not the same size");
     }
 
     const constraints: EmittedConstraint[] = [];

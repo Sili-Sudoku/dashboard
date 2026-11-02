@@ -116,7 +116,7 @@ export function Slot({ rule, path, spec }: SlotProps) {
                     <input
                         type="text"
                         aria-label={`${spec.label} region`}
-                        placeholder="or a region, e.g. row:0"
+                        placeholder="or a region, for example row:0"
                         value={node.selector}
                         onChange={(e) => rule.set(path, { ...node, selector: e.target.value })}
                     />
@@ -175,14 +175,14 @@ export default function RuleEditor({ rule }: { rule: RuleControls }) {
     return (
         <div className="visual-builder-form rule-editor" aria-label="Custom rule">
             <p className="author-hint">
-                Build a rule from parts: pick what it checks, then fill each slot. Cell slots take whatever you select
-                on the board.
+                Build a rule from parts. Pick what it checks, then fill each slot. Cell slots use the cells that you
+                select on the board.
             </p>
             <label className="visual-builder-param">
                 Name
                 <input
                     type="text"
-                    placeholder="e.g. German whispers (optional)"
+                    placeholder="for example German whispers (optional)"
                     value={rule.name}
                     onChange={(e) => rule.setName(e.target.value)}
                 />

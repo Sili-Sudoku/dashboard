@@ -84,7 +84,7 @@ describe("importFPuzzles", () => {
         if (result instanceof Error) throw result;
 
         expect(result.warnings).toEqual([
-            '"negative" entry "not-a-real-kind" is not a recognized kind and was ignored',
+            'the importer ignored "negative" entry "not-a-real-kind" because it is not a known kind',
         ]);
 
         const negativeRatioRef = result.puzzle.constraints.find(
@@ -161,7 +161,7 @@ describe("importFPuzzles", () => {
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
         expect(result.warnings).toEqual([
-            "not every cell declares a region; box/region all-different constraint omitted",
+            "not every cell has a region. The importer omits the box/region all-different constraint",
         ]);
         expect(result.puzzle.geometry).toEqual({ type: "grid", width: 6, height: 6 });
 
@@ -509,7 +509,7 @@ describe("importFPuzzles: real f-puzzles.com share link", () => {
         expect(result.puzzle.metadata.author).toBe("Silical");
         expect(result.puzzle.geometry).toEqual({ type: "grid", width: 6, height: 6 });
         expect(result.warnings).toEqual([
-            "not every cell declares a region; box/region all-different constraint omitted",
+            "not every cell has a region. The importer omits the box/region all-different constraint",
         ]);
         expect(Object.keys(result.puzzle.givens ?? {})).toHaveLength(36);
 

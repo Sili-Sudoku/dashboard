@@ -154,7 +154,7 @@ export const usePuzzleSession = (
         else if (outcome === "mistake-value")
             toast("At least 1 digit entered is wrong", { kind: "error", key: CHECK_TOAST_KEY, duration: 2500 });
         else
-            toast("At least 1 note has eliminated the correct digit", {
+            toast("At least 1 note removes the correct digit", {
                 kind: "error",
                 key: CHECK_TOAST_KEY,
                 duration: 2500,
