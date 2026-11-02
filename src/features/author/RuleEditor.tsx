@@ -24,7 +24,7 @@ interface SlotProps {
     spec: SlotSpec;
 }
 
-function Slot({ rule, path, spec }: SlotProps) {
+export function Slot({ rule, path, spec }: SlotProps) {
     const node = getAt(rule.tree, path);
     const here = samePath(rule.path, path);
 

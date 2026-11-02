@@ -10,11 +10,18 @@ import {
     type AuthoringField,
     type AuthoringSchema,
 } from "@/authoring/schema.ts";
-import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
+import { describeExpr } from "@/authoring/rule_tree.ts";
+import { isDefinitionRef, type PuzzleDefinition, type PuzzleRule } from "@/runtime/puzzle.ts";
 import { drawsObjects } from "@/authoring/style_override.ts";
 import StyleEditor from "@/features/author/StyleEditor.tsx";
+import DynamicRuleEditor from "@/features/author/DynamicRuleEditor.tsx";
 import RuleEditor from "@/features/author/RuleEditor.tsx";
-import { FOG_TOOL, RULE_TOOL, isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
+import {
+    DYNAMIC_TOOL,
+    FOG_TOOL,
+    RULE_TOOL,
+    isGlobalPlaced, type VisualBuilderState,
+} from "@/features/author/use_visual_builder.ts";
 
 interface Props {
     def: PuzzleDefinition | undefined;
@@ -30,7 +37,7 @@ const PALETTE_GROUPS: { title: string; names: string[] }[] = [
     { title: "Cell marks", names: ["kropkiDifference", "kropkiRatio", "odd", "even", "minimum", "maximum", "xv"] },
     { title: "Whole grid", names: ["sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups"] },
     { title: "Hidden cells", names: [FOG_TOOL] },
-    { title: "Custom", names: [RULE_TOOL] },
+    { title: "Custom", names: [RULE_TOOL, DYNAMIC_TOOL] },
 ];
 
 /** Every tool the palette offers: each definition that declares a builder schema, plus fog (which edits the puzzle itself). */
@@ -40,6 +47,16 @@ interface PaletteTool {
 }
 const FOG_ENTRY: PaletteTool = { name: FOG_TOOL, label: "Fog" };
 const RULE_ENTRY: PaletteTool = { name: RULE_TOOL, label: "Custom rule" };
+const DYNAMIC_ENTRY: PaletteTool = { name: DYNAMIC_TOOL, label: "Dynamic rule" };
+
+/** One line for a dynamic rule: its name, the condition, and what it does. */
+const summarizeRule = (r: PuzzleRule): string => {
+    const effects = Object.entries(r.then)
+        .filter(([, v]) => v && v.length > 0)
+        .map(([k, v]) => `${k} ${(v as readonly string[]).join(", ")}`)
+        .join("; ");
+    return `${r.id ? `${r.id}: ` : ""}when ${describeExpr(r.when)} → ${effects}`;
+};
 
 /** Visual/drag-and-drop puzzle authoring (#54): a palette of definitions, a
  *  small param form per definition, and a list of already-placed constraints.
@@ -64,6 +81,7 @@ export default function VisualBuilder({ def, state }: Props) {
         setActiveField,
         addConstraint,
         removeConstraint,
+        removeRule,
         updateConstraint,
         removeTool,
     } = state;
@@ -85,15 +103,17 @@ export default function VisualBuilder({ def, state }: Props) {
     const used = new Set([
         ...def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [RULE_TOOL])),
         ...(def.fog ? [FOG_TOOL] : []),
+        ...(def.rules?.length ? [DYNAMIC_TOOL] : []),
     ]);
-    const tools: PaletteTool[] = [...AUTHORING_SCHEMAS, FOG_ENTRY, RULE_ENTRY];
+    const tools: PaletteTool[] = [...AUTHORING_SCHEMAS, FOG_ENTRY, RULE_ENTRY, DYNAMIC_ENTRY];
     const isQuick = (tool: PaletteTool) => pinned.has(tool.name) || used.has(tool.name);
     const hidden = tools.filter((tool) => !isQuick(tool));
     const quickCount = tools.length - hidden.length;
     const isFog = (tool: PaletteTool) => tool.name === FOG_TOOL;
     const startTool = (tool: PaletteTool) => {
         if (isFog(tool)) fog.start();
-        else if (tool.name === RULE_TOOL) rule.start();
+        else if (tool.name === RULE_TOOL) rule.start("constraint");
+        else if (tool.name === DYNAMIC_TOOL) rule.start("dynamic");
         else startPlacing(AUTHORING_SCHEMAS.find((s) => s.name === tool.name) as AuthoringSchema);
     };
     // The tools not in quick access, as the shared dropdown's items: each group's name is a
@@ -101,10 +121,12 @@ export default function VisualBuilder({ def, state }: Props) {
     const removeToolTitle = (tool: PaletteTool): string | undefined => {
         const count = isFog(tool)
             ? (def.fog?.hidden.length ?? 0)
-            : def.constraints.filter((c) =>
+            : tool.name === DYNAMIC_TOOL
+              ? (def.rules?.length ?? 0)
+              : def.constraints.filter((c) =>
                   tool.name === RULE_TOOL ? !isDefinitionRef(c) : isDefinitionRef(c) && c.use === tool.name,
               ).length;
-        const what = isFog(tool) ? "hidden cell" : "placed constraint";
+        const what = isFog(tool) ? "hidden cell" : tool.name === DYNAMIC_TOOL ? "rule" : "placed constraint";
         return count > 0
             ? `Remove from quick access and delete its ${count} ${what}${count === 1 ? "" : "s"} (undo brings them back)`
             : undefined;
@@ -147,7 +169,9 @@ export default function VisualBuilder({ def, state }: Props) {
                                                 isFog(tool)
                                                     ? fog.active
                                                     : tool.name === RULE_TOOL
-                                                      ? rule.active
+                                                      ? rule.active && rule.kind === "constraint"
+                                                      : tool.name === DYNAMIC_TOOL
+                                                        ? rule.active && rule.kind === "dynamic"
                                                       : activeSchema?.name === tool.name
                                             }
                                             disabled={placed}
@@ -243,7 +267,16 @@ export default function VisualBuilder({ def, state }: Props) {
                 </div>
             )}
 
-            {rule.active && <RuleEditor rule={rule} />}
+            {rule.active && rule.kind === "constraint" && <RuleEditor rule={rule} />}
+            {rule.active && rule.kind === "dynamic" && (
+                <DynamicRuleEditor
+                    rule={rule}
+                    constraintNames={def.constraints.flatMap((c) =>
+                        isDefinitionRef(c) ? [c.use] : "name" in (c as object) ? [String((c as { name: unknown }).name)] : [],
+                    )}
+                    onAdd={rule.addDynamic}
+                />
+            )}
 
             {activeSchema && (
                 <div className="visual-builder-form">
@@ -374,6 +407,21 @@ export default function VisualBuilder({ def, state }: Props) {
                     );
                 })}
             </ul>
+            {(def.rules?.length ?? 0) > 0 && (
+                <>
+                    <h3 className="visual-builder-heading">Dynamic rules ({def.rules?.length})</h3>
+                    <ul className="visual-builder-list">
+                        {def.rules?.map((r, i) => (
+                            <li key={i}>
+                                <span>{summarizeRule(r)}</span>
+                                <button type="button" aria-label="Remove dynamic rule" onClick={() => removeRule(i)}>
+                                    <X size={14} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
         </div>
     );
 }

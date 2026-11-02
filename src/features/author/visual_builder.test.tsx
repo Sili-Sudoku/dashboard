@@ -16,7 +16,7 @@ afterEach(() => {
     cleanup();
 });
 
-const ALL_TOOLS = [...AUTHORING_SCHEMAS.map((schema) => schema.name), "fog", "rule"];
+const ALL_TOOLS = [...AUTHORING_SCHEMAS.map((schema) => schema.name), "fog", "rule", "dynamic"];
 
 const basePuzzle: PuzzleDefinition = {
     version: 1,
@@ -437,6 +437,61 @@ describe("VisualBuilder custom rule tool (#127)", () => {
         expect(screen.getByText("1 = 1")).toBeTruthy();
         fireEvent.click(screen.getByLabelText(/Remove Custom rule/));
         expect(lastDef(onChange).constraints).toEqual([{ use: "antiknight" }]);
+        expect(onTools).toHaveBeenCalledWith([]);
+    });
+});
+
+describe("VisualBuilder dynamic rules (#167)", () => {
+    const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
+        onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;
+    const pick = (slot: string | RegExp, item: string) => {
+        fireEvent.click(screen.getByRole("button", { name: slot }));
+        fireEvent.click(within(screen.getByRole("menu")).getByText(item));
+    };
+
+    it("builds a when/then rule from the condition editor and effect targets", () => {
+        const puzzle: PuzzleDefinition = { ...basePuzzle, constraints: [{ use: "antiknight" }] };
+        const { onChange } = renderBuilder(puzzle, vi.fn(), ["dynamic"]);
+        fireEvent.click(screen.getByRole("button", { name: "Dynamic rule" }));
+        const add = screen.getByRole("button", { name: "Add dynamic rule" }) as HTMLButtonElement;
+        expect(add.disabled).toBe(true);
+
+        pick("Condition", "equals (=)");
+        pick("Left", "A number");
+        fireEvent.change(screen.getByLabelText("Left"), { target: { value: "1" } });
+        pick("Right", "A number");
+        fireEvent.change(screen.getByLabelText("Right"), { target: { value: "1" } });
+        expect(add.disabled).toBe(true); // no effect yet
+
+        pick("Add effect", "Reveal cells");
+        const input = screen.getByLabelText("Reveal cells: cells or regions");
+        fireEvent.change(input, { target: { value: "row:0, r2c2" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+        pick("Add effect", "Stop enforcing constraints");
+        pick("Stop enforcing constraints: pick a constraint", "antiknight");
+        fireEvent.change(screen.getByLabelText("Name"), { target: { value: " open-up " } });
+        expect(add.disabled).toBe(false);
+        fireEvent.click(add);
+
+        expect(lastDef(onChange).rules).toEqual([
+            { id: "open-up", when: ["==", 1, 1], then: { reveal: ["row:0", "r2c2"], disable: ["antiknight"] } },
+        ]);
+        expect(lastDef(onChange).constraints).toEqual(puzzle.constraints);
+    });
+
+    it("lists existing rules, removes one, and x on the tool takes all of them", () => {
+        const rules = [
+            { id: "a", when: ["==", 1, 1], then: { reveal: ["row:0"] } },
+            { when: ["==", 2, 2], then: { reveal: ["row:1"] } },
+        ] as PuzzleDefinition["rules"];
+        const puzzle: PuzzleDefinition = { ...basePuzzle, rules };
+        const { onChange, onTools } = renderBuilder(puzzle, vi.fn(), []);
+        expect(screen.getByText("a: when 1 = 1 → reveal row:0")).toBeTruthy();
+        fireEvent.click(screen.getAllByLabelText("Remove dynamic rule")[0]!);
+        expect(lastDef(onChange).rules).toEqual([rules![1]]);
+
+        fireEvent.click(screen.getByLabelText(/Remove Dynamic rule/));
+        expect(lastDef(onChange).rules).toBeUndefined();
         expect(onTools).toHaveBeenCalledWith([]);
     });
 });

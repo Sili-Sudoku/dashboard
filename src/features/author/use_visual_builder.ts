@@ -5,7 +5,13 @@ import { compilePuzzle } from "@/runtime/compile.ts";
 import { solve } from "@/runtime/solver.ts";
 
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";
-import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition, type VisualObject } from "@/runtime/puzzle.ts";
+import {
+    isDefinitionRef,
+    type ConstraintSpec,
+    type PuzzleDefinition,
+    type PuzzleRule,
+    type VisualObject,
+} from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import {
     buildConstraintParams,
@@ -30,7 +36,16 @@ export const FOG_TOOL = "fog";
 /** The custom-rule editor (#127) is a tool too: it builds one constraint from primitive operators. */
 export const RULE_TOOL = "rule";
 
+/** Dynamic rules (#72/#167): "when this holds, then …". Shares the custom-rule editor for its condition. */
+export const DYNAMIC_TOOL = "dynamic";
+
 /** The puzzle with no `fog` field at all (an empty one isn't the same as none). */
+const withoutRules = (def: PuzzleDefinition): PuzzleDefinition => {
+    const copy = { ...def };
+    delete copy.rules;
+    return copy;
+};
+
 const withoutFog = (def: PuzzleDefinition): PuzzleDefinition => {
     const copy = { ...def };
     delete copy.fog;
@@ -55,7 +70,9 @@ export interface FogControls {
 
 export interface RuleControls {
     active: boolean;
-    start: () => void;
+    /** What the tree being built becomes: a constraint (#127) or the condition of a dynamic rule (#167). */
+    kind: "constraint" | "dynamic";
+    start: (kind?: "constraint" | "dynamic") => void;
     /** The rule so far, with the board's live selection already in the slot being filled. */
     tree: RuleNode | null;
     /** The slot the board's selection flows into. */
@@ -66,10 +83,14 @@ export interface RuleControls {
     /** Replace the whole tree (adding or removing a variadic operator's slots). */
     replace: (tree: RuleNode | null) => void;
     complete: boolean;
+    /** The cells selected on the board right now, for effects that name cells (#167). */
+    selected: readonly CellId[];
     /** What the rule is called in the puzzle's list (blank: it is shown as its expression). */
     name: string;
     setName: (name: string) => void;
     add: () => void;
+    /** Add the tree as the `when` of a dynamic rule with these effects (its name becomes the rule's id). */
+    addDynamic: (then: PuzzleRule["then"]) => void;
 }
 
 export interface VisualBuilderState {
@@ -104,6 +125,7 @@ export interface VisualBuilderState {
     onBoardSelectionEnd: () => void;
     addConstraint: () => void;
     removeConstraint: (index: number) => void;
+    removeRule: (index: number) => void;
     /** Replace a placed constraint in place (its colour/style, #165), as one undoable step. */
     updateConstraint: (index: number, spec: ConstraintSpec) => void;
 }
@@ -254,7 +276,8 @@ export const useVisualBuilder = (
     const [ruleTree, setRuleTree] = useState<RuleNode | null>(null);
     const [rulePath, setRulePathState] = useState<Path>([]);
     const [ruleName, setRuleName] = useState("");
-    const ruleActive = rulePlacing && toolbox.tools.includes(RULE_TOOL);
+    const [ruleKind, setRuleKind] = useState<"constraint" | "dynamic">("constraint");
+    const ruleActive = rulePlacing && toolbox.tools.includes(ruleKind === "dynamic" ? DYNAMIC_TOOL : RULE_TOOL);
     const withSelection = (tree: RuleNode | null, path: Path): RuleNode | null => {
         const node = getAt(tree, path);
         if (node?.k === "cells" && node.selector.trim() === "") return setAt(tree, path, { ...node, cells: [...selection] });
@@ -264,7 +287,9 @@ export const useVisualBuilder = (
     const liveRule = ruleActive ? withSelection(ruleTree, rulePath) : ruleTree;
     const rule: RuleControls = {
         active: ruleActive,
-        start: () => {
+        kind: ruleKind,
+        start: (kind = "constraint") => {
+            setRuleKind(kind);
             setActiveSchema(undefined);
             setActiveFieldKeyState(undefined);
             setCellValues({});
@@ -283,6 +308,7 @@ export const useVisualBuilder = (
         },
         replace: setRuleTree,
         complete: isComplete(liveRule),
+        selected: [...selection],
         name: ruleName,
         setName: setRuleName,
         add: () => {
@@ -290,6 +316,15 @@ export const useVisualBuilder = (
             const name = ruleName.trim();
             const spec = name ? { rule: toExpr(liveRule), name } : toExpr(liveRule);
             onChange({ ...def, constraints: [...def.constraints, spec] });
+            setRuleName("");
+            setRuleTree(null);
+            setRulePathState([]);
+        },
+        addDynamic: (then) => {
+            if (!def || !liveRule || !isComplete(liveRule)) return;
+            const id = ruleName.trim();
+            const next: PuzzleRule = { ...(id ? { id } : {}), when: toExpr(liveRule), then };
+            onChange({ ...def, rules: [...(def.rules ?? []), next] });
             setRuleName("");
             setRuleTree(null);
             setRulePathState([]);
@@ -378,16 +413,22 @@ export const useVisualBuilder = (
         } else onChange(next);
     };
 
+    const removeRule = (index: number) => {
+        if (!def) return;
+        const rules = (def.rules ?? []).filter((_, i) => i !== index);
+        onChange(rules.length > 0 ? { ...def, rules } : withoutRules(def));
+    };
+
     const updateConstraint = (index: number, spec: ConstraintSpec) => {
         if (!def) return;
         onChange({ ...def, constraints: def.constraints.map((c, i) => (i === index ? spec : c)) });
     };
 
     const removeTool = (name: string) => {
-        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing) || (name === RULE_TOOL && rulePlacing)) {
+        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing) || ((name === RULE_TOOL || name === DYNAMIC_TOOL) && rulePlacing)) {
             cancelPlacing();
         }
-        if (name === RULE_TOOL) {
+        if (name === RULE_TOOL || name === DYNAMIC_TOOL) {
             setRuleName("");
             setRuleTree(null);
             setRulePathState([]);
@@ -398,8 +439,13 @@ export const useVisualBuilder = (
                 name === RULE_TOOL ? isDefinitionRef(c) : !(isDefinitionRef(c) && c.use === name),
             ),
         };
-        // Fog isn't a constraint: removing its tool takes the puzzle's `fog` field with it.
-        const next = stripped && name === FOG_TOOL ? withoutFog(stripped) : stripped;
+        // Fog and dynamic rules aren't constraints: removing their tool takes the puzzle's field with it.
+        const next =
+            stripped && name === FOG_TOOL
+                ? withoutFog(stripped)
+                : stripped && name === DYNAMIC_TOOL
+                  ? withoutRules(stripped)
+                  : stripped;
         toolbox.onChange(
             toolbox.tools.filter((t) => t !== name),
             next,
@@ -424,6 +470,7 @@ export const useVisualBuilder = (
         onBoardSelectionEnd,
         addConstraint,
         removeConstraint,
+        removeRule,
         updateConstraint,
     };
 };

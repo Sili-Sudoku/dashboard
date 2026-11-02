@@ -835,6 +835,34 @@
     background: var(--surface-alt);
     color: var(--ink);
 }
+.rule-effect {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem 0 0.2rem;
+    border-top: 1px dashed var(--line);
+}
+.rule-effect .author-hint {
+    margin: 0;
+}
+.rule-targets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rule-targets li {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.1rem 0.2rem 0.1rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-size: 0.85em;
+}
 
 /* Colour / dashed / opacity panel under a placed constraint (#165). */
 .visual-builder-list li > span:first-child {
