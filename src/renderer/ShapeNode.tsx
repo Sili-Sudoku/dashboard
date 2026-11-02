@@ -1,8 +1,70 @@
-import type { Shape } from "@/renderer/scene.ts";
+import { useId, type ReactNode } from "react";
+import type { ResolvedStyle, Shape } from "@/renderer/scene.ts";
+
+/** The tile for a named pattern, drawn in `color` and sized by `unit` (pixels per cell). */
+const patternTile = (name: NonNullable<ResolvedStyle["pattern"]>, color: string, unit: number): ReactNode => {
+    const t = unit * 0.25;
+    switch (name) {
+        case "stripes":
+            return (
+                <path
+                    d={`M ${-t / 4},${t / 4} l ${t / 2},${-t / 2} M 0,${t} l ${t},${-t} M ${t * 0.75},${t * 1.25} l ${t / 2},${-t / 2}`}
+                    stroke={color}
+                    strokeWidth={t / 4}
+                />
+            );
+        case "dots":
+            return <circle cx={t / 2} cy={t / 2} r={t / 5} fill={color} />;
+        case "checks":
+            return (
+                <>
+                    <rect width={t / 2} height={t / 2} fill={color} />
+                    <rect x={t / 2} y={t / 2} width={t / 2} height={t / 2} fill={color} />
+                </>
+            );
+        case "crosshatch":
+            return <path d={`M 0,0 L ${t},${t} M ${t},0 L 0,${t}`} stroke={color} strokeWidth={t / 8} />;
+    }
+};
+
+/** What to put in `fill`, plus the `<defs>` it refers to, when the style asks for a pattern or picture. */
+function useFill(s: ResolvedStyle): { fill: string; defs: ReactNode } {
+    const id = useId().replace(/:/g, "");
+    const unit = s.unit ?? 40;
+    if (s.image && s.bounds) {
+        const { x, y, w, h } = s.bounds;
+        return {
+            fill: `url(#${id})`,
+            defs: (
+                <defs>
+                    <pattern id={id} patternUnits="userSpaceOnUse" x={x} y={y} width={w} height={h}>
+                        <image href={s.image} x={0} y={0} width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+                    </pattern>
+                </defs>
+            ),
+        };
+    }
+    if (s.pattern) {
+        const color = s.fill === "none" ? s.stroke : s.fill;
+        const t = unit * 0.25;
+        return {
+            fill: `url(#${id})`,
+            defs: (
+                <defs>
+                    <pattern id={id} patternUnits="userSpaceOnUse" width={t} height={t}>
+                        {patternTile(s.pattern, color, unit)}
+                    </pattern>
+                </defs>
+            ),
+        };
+    }
+    return { fill: s.fill, defs: null };
+}
 
 /** One constraint graphic as SVG. Shared by the live Board and the static thumbnail renderer. */
 export default function ShapeNode({ shape }: { shape: Shape }) {
     const s = shape.style;
+    const { fill, defs } = useFill(s);
     const dash = s.dashed ? `${s.strokeWidth * 2} ${s.strokeWidth * 1.5}` : undefined;
 
     switch (shape.kind) {
@@ -20,38 +82,47 @@ export default function ShapeNode({ shape }: { shape: Shape }) {
             );
         case "polygon":
             return (
-                <polygon
-                    points={shape.points.map((p) => `${p.x},${p.y}`).join(" ")}
-                    fill={s.fill}
-                    fillOpacity={s.opacity}
-                    stroke={s.stroke}
-                    strokeWidth={s.strokeWidth}
-                />
+                <>
+                    {defs}
+                    <polygon
+                        points={shape.points.map((p) => `${p.x},${p.y}`).join(" ")}
+                        fill={fill}
+                        fillOpacity={s.opacity}
+                        stroke={s.stroke}
+                        strokeWidth={s.strokeWidth}
+                    />
+                </>
             );
         case "circle":
             return (
-                <circle
-                    cx={shape.cx}
-                    cy={shape.cy}
-                    r={shape.r}
-                    fill={s.fill}
-                    fillOpacity={s.opacity}
-                    stroke={s.stroke}
-                    strokeWidth={s.strokeWidth}
-                />
+                <>
+                    {defs}
+                    <circle
+                        cx={shape.cx}
+                        cy={shape.cy}
+                        r={shape.r}
+                        fill={fill}
+                        fillOpacity={s.opacity}
+                        stroke={s.stroke}
+                        strokeWidth={s.strokeWidth}
+                    />
+                </>
             );
         case "rect":
             return (
-                <rect
-                    x={shape.x}
-                    y={shape.y}
-                    width={shape.w}
-                    height={shape.h}
-                    fill={s.fill}
-                    fillOpacity={s.opacity}
-                    stroke={s.stroke}
-                    strokeWidth={s.strokeWidth}
-                />
+                <>
+                    {defs}
+                    <rect
+                        x={shape.x}
+                        y={shape.y}
+                        width={shape.w}
+                        height={shape.h}
+                        fill={fill}
+                        fillOpacity={s.opacity}
+                        stroke={s.stroke}
+                        strokeWidth={s.strokeWidth}
+                    />
+                </>
             );
         case "text":
             return (

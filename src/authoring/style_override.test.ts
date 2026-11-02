@@ -39,6 +39,14 @@ describe("style override helpers (#165)", () => {
         expect(withOverride(spec, { dashed: undefined })).toEqual({ ...thermo, style: { strokeWidth: 0.5 } });
     });
 
+    it("keeps a pattern and a picture exclusive", () => {
+        const striped = withOverride(thermo, { pattern: "stripes" });
+        expect(readOverride(striped).pattern).toBe("stripes");
+        const pic = withOverride(striped, { image: "data:image/png;base64,AA==" });
+        expect(readOverride(pic)).toMatchObject({ image: "data:image/png;base64,AA==", pattern: undefined });
+        expect(withOverride(pic, { image: undefined, pattern: undefined })).toEqual(thermo);
+    });
+
     it("knows which constraints draw something", () => {
         expect(drawsObjects(thermo, def)).toBe(true);
         expect(drawsObjects({ use: "sudoku" }, def)).toBe(false);

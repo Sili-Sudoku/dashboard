@@ -22,6 +22,7 @@ import {
     PUZZLE_FORMAT_VERSION,
     type CompiledConstraint,
     objectIds,
+    PATTERNS,
     type CompiledRule,
     type CompiledPuzzle,
     type ConstraintSpec,
@@ -307,6 +308,8 @@ const expandSpec = (
 };
 
 const STYLE_KEYS: Record<keyof VisualStyle, "string" | "number" | "boolean"> = {
+    pattern: "string",
+    image: "string",
     stroke: "string",
     fill: "string",
     strokeWidth: "number",
@@ -338,6 +341,12 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
             const expected = STYLE_KEYS[key as keyof VisualStyle];
             if (!expected) return new Error(`"${spec.use}": unknown style property "${key}"`);
             if (typeof value !== expected) return new Error(`"${spec.use}": style "${key}" must be a ${expected}`);
+            if (key === "pattern" && !(PATTERNS as readonly string[]).includes(value as string)) {
+                return new Error(`"${spec.use}": style "pattern" must be one of ${PATTERNS.join(", ")}`);
+            }
+            if (key === "image" && !isSafeImageUrl(value as string)) {
+                return new Error(`"${spec.use}": style "image" must be an https:, data:image/ or site-relative URL`);
+            }
         }
     }
 
@@ -354,6 +363,10 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
         return { ...o, style: { ...recoloured, ...(style as VisualStyle | undefined) } } as VisualObject;
     });
 };
+
+/** Pictures come from the web, an inline data: URL, or the site itself, never from a script or a file: URL. */
+export const isSafeImageUrl = (url: string): boolean =>
+    /^(https:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]|\/(?!\/))/i.test(url.trim());
 
 const visualCells = (obj: VisualObject): readonly CellId[] => {
     switch (obj.kind) {
@@ -379,6 +392,13 @@ const pointRefCells = (ref: PointRef): readonly CellId[] => {
 
 const validateObjects = (objects: readonly VisualObject[], geometry: Geometry): Error | undefined => {
     for (const obj of objects) {
+        const { image, pattern } = (obj.style ?? {}) as VisualStyle;
+        if (image !== undefined && (typeof image !== "string" || !isSafeImageUrl(image))) {
+            return new Error(`visual object "${obj.kind}": style "image" must be an https:, data:image/ or site-relative URL`);
+        }
+        if (pattern !== undefined && !(PATTERNS as readonly string[]).includes(pattern)) {
+            return new Error(`visual object "${obj.kind}": style "pattern" must be one of ${PATTERNS.join(", ")}`);
+        }
         for (const cell of visualCells(obj)) {
             if (!geometry.has(cell)) {
                 return new Error(`visual object "${obj.kind}" references unknown cell "${cell}"`);

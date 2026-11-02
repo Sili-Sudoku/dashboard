@@ -8,6 +8,23 @@ import { buildScene, cageOutline, describeObject, resolvePointRef, type SceneInp
 
 const geo = createGeometry({ type: "grid", width: 9, height: 9 });
 
+describe("pattern and image fills", () => {
+    it("carries the pattern and sizes it by the cell", () => {
+        const [shape] = describeObject({ kind: "rect", at: "r1c1", w: 1, h: 1, style: { pattern: "dots" } } as never, geo, 20);
+        expect(shape.style).toMatchObject({ pattern: "dots", unit: 20 });
+    });
+    it("fits a picture to the whole object, not each shape", () => {
+        const shapes = describeObject(
+            { kind: "region", cells: ["r1c1", "r1c2", "r2c1"], style: { image: "https://x.test/a.png" } } as never,
+            geo,
+            10,
+        );
+        const bounds = shapes[0].style.bounds;
+        expect(bounds).toEqual({ x: 0, y: 0, w: 20, h: 20 });
+        expect(shapes.every((s) => s.style.bounds === bounds)).toBe(true);
+    });
+});
+
 describe("scene geometry", () => {
     it("resolves point references to geometry units", () => {
         expect(resolvePointRef("r1c1", geo)).toEqual({ x: 0.5, y: 0.5 });

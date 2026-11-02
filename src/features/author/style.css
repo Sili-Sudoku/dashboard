@@ -872,3 +872,6 @@
     min-width: 0;
     accent-color: var(--ink);
 }
+.style-editor-problem {
+    color: var(--violated-line);
+}

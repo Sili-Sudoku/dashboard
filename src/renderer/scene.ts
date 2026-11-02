@@ -9,7 +9,7 @@
 
 import type { BoardLine, CellId, Geometry, Point } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
-import type { CompiledPuzzle, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
+import type { CompiledPuzzle, PatternName, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
 import type { EvaluationResult } from "@/runtime/evaluate.ts";
 import { MARK_COLOR_COUNT, resolveMarkColor } from "@/runtime/mark_colors.ts";
 import { parsePointKey, parseSegmentKey, type PenState } from "@/runtime/pen.ts";
@@ -102,6 +102,13 @@ export interface ResolvedStyle {
     dashed: boolean;
     opacity: number;
     z: number;
+    /** A repeating pattern or a picture in place of the plain colour (see `ShapeNode`). */
+    pattern?: PatternName;
+    image?: string;
+    /** Pixels per cell, so a pattern's tile scales with the board. Set when there is a pattern or image. */
+    unit?: number;
+    /** The box a picture is fitted to: the whole object's extent, not each of its cells. */
+    bounds?: { x: number; y: number; w: number; h: number };
 }
 
 export interface Scene {
@@ -384,6 +391,7 @@ const markInvalid = (shape: Shape): Shape => ({
         ...shape.style,
         stroke: "var(--violated-line)",
         fill: shape.style.fill === "none" ? "none" : "var(--violated-line)",
+        image: undefined, // a rule break reads as red, not as a picture
     },
 });
 
@@ -394,6 +402,8 @@ export const resolveStyle = (style: VisualStyle | undefined, fallback: Partial<R
     dashed: style?.dashed ?? fallback.dashed ?? false,
     opacity: style?.opacity ?? fallback.opacity ?? 1,
     z: style?.z ?? fallback.z ?? 0,
+    ...(style?.pattern ? { pattern: style.pattern } : {}),
+    ...(style?.image ? { image: style.image } : {}),
 });
 
 export const resolvePointRef = (ref: PointRef, geometry: Geometry): Point => {
@@ -407,10 +417,44 @@ const scalePoint = (p: Point, cellSize: number): Point => ({ x: p.x * cellSize, 
 const scaleStyle = (style: ResolvedStyle, cellSize: number): ResolvedStyle => ({
     ...style,
     strokeWidth: style.strokeWidth * cellSize,
+    ...(style.pattern || style.image ? { unit: cellSize } : {}),
 });
+
+/** The pixel box around a set of shapes, for fitting a picture to the whole object. */
+const extentOf = (shapes: readonly Shape[]): { x: number; y: number; w: number; h: number } | undefined => {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    const add = (x: number, y: number): void => {
+        xs.push(x);
+        ys.push(y);
+    };
+    for (const s of shapes) {
+        if (s.kind === "polyline" || s.kind === "polygon") s.points.forEach((p) => add(p.x, p.y));
+        else if (s.kind === "rect") {
+            add(s.x, s.y);
+            add(s.x + s.w, s.y + s.h);
+        }
+        else if (s.kind === "circle") {
+            add(s.cx - s.r, s.cy - s.r);
+            add(s.cx + s.r, s.cy + s.r);
+        }
+    }
+    if (xs.length === 0) return undefined;
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+};
 
 /** Turn one generic visual object into 1..n absolute-pixel shapes. */
 export const describeObject = (obj: VisualObject, geometry: Geometry, cellSize: number): Shape[] => {
+    const shapes = shapesOf(obj, geometry, cellSize);
+    // Every shape of one object shares one style record; a picture is fitted across all of them.
+    const style = shapes[0]?.style;
+    if (style?.image) style.bounds = extentOf(shapes);
+    return shapes;
+};
+
+const shapesOf = (obj: VisualObject, geometry: Geometry, cellSize: number): Shape[] => {
     const style = scaleStyle(resolveStyle(obj.style), cellSize);
 
     switch (obj.kind) {

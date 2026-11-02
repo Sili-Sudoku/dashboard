@@ -1,7 +1,21 @@
+import { useRef, useState } from "react";
+
+import { OverflowMenu } from "@/app/overflow_menu.tsx";
 import { readOverride, withOverride } from "@/authoring/style_override.ts";
+import { PATTERNS, type PatternName } from "@/runtime/puzzle.ts";
 
 /** A neutral green to start from: the colour input needs a real value to show once "Set colour" is pressed. */
 const STARTING_COLOR = "#3aa76d";
+
+/** Uploaded pictures are stored inside the puzzle JSON, so keep them small. */
+const MAX_IMAGE_BYTES = 150_000;
+
+const PATTERN_LABELS: Record<PatternName, string> = {
+    stripes: "Stripes",
+    dots: "Dots",
+    checks: "Checks",
+    crosshatch: "Crosshatch",
+};
 
 interface Props {
     spec: { use: string; [key: string]: unknown };
@@ -10,8 +24,24 @@ interface Props {
 
 /** Colour, dashed and opacity for one placed constraint (#165): the per-instance override from #132. */
 export default function StyleEditor({ spec, onChange }: Props) {
-    const { color, dashed, opacity } = readOverride(spec);
+    const { color, dashed, opacity, pattern, image } = readOverride(spec);
     const set = (patch: Parameters<typeof withOverride>[1]) => onChange(withOverride(spec, patch));
+    const fileRef = useRef<HTMLInputElement>(null);
+    const [problem, setProblem] = useState<string | null>(null);
+
+    const upload = (file: File | undefined): void => {
+        if (!file) return;
+        if (!/^image\/(png|jpeg|gif|webp|svg\+xml)$/.test(file.type))
+            return setProblem("Use a PNG, JPEG, GIF, WebP or SVG.");
+        if (file.size > MAX_IMAGE_BYTES) return setProblem("That picture is over 150 KB; use a smaller one.");
+        const reader = new FileReader();
+        reader.onload = () => {
+            setProblem(null);
+            set({ image: reader.result as string });
+        };
+        reader.readAsDataURL(file);
+    };
+    const clearFill = { label: "Plain", onSelect: (): void => set({ pattern: undefined, image: undefined }) };
     return (
         <div className="style-editor">
             <div className="style-editor-row">
@@ -38,6 +68,35 @@ export default function StyleEditor({ spec, onChange }: Props) {
                     </>
                 )}
             </div>
+            <div className="style-editor-row">
+                <span>Fill</span>
+                <OverflowMenu
+                    label="Fill"
+                    text={image ? "Picture" : pattern ? PATTERN_LABELS[pattern] : "Plain"}
+                    align="start"
+                    flat
+                    items={[
+                        clearFill,
+                        ...PATTERNS.map((p) => ({
+                            label: PATTERN_LABELS[p],
+                            onSelect: (): void => set({ pattern: p }),
+                        })),
+                        { label: "Upload picture…", onSelect: (): void => fileRef.current?.click() },
+                    ]}
+                />
+                <input
+                    ref={fileRef}
+                    type="file"
+                    hidden
+                    aria-label="Upload picture"
+                    accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                    onChange={(e) => {
+                        upload(e.target.files?.[0]);
+                        e.target.value = "";
+                    }}
+                />
+            </div>
+            {problem && <div className="style-editor-row style-editor-problem">{problem}</div>}
             <label className="style-editor-row">
                 <input
                     type="checkbox"

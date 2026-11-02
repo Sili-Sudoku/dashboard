@@ -21,6 +21,9 @@ export interface PuzzleMetadata {
     tags?: readonly string[];
 }
 
+export const PATTERNS = ["stripes", "dots", "checks", "crosshatch"] as const;
+export type PatternName = (typeof PATTERNS)[number];
+
 /** Style hints for visual objects. All optional; the renderer supplies defaults. */
 export interface VisualStyle {
     stroke?: string;
@@ -30,6 +33,10 @@ export interface VisualStyle {
     opacity?: number;
     /** Draw order within its layer; higher is on top. */
     z?: number;
+    /** Fill closed shapes (and paint lines) with a repeating pattern in the shape's own colour. */
+    pattern?: PatternName;
+    /** Fill with a picture instead (an https:, data:image/ or site-relative URL), cropped to cover the shape. */
+    image?: string;
 }
 
 /** A point referenced by a visual object: a cell centre, a cell corner, or raw grid coords. */

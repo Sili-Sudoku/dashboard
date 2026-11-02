@@ -207,6 +207,12 @@ know about it:
 { "use": "thermometer", "cells": ["r2c1","r2c2"], "style": { "opacity": 1, "dashed": true } }
 ```
 
+`style` may also fill filled shapes (circles, rects, polygons, regions) with a
+`pattern` (`stripes`, `dots`, `checks`, `crosshatch`; drawn in the fill colour)
+or an `image` (an `https:`, `data:image/…` or site-relative URL, fitted to the
+whole object). Set one or the other. Anything else is a compile error, so an
+imported puzzle cannot make the page load an arbitrary scheme.
+
 Built-in definitions: `sudoku`, `thermometer`, `killer`, `arrow`,
 `kropkiDifference`, `kropkiRatio`, `odd`, `even` (`src/definitions/`).
 

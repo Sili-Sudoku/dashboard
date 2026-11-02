@@ -197,3 +197,22 @@ describe("named rules", () => {
         expect(compilePuzzle({ ...base, constraints: [{ rule: ["nope", 1], name: "x" }] })).toBeInstanceOf(Error);
     });
 });
+
+describe("pattern and image styles", () => {
+    const withStyle = (style: Record<string, unknown>): PuzzleDefinition => ({
+        ...base,
+        constraints: [{ use: "demo", style }],
+    });
+    const defs = fakeRegistry;
+
+    it("accepts a known pattern and safe image URLs", () => {
+        for (const style of [{ pattern: "dots" }, { image: "https://x.test/a.png" }, { image: "data:image/png;base64,AA==" }, { image: "/a.png" }]) {
+            expect(compilePuzzle(withStyle(style), defs)).not.toBeInstanceOf(Error);
+        }
+    });
+    it("rejects an unknown pattern and unsafe image URLs", () => {
+        for (const style of [{ pattern: "plaid" }, { image: "javascript:alert(1)" }, { image: "//evil.test/a.png" }, { image: "http://x.test/a.png" }]) {
+            expect(compilePuzzle(withStyle(style), defs)).toBeInstanceOf(Error);
+        }
+    });
+});

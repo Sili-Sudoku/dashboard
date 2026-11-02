@@ -7,12 +7,15 @@
 
 import { definitions } from "@/definitions/index.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
-import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
+import { isDefinitionRef, PATTERNS, type ConstraintSpec, type PatternName, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 export interface StyleOverride {
     color?: string;
     dashed?: boolean;
     opacity?: number;
+    pattern?: PatternName;
+    /** A picture filling the shape: a data: URL when uploaded in the builder. Excludes `pattern`. */
+    image?: string;
 }
 
 type Ref = { use: string; [key: string]: unknown };
@@ -29,6 +32,8 @@ export const readOverride = (spec: ConstraintSpec): StyleOverride => {
         color: typeof spec.color === "string" ? spec.color : undefined,
         dashed: typeof style.dashed === "boolean" ? style.dashed : undefined,
         opacity: typeof style.opacity === "number" ? style.opacity : undefined,
+        pattern: PATTERNS.find((p) => p === style.pattern),
+        image: typeof style.image === "string" ? style.image : undefined,
     };
 };
 
@@ -37,7 +42,10 @@ export const withOverride = (spec: Ref, patch: Partial<Record<keyof StyleOverrid
     const { color, style: _style, ...rest } = spec;
     void _style;
     const nextStyle: Record<string, unknown> = { ...styleOf(spec) };
-    for (const key of ["dashed", "opacity"] as const) {
+    // A pattern and a picture both replace the fill, so choosing one drops the other.
+    const exclusive = patch.pattern !== undefined ? "image" : patch.image !== undefined ? "pattern" : undefined;
+    if (exclusive) delete nextStyle[exclusive];
+    for (const key of ["dashed", "opacity", "pattern", "image"] as const) {
         if (!(key in patch)) continue;
         if (patch[key] === undefined) delete nextStyle[key];
         else nextStyle[key] = patch[key];
