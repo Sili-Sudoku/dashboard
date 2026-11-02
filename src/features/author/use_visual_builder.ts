@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+import { toast } from "@/app/toast.ts";
+import { compilePuzzle } from "@/runtime/compile.ts";
+import { solve } from "@/runtime/solver.ts";
+
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";
 import { isDefinitionRef, type PuzzleDefinition, type VisualObject } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -19,7 +23,34 @@ export interface Toolbox {
     onChange: (tools: readonly string[], def?: PuzzleDefinition) => void;
 }
 
+/** Fog (#129) is a tool like the others, but it edits a puzzle-level field rather than adding a constraint. */
+export const FOG_TOOL = "fog";
+
+/** The puzzle with no `fog` field at all (an empty one isn't the same as none). */
+const withoutFog = (def: PuzzleDefinition): PuzzleDefinition => {
+    const copy = { ...def };
+    delete copy.fog;
+    return copy;
+};
+
+export interface FogControls {
+    /** The fog tool is the one being used: a drag on the board hides (or reveals) the cells it covers. */
+    active: boolean;
+    start: () => void;
+    hidden: readonly CellId[];
+    /** A drag reveals cells instead of hiding them. */
+    reveal: boolean;
+    setReveal: (reveal: boolean) => void;
+    /** Fog reveals cells as they're solved, so a puzzle can only declare it once it has a `solution`. */
+    hasSolution: boolean;
+    /** Runs the solver and stores the solution it finds in the puzzle (one undoable step). */
+    findSolution: () => Promise<void>;
+    finding: boolean;
+    clear: () => void;
+}
+
 export interface VisualBuilderState {
+    fog: FogControls;
     /** Names of the tools pinned to quick access. */
     tools: readonly string[];
     pinTool: (name: string) => void;
@@ -116,7 +147,7 @@ export const useVisualBuilder = (
     // can't yet produce from a partial selection (e.g. thermometer needs 2+ cells)
     // just yields no preview rather than an error, which the renderer already treats
     // as "draw nothing for this one".
-    const previewObjects: readonly VisualObject[] = (() => {
+    const toolPreview: readonly VisualObject[] = (() => {
         if (!def || !activeSchema) return [];
         const definition = definitions[activeSchema.name];
         if (!definition) return [];
@@ -127,6 +158,70 @@ export const useVisualBuilder = (
         return output.objects ?? [];
     })();
 
+    // The fogged cells are tinted on the board while authoring, so you can see where the fog is even
+    // before the puzzle has a solution to reveal it against (the real fog needs one to show at all).
+    const previewObjects: readonly VisualObject[] =
+        def?.fog?.hidden.length
+            ? [
+                  ...toolPreview,
+                  {
+                      kind: "region",
+                      cells: def.fog.hidden,
+                      style: { fill: "var(--fog-line)", stroke: "none", opacity: 0.4, z: 5 },
+                  },
+              ]
+            : toolPreview;
+
+    // Fog (#129): picking the tool makes board drags hide cells (or reveal them) rather than fill a
+    // constraint's fields. Like any tool it only counts while it's in the toolbox or the puzzle has fog.
+    const [fogPlacing, setFogPlacing] = useState(false);
+    const [reveal, setReveal] = useState(false);
+    const fogActive = fogPlacing && (toolbox.tools.includes(FOG_TOOL) || !!def?.fog);
+    const setFog = (hidden: readonly CellId[]) => {
+        if (!def) return;
+        onChange(hidden.length > 0 ? { ...def, fog: { hidden } } : withoutFog(def));
+    };
+    const [finding, setFinding] = useState(false);
+    const findSolution = async () => {
+        if (!def || finding) return;
+        const compiled = compilePuzzle(def, definitions, { validateSolution: false });
+        if (compiled instanceof Error) {
+            toast(compiled.message, { kind: "error", key: "fog-solution" });
+            return;
+        }
+        setFinding(true);
+        const found = await solve(compiled);
+        setFinding(false);
+        if (!found.solution) {
+            toast(
+                found.status === "none" ? "No solution: the givens conflict." : "Timed out looking for a solution.",
+                { kind: "error", key: "fog-solution" },
+            );
+            return;
+        }
+        onChange({ ...def, solution: found.solution });
+        if (found.status === "multiple") {
+            toast("The puzzle has several solutions; the first one found is used.", { kind: "info", key: "fog-solution" });
+        }
+    };
+    const fogHidden = def?.fog?.hidden ?? [];
+    const fog: FogControls = {
+        active: fogActive,
+        start: () => {
+            setActiveSchema(undefined);
+            setActiveFieldKeyState(undefined);
+            setCellValues({});
+            setFogPlacing(true);
+        },
+        hidden: fogHidden,
+        reveal,
+        setReveal,
+        hasSolution: !!def?.solution && Object.keys(def.solution).length > 0,
+        findSolution,
+        finding,
+        clear: () => setFog([]),
+    };
+
     const commit = (schema: AuthoringSchema, values: Readonly<Record<string, FieldValue>>) => {
         if (!def) return;
         const params = buildConstraintParams(schema, values);
@@ -136,6 +231,7 @@ export const useVisualBuilder = (
     };
 
     const startPlacing = (schema: AuthoringSchema) => {
+        setFogPlacing(false);
         setCellValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
@@ -149,6 +245,7 @@ export const useVisualBuilder = (
     };
 
     const cancelPlacing = () => {
+        setFogPlacing(false);
         setActiveSchema(undefined);
         setActiveFieldKeyState(undefined);
         setCellValues({});
@@ -168,6 +265,15 @@ export const useVisualBuilder = (
     };
 
     const onBoardSelectionEnd = () => {
+        if (fogActive) {
+            if (selection.size === 0 || !fog.hasSolution) return;
+            setFog(
+                reveal
+                    ? fogHidden.filter((c) => !selection.has(c))
+                    : [...new Set([...fogHidden, ...selection])],
+            );
+            return;
+        }
         if (!activeSchema || !activeFieldKey) return;
         if (!isSchemaComplete(activeSchema, effectiveValues)) return;
         commit(activeSchema, effectiveValues);
@@ -193,11 +299,13 @@ export const useVisualBuilder = (
     };
 
     const removeTool = (name: string) => {
-        if (activeSchema?.name === name) cancelPlacing();
-        const next = def && {
+        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing)) cancelPlacing();
+        const stripped = def && {
             ...def,
             constraints: def.constraints.filter((c) => !(isDefinitionRef(c) && c.use === name)),
         };
+        // Fog isn't a constraint: removing its tool takes the puzzle's `fog` field with it.
+        const next = stripped && name === FOG_TOOL ? withoutFog(stripped) : stripped;
         toolbox.onChange(
             toolbox.tools.filter((t) => t !== name),
             next,
@@ -205,6 +313,7 @@ export const useVisualBuilder = (
     };
 
     return {
+        fog,
         tools: toolbox.tools,
         pinTool,
         removeTool,

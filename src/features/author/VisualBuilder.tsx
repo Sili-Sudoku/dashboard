@@ -10,7 +10,7 @@ import {
     type AuthoringSchema,
 } from "@/authoring/schema.ts";
 import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
-import { isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
+import { FOG_TOOL, isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
 
 interface Props {
     def: PuzzleDefinition | undefined;
@@ -25,7 +25,15 @@ const PALETTE_GROUPS: { title: string; names: string[] }[] = [
     },
     { title: "Cell marks", names: ["kropkiDifference", "kropkiRatio", "odd", "even", "minimum", "maximum", "xv"] },
     { title: "Whole grid", names: ["sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups"] },
+    { title: "Hidden cells", names: [FOG_TOOL] },
 ];
+
+/** Every tool the palette offers: each definition that declares a builder schema, plus fog (which edits the puzzle itself). */
+interface PaletteTool {
+    name: string;
+    label: string;
+}
+const FOG_ENTRY: PaletteTool = { name: FOG_TOOL, label: "Fog" };
 
 /** Visual/drag-and-drop puzzle authoring (#54): a palette of definitions, a
  *  small param form per definition, and a list of already-placed constraints.
@@ -39,6 +47,7 @@ const PALETTE_GROUPS: { title: string; names: string[] }[] = [
  *  silently drop the rest" spirit as the f-puzzles importer (#66). */
 export default function VisualBuilder({ def, state }: Props) {
     const {
+        fog,
         activeSchema,
         activeFieldKey,
         fieldValues,
@@ -62,30 +71,39 @@ export default function VisualBuilder({ def, state }: Props) {
     // Quick access = what the author pinned, plus anything the puzzle's JSON already uses; every other
     // tool sits behind the "Add tool" dropdown.
     const pinned = new Set(state.tools);
-    const used = new Set(def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [])));
-    const isQuick = (schema: AuthoringSchema) => pinned.has(schema.name) || used.has(schema.name);
-    const hidden = AUTHORING_SCHEMAS.filter((schema) => !isQuick(schema));
-    const quickCount = AUTHORING_SCHEMAS.length - hidden.length;
+    const used = new Set([...def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [])), ...(def.fog ? [FOG_TOOL] : [])]);
+    const tools: PaletteTool[] = [...AUTHORING_SCHEMAS, FOG_ENTRY];
+    const isQuick = (tool: PaletteTool) => pinned.has(tool.name) || used.has(tool.name);
+    const hidden = tools.filter((tool) => !isQuick(tool));
+    const quickCount = tools.length - hidden.length;
+    const isFog = (tool: PaletteTool) => tool.name === FOG_TOOL;
+    const startTool = (tool: PaletteTool) => {
+        if (isFog(tool)) fog.start();
+        else startPlacing(AUTHORING_SCHEMAS.find((s) => s.name === tool.name) as AuthoringSchema);
+    };
     // The tools not in quick access, as the shared dropdown's items: each group's name is a
     // read-only heading row, then its tools. Picking one pins it and starts placing it.
-    const removeToolTitle = (schema: AuthoringSchema): string | undefined => {
-        const count = def.constraints.filter((c) => isDefinitionRef(c) && c.use === schema.name).length;
+    const removeToolTitle = (tool: PaletteTool): string | undefined => {
+        const count = isFog(tool)
+            ? (def.fog?.hidden.length ?? 0)
+            : def.constraints.filter((c) => isDefinitionRef(c) && c.use === tool.name).length;
+        const what = isFog(tool) ? "hidden cell" : "placed constraint";
         return count > 0
-            ? `Remove from quick access and delete its ${count} placed constraint${count === 1 ? "" : "s"} (undo brings them back)`
+            ? `Remove from quick access and delete its ${count} ${what}${count === 1 ? "" : "s"} (undo brings them back)`
             : undefined;
     };
 
     const addToolItems: MenuItem[] = PALETTE_GROUPS.flatMap((group) => {
-        const rest = hidden.filter((schema) => group.names.includes(schema.name));
+        const rest = hidden.filter((tool) => group.names.includes(tool.name));
         return rest.length === 0
             ? []
             : [
                   { label: group.title, info: true, onSelect: () => undefined },
-                  ...rest.map((schema) => ({
-                      label: schema.label.replace(/ \(global\)$/, ""),
+                  ...rest.map((tool) => ({
+                      label: tool.label.replace(/ \(global\)$/, ""),
                       onSelect: () => {
-                          state.pinTool(schema.name);
-                          startPlacing(schema);
+                          state.pinTool(tool.name);
+                          startTool(tool);
                       },
                   })),
               ];
@@ -94,44 +112,47 @@ export default function VisualBuilder({ def, state }: Props) {
     return (
         <div className="visual-builder">
             {PALETTE_GROUPS.map((group) => {
-                const tools = AUTHORING_SCHEMAS.filter((schema) => group.names.includes(schema.name));
-                const shown = tools.filter(isQuick);
+                const shown = tools.filter((tool) => group.names.includes(tool.name)).filter(isQuick);
                 if (shown.length === 0) return null;
                 return (
                     <section key={group.title} className="visual-builder-group" aria-label={group.title}>
                         <h3 className="visual-builder-heading">{group.title}</h3>
                         <div className="visual-builder-palette">
-                            {shown.map((schema) => (
-                                <div key={schema.name} className="visual-builder-tool">
-                                    <button
-                                        type="button"
-                                        className="btn btn-sm visual-builder-chip"
-                                        aria-pressed={activeSchema?.name === schema.name}
-                                        disabled={isGlobalPlaced(def, schema)}
-                                        title={
-                                            isGlobalPlaced(def, schema)
-                                                ? "Already added — remove it from the list below to change it"
-                                                : undefined
-                                        }
-                                        onClick={() => startPlacing(schema)}
-                                    >
-                                        {/* "Whole grid" is already the section heading, and a placed rule is ticked. */}
-                                        {isGlobalPlaced(def, schema) && "✓ "}
-                                        {schema.label.replace(/ \(global\)$/, "")}
-                                    </button>
-                                    {(pinned.has(schema.name) || used.has(schema.name)) && (
+                            {shown.map((tool) => {
+                                const schema = AUTHORING_SCHEMAS.find((s) => s.name === tool.name);
+                                const placed = !!schema && isGlobalPlaced(def, schema);
+                                return (
+                                    <div key={tool.name} className="visual-builder-tool">
                                         <button
                                             type="button"
-                                            className="visual-builder-unpin"
-                                            aria-label={`Remove ${schema.label} from quick access`}
-                                            title={removeToolTitle(schema)}
-                                            onClick={() => removeTool(schema.name)}
+                                            className="btn btn-sm visual-builder-chip"
+                                            aria-pressed={isFog(tool) ? fog.active : activeSchema?.name === tool.name}
+                                            disabled={placed}
+                                            title={
+                                                placed
+                                                    ? "Already added — remove it from the list below to change it"
+                                                    : undefined
+                                            }
+                                            onClick={() => startTool(tool)}
                                         >
-                                            <X size={12} />
+                                            {/* "Whole grid" is already the section heading, and a placed rule is ticked. */}
+                                            {placed && "✓ "}
+                                            {tool.label.replace(/ \(global\)$/, "")}
                                         </button>
-                                    )}
-                                </div>
-                            ))}
+                                        {(pinned.has(tool.name) || used.has(tool.name)) && (
+                                            <button
+                                                type="button"
+                                                className="visual-builder-unpin"
+                                                aria-label={`Remove ${tool.label} from quick access`}
+                                                title={removeToolTitle(tool)}
+                                                onClick={() => removeTool(tool.name)}
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </section>
                 );
@@ -144,6 +165,57 @@ export default function VisualBuilder({ def, state }: Props) {
                     align="start"
                     items={addToolItems}
                 />
+            )}
+
+            {fog.active && (
+                <div className="visual-builder-form" aria-label="Fog">
+                    {fog.hasSolution ? (
+                        <p className="author-hint">
+                            {fog.reveal ? "Drag on the board to reveal cells." : "Drag on the board to hide cells until they're solved."}
+                            {fog.hidden.length > 0 &&
+                                ` ${fog.hidden.length} cell${fog.hidden.length === 1 ? " is" : "s are"} hidden.`}
+                        </p>
+                    ) : (
+                        <>
+                            <p className="author-hint">
+                                Fog reveals cells as they're solved, so the puzzle needs a solution first.
+                            </p>
+                            <div className="visual-builder-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-sm"
+                                    disabled={fog.finding}
+                                    onClick={() => void fog.findSolution()}
+                                >
+                                    {fog.finding ? "Solving…" : "Find solution"}
+                                </button>
+                            </div>
+                        </>
+                    )}
+                    {fog.hidden.length > 0 && (
+                        <label className="visual-builder-param">
+                            <input
+                                type="checkbox"
+                                checked={fog.reveal}
+                                onChange={(e) => fog.setReveal(e.target.checked)}
+                            />
+                            Reveal instead of hide
+                        </label>
+                    )}
+                    <div className="visual-builder-actions">
+                        <button
+                            type="button"
+                            className="btn btn-sm"
+                            disabled={fog.hidden.length === 0}
+                            onClick={fog.clear}
+                        >
+                            Clear fog
+                        </button>
+                        <button type="button" className="btn btn-sm" onClick={cancelPlacing}>
+                            Done
+                        </button>
+                    </div>
+                </div>
             )}
 
             {activeSchema && (

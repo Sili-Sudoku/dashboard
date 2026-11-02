@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useMemo, useState } from "react";
 
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
@@ -16,7 +16,7 @@ afterEach(() => {
     cleanup();
 });
 
-const ALL_TOOLS = AUTHORING_SCHEMAS.map((schema) => schema.name);
+const ALL_TOOLS = [...AUTHORING_SCHEMAS.map((schema) => schema.name), "fog"];
 
 const basePuzzle: PuzzleDefinition = {
     version: 1,
@@ -283,5 +283,85 @@ describe("VisualBuilder", () => {
         expect(onChange).toHaveBeenCalledTimes(1);
         const next = onChange.mock.calls[0][0] as PuzzleDefinition;
         expect(next.constraints).toEqual([{ use: "minimum", cell: "r2c2" }]);
+    });
+});
+
+describe("VisualBuilder fog tool (#129)", () => {
+    const solved = { ...basePuzzle, solution: { r1c1: 1 } };
+    const drag = (container: HTMLElement, from: number, to = from) => {
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        const svg = container.querySelector("svg.board") as SVGSVGElement;
+        fireEvent.pointerDown(cells[from]!);
+        if (to !== from) fireEvent.pointerEnter(cells[to]!);
+        fireEvent.pointerUp(svg);
+    };
+    const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
+        onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;
+    const pickFog = () => fireEvent.click(screen.getByRole("button", { name: "Fog" }));
+
+    it("is a tool like the rest: behind 'Add tool' until picked, then pinned and in use", () => {
+        const { onTools } = renderBuilder(solved, vi.fn(), []);
+        expect(screen.queryByRole("button", { name: "Fog" })).toBeNull();
+        fireEvent.click(screen.getByRole("button", { name: "Add tool" }));
+        const menu = screen.getByRole("menu");
+        expect(within(menu).getByText("Hidden cells")).toBeTruthy(); // its group heading
+        fireEvent.click(within(menu).getByText("Fog"));
+
+        expect(onTools).toHaveBeenCalledWith(["fog"]);
+        expect(screen.getByRole("button", { name: "Fog" }).getAttribute("aria-pressed")).toBe("true");
+        expect(screen.getByText(/Drag on the board to hide cells/)).toBeTruthy();
+    });
+
+    it("hides the cells you drag across, adding to any already hidden", () => {
+        const { container, onChange } = renderBuilder({ ...solved, fog: { hidden: ["r4c4"] } }, vi.fn(), ["fog"]);
+        pickFog();
+        drag(container, 0, 1); // r1c1, r1c2
+        expect(lastDef(onChange).fog).toEqual({ hidden: ["r4c4", "r1c1", "r1c2"] });
+    });
+
+    it("reveals cells instead when asked, and drops the fog field once none are left", () => {
+        const { container, onChange } = renderBuilder({ ...solved, fog: { hidden: ["r1c1", "r1c2"] } }, vi.fn(), ["fog"]);
+        pickFog();
+        fireEvent.click(screen.getByRole("checkbox", { name: "Reveal instead of hide" }));
+        drag(container, 0);
+        expect(lastDef(onChange).fog).toEqual({ hidden: ["r1c2"] });
+
+        cleanup();
+        const second = renderBuilder({ ...solved, fog: { hidden: ["r1c1"] } }, vi.fn(), ["fog"]);
+        pickFog();
+        fireEvent.click(screen.getByRole("checkbox", { name: "Reveal instead of hide" }));
+        drag(second.container, 0);
+        expect("fog" in lastDef(second.onChange)).toBe(false);
+    });
+
+    it("clears all fog", () => {
+        const { onChange } = renderBuilder({ ...solved, fog: { hidden: ["r1c1"] } }, vi.fn(), ["fog"]);
+        pickFog();
+        fireEvent.click(screen.getByRole("button", { name: "Clear fog" }));
+        expect("fog" in lastDef(onChange)).toBe(false);
+    });
+
+    it("needs a solution first: a drag does nothing, and Find solution stores the solver's", async () => {
+        const { container, onChange } = renderBuilder(basePuzzle, vi.fn(), ["fog"]);
+        pickFog();
+        expect(screen.getByText(/needs a solution first/)).toBeTruthy();
+        drag(container, 0);
+        expect(onChange).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", { name: "Find solution" }));
+        await waitFor(() => expect(onChange).toHaveBeenCalled());
+        expect(Object.keys(lastDef(onChange).solution ?? {})).toHaveLength(16);
+    });
+
+    it("x removes the tool and the fog it set, as one step", () => {
+        const { onChange, onTools } = renderBuilder({ ...solved, fog: { hidden: ["r2c2"] } }, vi.fn(), ["fog"]);
+        fireEvent.click(screen.getByLabelText("Remove Fog from quick access"));
+        expect(onTools).toHaveBeenCalledWith([]);
+        expect("fog" in lastDef(onChange)).toBe(false);
+    });
+
+    it("tints the fogged cells on the board while authoring", () => {
+        const { container } = renderBuilder({ ...solved, fog: { hidden: ["r2c2", "r3c3"] } }, vi.fn(), ["fog"]);
+        expect(container.querySelectorAll(".shapes rect").length).toBeGreaterThanOrEqual(2);
     });
 });
