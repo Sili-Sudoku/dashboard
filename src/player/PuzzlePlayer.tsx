@@ -125,6 +125,8 @@ export default function PuzzlePlayer({
         const sync = () => {
             const rect = (viewport ?? boardCol).getBoundingClientRect();
             root.style.setProperty("--pp-side-top", `${rect.top}px`);
+            // The distance from the grid bottom to the window bottom: the docked panel ends level with the grid.
+            root.style.setProperty("--pp-side-bottom", `${Math.max(0, window.innerHeight - rect.bottom)}px`);
             // Put the sidebar a fixed gap from the right edge of the grid, not at the edge of the window.
             // So the two look like one unit at any window width.
             // Never go further right than the window edge allows (the stacked layout ignores it).
@@ -271,7 +273,7 @@ export default function PuzzlePlayer({
         : [];
 
     return (
-        <div className="puzzle-player" ref={rootRef}>
+        <div className="puzzle-player" ref={rootRef} data-dock={settings.dockControlsBottom ? "bottom" : "top"}>
             <div className="pp-board-col" ref={boardColRef}>
                 <Board
                     label={`${puzzle.metadata.title}, puzzle board`}

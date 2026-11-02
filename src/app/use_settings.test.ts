@@ -16,6 +16,7 @@ describe("useSettings", () => {
             highlightSameValue: true,
             markColors: DEFAULT_MARK_COLORS,
             zoomLocked: false,
+            dockControlsBottom: false,
             constraintPanelOpen: true,
             hotkeyLegendOpen: false,
             authorEditorMode: "json",

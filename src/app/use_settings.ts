@@ -22,6 +22,8 @@ export interface Settings {
     highlightSameValue: boolean;
     /** Board: keep the lock of the zoom/pan toolbar engaged (ignore wheel/pinch/fit) across puzzles and reloads. */
     zoomLocked: boolean;
+    /** Player: put the side panel (number pad and controls) at the bottom of the window, not the top. */
+    dockControlsBottom: boolean;
     /* Remembered view state (#125): the open or closed state that the user left.
      * These are not preferences to configure. Unlike the two above, they have no Settings-page control.
      * These are NOT remembered on purpose: input mode, zoom/pan position, show-solution, and JSON view.
@@ -40,6 +42,7 @@ const DEFAULT_SETTINGS: Settings = {
     highlightSameValue: true,
     markColors: DEFAULT_MARK_COLORS,
     zoomLocked: false,
+    dockControlsBottom: false,
     constraintPanelOpen: true,
     hotkeyLegendOpen: false,
     authorEditorMode: "json",

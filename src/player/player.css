@@ -52,6 +52,29 @@
     gap: 0.8rem;
 }
 
+/* Setting "Dock the control panel at the bottom": the number pad sits at the foot of the window, near a thumb.
+   The Reference group goes above it and scrolls on its own. So the pad never scrolls out of reach.
+   Only the order on the screen changes. The DOM order, and so the tab order, stays the same.
+   The stacked layout (below) puts the panel under the board already, so this is only for the wide layout. */
+@media (min-width: 821px) {
+    .puzzle-player[data-dock="bottom"] .pp-side {
+        top: auto;
+        /* Level with the bottom of the grid (PuzzlePlayer.tsx measures it). */
+        bottom: var(--pp-side-bottom, 1.6rem);
+        max-height: calc(100vh - var(--pp-side-top, 0px) - var(--pp-side-bottom, 1.6rem));
+        overflow-y: hidden;
+        justify-content: flex-end;
+    }
+    .puzzle-player[data-dock="bottom"] .pp-reference {
+        order: -1;
+        min-height: 0;
+        overflow-y: auto;
+        /* Room for the focus outline, which the scroll box would clip. */
+        padding: var(--space-2) 4px 4px;
+        margin: 0 -4px;
+    }
+}
+
 /* Sidebar groups (#133), by purpose.
    The status strip (timer, solved) is bare on top.
    The solving controls are the main group, in a box.

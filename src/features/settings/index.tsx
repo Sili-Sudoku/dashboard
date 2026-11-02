@@ -44,6 +44,21 @@ export default function Settings() {
                     />
                 </label>
 
+                <label className="settings-row">
+                    <div>
+                        <div className="settings-row-title">Dock the control panel at the bottom</div>
+                        <div className="settings-row-desc">
+                            Put the number pad and controls at the bottom of the window, not the top. This is
+                            closer to your thumb on a tablet. On a narrow window, the panel is always below the board.
+                        </div>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={settings.dockControlsBottom}
+                        onChange={(e) => setSetting("dockControlsBottom", e.target.checked)}
+                    />
+                </label>
+
                 <div className="settings-row settings-row-static">
                     <div>
                         <div className="settings-row-title">Mark colors</div>

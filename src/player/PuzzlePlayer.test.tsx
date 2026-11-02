@@ -105,6 +105,17 @@ describe("<PuzzlePlayer />", () => {
         expect(entered[0].textContent).toBe("3");
     });
 
+    it("docks the side panel at the bottom when the setting is on", () => {
+        const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(container.querySelector(".puzzle-player")!.getAttribute("data-dock")).toBe("top");
+        cleanup();
+
+        localStorage.setItem("cpr:settings", JSON.stringify({ dockControlsBottom: true }));
+        const docked = render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(docked.container.querySelector(".puzzle-player")!.getAttribute("data-dock")).toBe("bottom");
+        localStorage.removeItem("cpr:settings");
+    });
+
     it("shows the rules panel by default, collapsed via its toggle", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         expect(container.querySelector(".cp-groups")).not.toBeNull();
