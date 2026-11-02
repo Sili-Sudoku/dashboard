@@ -102,6 +102,27 @@ export const cycleMark = (pen: PenState, point: PenPoint): PenState => {
     return { ...pen, marks };
 };
 
+/**
+ * The pen layer without what lies on the given cells. `cells` are zero-based `{ col, row }`.
+ * A cell covers its centre, the middles of its four edges and its four corners (a 3x3 block of lattice points).
+ * A mark goes if its point is in that block. A line piece goes if both its ends are.
+ * A piece or mark on an edge or corner that the cell shares goes too, with the neighbour's.
+ * It returns the same object if nothing was removed.
+ */
+export const erasePenInCells = (pen: PenState, cells: readonly { col: number; row: number }[]): PenState => {
+    const covers = (p: PenPoint) =>
+        cells.some(({ col, row }) => p.x >= 2 * col && p.x <= 2 * col + 2 && p.y >= 2 * row && p.y <= 2 * row + 2);
+    const segments = pen.segments.filter((s) => {
+        const [a, b] = parseSegmentKey(s);
+        return !(covers(a) && covers(b));
+    });
+    const marks = Object.fromEntries(Object.entries(pen.marks).filter(([key]) => !covers(parsePointKey(key))));
+    if (segments.length === pen.segments.length && Object.keys(marks).length === Object.keys(pen.marks).length) {
+        return pen;
+    }
+    return { segments, marks };
+};
+
 const MAX_COORD = 10_000;
 const validPoint = (p: PenPoint): boolean =>
     Number.isInteger(p.x) && Number.isInteger(p.y) && Math.abs(p.x) <= MAX_COORD && Math.abs(p.y) <= MAX_COORD;

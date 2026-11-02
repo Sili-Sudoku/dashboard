@@ -28,6 +28,7 @@ import {
     EMPTY_PEN,
     cycleMark,
     applyStroke,
+    erasePenInCells,
     isPenEmpty,
     sanitizePen,
     type PenPoint,
@@ -93,6 +94,11 @@ export interface SessionOptions {
  * The effect of a plain digit press (number pad click or keyboard digit).
  * In "color" mode, the digit selects a palette colour (1-based). It does not set a value.
  */
+/** A layer of a cell that Erase can clear. */
+type EraseLayer = "value" | "centerNotes" | "notes" | "colors" | "pen";
+/** The order in which Erase goes down the layers, after the layer of the active mode. The pen layer is the last link. */
+const ERASE_CHAIN: readonly EraseLayer[] = ["value", "centerNotes", "notes", "colors", "pen"];
+
 export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
 
 /**
@@ -654,44 +660,72 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Clears only the layer that matches the active `inputMode` (value / corner / center / colour). */
+    /**
+     * Peels one layer off the selected cells. It starts with the layer of the active `inputMode`
+     * (value / corner / center / colour). If the selected cells have nothing there, it goes on down
+     * the chain: value, centre notes, corner notes, colours, and last the pen. So repeated presses clear a cell
+     * fully, and each press is one undo step. The pen goes only where it lies on the selected cells (see
+     * `erasePenInCells`). In Pen mode, Erase still clears the whole pen layer, as the "Clear pen" button says. A selection of several cells peels the first layer that any
+     * of them has, from all of them at once.
+     */
     erase(): void {
         if (this.inputMode === "pen") return this.clearPen();
-        if (this.inputMode === "color") return this.eraseColors();
-        const cells = this.targets();
-        if (cells.length === 0) return;
+        const first: EraseLayer =
+            this.inputMode === "corner"
+                ? "notes"
+                : this.inputMode === "center"
+                  ? "centerNotes"
+                  : this.inputMode === "color"
+                    ? "colors"
+                    : "value";
+        const chain: EraseLayer[] = [first, ...ERASE_CHAIN.filter((layer) => layer !== first)];
+        for (const layer of chain) {
+            if (this.eraseLayer(layer)) return;
+        }
+    }
 
-        const field: "value" | "notes" | "centerNotes" =
-            this.inputMode === "corner" ? "notes" : this.inputMode === "center" ? "centerNotes" : "value";
-
-        const hasContent = cells.some((c) => {
+    /** Clears one layer of the selected cells. It returns false (and changes nothing) if they have nothing in it. */
+    private eraseLayer(layer: EraseLayer): boolean {
+        if (layer === "pen") {
+            // Only what lies on the selected cells. The rest of the pen drawing stays.
+            const cells = (this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : []).flatMap(
+                (id) => {
+                    const m = /^r(\d+)c(\d+)$/.exec(id);
+                    return m ? [{ row: Number(m[1]) - 1, col: Number(m[2]) - 1 }] : [];
+                },
+            );
+            const next = erasePenInCells(this.pen, cells);
+            if (next === this.pen) return false;
+            this.setPen(next);
+            return true;
+        }
+        // Colours also go on givens. The other layers never touch them.
+        const cells =
+            layer === "colors"
+                ? this.selection.size > 0
+                    ? [...this.selection]
+                    : this.cursor
+                      ? [this.cursor]
+                      : []
+                : this.targets();
+        const hasContent = (c: CellId) => {
             const s = this.board.get(c);
             if (!s) return false;
-            return field === "value" ? s.value !== null : s[field].length > 0;
-        });
-        if (!hasContent) return;
+            return layer === "value" ? s.value !== null : s[layer].length > 0;
+        };
+        if (!cells.some(hasContent)) return false;
 
         this.pushPatch(cells);
         this.checkArmed = false;
         for (const cell of cells) {
             const current = this.board.get(cell);
             if (!current) continue;
-            this.setOrDrop(cell, field === "value" ? { ...current, value: null } : { ...current, [field]: [] });
-            if (field === "value") this.incorrectCells.delete(cell);
+            this.setOrDrop(cell, layer === "value" ? { ...current, value: null } : { ...current, [layer]: [] });
+            if (layer === "value") this.incorrectCells.delete(cell);
         }
-        if (field === "value") this.markDirty(cells);
+        if (layer === "value") this.markDirty(cells);
         this.emit();
-    }
-
-    private eraseColors(): void {
-        const cells = this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : [];
-        if (!cells.some((c) => (this.board.get(c)?.colors.length ?? 0) > 0)) return;
-        this.pushPatch(cells);
-        for (const cell of cells) {
-            const current = this.board.get(cell);
-            if (current) this.setOrDrop(cell, { ...current, colors: [] });
-        }
-        this.emit();
+        return true;
     }
 
     undo(): void {

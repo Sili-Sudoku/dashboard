@@ -11,7 +11,10 @@ const SHORTCUTS: { keys: string; action: string }[] = [
     { keys: "Shift+digit", action: "toggle a corner note directly" },
     { keys: "Ctrl/Cmd+digit", action: "toggle a center note directly" },
     { keys: "Space", action: "switch between Digit and Corner mode" },
-    { keys: "Backspace / Delete", action: "erase the active layer (value, corner, center, or color)" },
+    {
+        keys: "Backspace / Delete",
+        action: "erase one layer of the cell: the active one first, then value, center, corner, color, pen on that cell",
+    },
     { keys: "Tab / Shift+Tab", action: "go to the next or previous empty cell (Tab past the last empty cell leaves the board)" },
     { keys: "Enter", action: "select each cell with the same value as the cursor cell" },
     { keys: "Ctrl+Z", action: "undo" },

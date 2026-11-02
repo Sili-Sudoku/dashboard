@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { PuzzleSession } from "@/runtime/session.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
+import { isPenEmpty } from "@/runtime/pen.ts";
 
 const compiled = (): CompiledPuzzle => {
     const result = compilePuzzle({
@@ -188,23 +189,84 @@ describe("PuzzleSession", () => {
         expect(session.cellState("r1c4")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
     });
 
-    it("erase only clears the layer matching the active input mode", () => {
+    it("erase starts with the layer of the active mode, then goes down the chain", () => {
         session.select("r1c2");
         session.toggleCornerNote(1);
         session.toggleCenterNote(2);
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2], colors: [] });
-
-        session.setInputMode("digit");
-        session.erase(); // no value to erase on the value layer
-        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [2], colors: [] });
-
         session.setInputMode("corner");
-        session.erase();
+        session.erase(); // the active layer first
         expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [2], colors: [] });
 
-        session.setInputMode("center");
+        session.erase(); // nothing left in corner notes: it goes on to the centre notes
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
+    });
+
+    it("erase peels value, centre notes, corner notes, then colours, one layer per press, from digit mode", () => {
+        session.select("r1c2");
+        session.setInputMode("color");
+        session.input(2);
+        session.toggleCornerNote(1);
+        session.toggleCenterNote(3);
+        session.setInputMode("digit");
+
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [1], centerNotes: [], colors: [1] });
+        session.erase();
+        expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [], colors: [1] });
         session.erase();
         expect(session.cellState("r1c2")).toEqual({ value: null, notes: [], centerNotes: [], colors: [] });
+        session.erase(); // nothing left: no new undo step
+        session.undo();
+        expect(session.cellState("r1c2").colors).toEqual([1]); // each press was one undo step
+    });
+
+    it("erase takes the pen layer last, and only what lies on the selected cells", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.penMark({ x: 3, y: 1 }); // the centre of r1c2
+        session.penMark({ x: 9, y: 9 }); // far away, in another cell
+        session.penStroke([
+            { x: 3, y: 1 },
+            { x: 4, y: 2 }, // a diagonal from the centre of r1c2 to its corner
+            { x: 5, y: 3 }, // and on into r2c3
+        ]);
+        session.setInputMode("digit");
+
+        session.erase();
+        expect(session.cellState("r1c2").notes).toEqual([]); // the cell's own layers go first
+        expect(session.getPen().marks).toEqual({ "3,1": "x", "9,9": "x" });
+
+        session.erase(); // now the pen on this cell
+        expect(session.getPen().marks).toEqual({ "9,9": "x" }); // the far mark stays
+        expect(session.getPen().segments).toEqual(["4,2|5,3"]); // the piece that leaves the cell stays
+
+        session.erase(); // nothing left on this cell: no change
+        expect(session.getPen().marks).toEqual({ "9,9": "x" });
+        session.undo();
+        expect(session.getPen().marks).toEqual({ "3,1": "x", "9,9": "x" });
+    });
+
+    it("Pen mode erase still clears the whole pen layer", () => {
+        session.select("r1c2");
+        session.penMark({ x: 9, y: 9 });
+        session.setInputMode("pen");
+        session.erase();
+        expect(isPenEmpty(session.getPen())).toBe(true);
+    });
+
+    it("erase on a selection peels the first layer that any selected cell has, from all of them", () => {
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.select("r1c3");
+        session.input(3);
+        session.select("r1c2", "add");
+        session.setInputMode("digit");
+
+        session.erase(); // r1c3 has a value, so that layer goes first. r1c2 keeps its note.
+        expect(session.cellState("r1c3").value).toBeNull();
+        expect(session.cellState("r1c2").notes).toEqual([1]);
+        session.erase();
+        expect(session.cellState("r1c2").notes).toEqual([]);
     });
 
     it("erase on the digit layer clears the value but leaves notes untouched", () => {

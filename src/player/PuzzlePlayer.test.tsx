@@ -239,7 +239,7 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".note")).toHaveLength(0);
     });
 
-    it("Erase clears only the layer matching the active pad mode", () => {
+    it("Erase peels the active pad layer first, then the layers below it", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         fireEvent.pointerDown(cells[1]); // empty cell
@@ -251,20 +251,12 @@ describe("<PuzzlePlayer />", () => {
 
         const erase = screen.getByRole("button", { name: /erase/i });
 
-        // digit mode: nothing to erase, both notes survive
-        fireEvent.click(screen.getByRole("button", { name: /^Digit$/ }));
-        fireEvent.click(erase);
-        expect(container.querySelectorAll(".note")).toHaveLength(1);
-        expect(container.querySelector(".note-center")?.textContent).toBe("2");
-
-        // center mode: only the centre note goes
-        fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
+        // centre mode: the centre note goes first, the corner note stays
         fireEvent.click(erase);
         expect(container.querySelectorAll(".note")).toHaveLength(1);
         expect(container.querySelector(".note-center")).toBeNull();
 
-        // corner mode: the surviving corner note goes too
-        fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
+        // the pad is still in centre mode, which has nothing left: the next press takes the corner note
         fireEvent.click(erase);
         expect(container.querySelectorAll(".note")).toHaveLength(0);
     });
