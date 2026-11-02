@@ -245,6 +245,18 @@
     font-weight: 700;
 }
 
+/* Digits and notes sit on top of the constraint lines (thermometers, arrows, whispers, ...). In the dark
+   theme a light digit on a mid-tone line is hard to read. A halo in the surface colour (painted under the glyph)
+   cuts the digit out of the line. */
+:root[data-theme="dark"] .board .digit,
+:root[data-theme="dark"] .board .note,
+:root[data-theme="dark"] .board .note-center {
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 0.07em;
+    stroke-linejoin: round;
+}
+
 /* The board is a Tab stop (#64). Keep a visible ring for keyboard focus. It is ink, not the blue brand
    colour: it sits on the grid's edge, and the edge must never turn blue. */
 .board:focus-visible {
