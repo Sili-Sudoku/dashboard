@@ -632,10 +632,6 @@
     justify-content: flex-start;
 }
 
-.author-preview--editing .pp-hint {
-    text-align: left;
-}
-
 /* Puzzle-edit undo/redo: the pad is hidden while the user edits, so there is no other way to step back an edit. */
 .author-preview-history {
     display: inline-flex;

@@ -291,7 +291,7 @@ export default function PuzzlePlayer({
                                     <span className="pp-timer-best">best {formatElapsed(bestElapsedMs)}</span>
                                 )}
                             </div>
-                            <p className="pp-hint" id={hintId}>
+                            <p className="sr-only" id={hintId}>
                                 Click or drag to select. Press digits to enter. See the keyboard shortcuts below.
                             </p>
                         </>
