@@ -3,8 +3,7 @@
  *
  * This class is generic on purpose. It uses cell ids and a value domain.
  * It never uses "9x9" or "digits 1-9".
- * It follows the pattern of the reference project: a plain class that owns mutable state
- * and tells subscribers about changes.
+ * It is a plain class that owns mutable state and tells subscribers about changes.
  * Thus a React hook can connect to it with `useSyncExternalStore`.
  *
  * Responsibilities: selection and keyboard cursor, value and pencil-mark entry,

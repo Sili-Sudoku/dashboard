@@ -93,8 +93,8 @@ renderer only styles `major` lines against minor lines and scales them to pixels
 
 ## 6. State is a framework-agnostic class
 
-`PuzzleSession` is plain TypeScript with a `subscribe`/`revision` pair. It
-follows the `HeadersModel` pattern of the reference project. It handles:
+`PuzzleSession` is plain TypeScript with a `subscribe`/`revision` pair.
+A React hook connects to it with `useSyncExternalStore`. It handles:
 
 - selection and entry
 - pencil marks
