@@ -1,8 +1,8 @@
 # Puzzle format (v1)
 
-A puzzle is a single JSON object. It is independent of React and of the
-renderer, deterministic, reasonably compact, and versioned by the top-level
-`version` field. It can live in a database row, a file, or a URL.
+A puzzle is one JSON object. It does not depend on React or on the renderer. It
+is deterministic and reasonably compact. The top-level `version` field gives
+its version. It can be stored in a database row, a file, or a URL.
 
 ## Top-level shape
 
@@ -46,11 +46,13 @@ renderer, deterministic, reasonably compact, and versioned by the top-level
 
 ### Cell ids
 
-Grid cells are `r<row>c<col>`, 1-indexed, row-major. `r1c1` is top-left.
+A grid cell id is `r<row>c<col>`. Numbers start at 1 and run in row-major
+order. `r1c1` is the top-left cell.
 
 ### Rules
 
-Things that change with the board: a rule is a condition and what holds while it is true.
+Some things change with the board. A rule has a condition and an effect. The
+effect holds while the condition is true.
 
 ```jsonc
 "rules": [
@@ -60,46 +62,53 @@ Things that change with the board: a rule is a condition and what holds while it
 ]
 ```
 
-`when` is evaluated on the current board with the same three-valued logic as constraints, and counts only when it
-is *definitely* true (while some cell it reads is still empty, it hasn't happened yet). Effects, all optional:
+The runtime evaluates `when` on the current board. It uses the same
+three-valued logic as constraints. A rule applies only when `when` is
+*definitely* true. While a cell that `when` reads is empty, the rule has not
+applied yet. All effects are optional:
 
 | effect    | meaning while the rule holds                                                                    |
 | --------- | ----------------------------------------------------------------------------------------------- |
-| `reveal`  | these cells (ids or region selectors) are visible; until then they are hidden, as under fog     |
-| `appear`  | these cells (ids or region selectors) are on the board; until then they are not: not drawn, not selectable, no lines around them, and the board outline closes up around the rest (a 4×3 board that grows a row) |
-| `show`    | these visual objects (by `id`) are drawn; until then they are not                               |
-| `hide`    | these visual objects are not drawn                                                              |
-| `enable`  | these constraints (by compiled id such as `killer#2`, or by `source`/name) are enforced; until then they are not |
-| `disable` | these constraints are not enforced                                                              |
+| `reveal`  | These cells (ids or region selectors) are visible. Until then they are hidden, as under fog.    |
+| `appear`  | These cells (ids or region selectors) are on the board. Until then they are not drawn, cannot be selected, and have no lines around them. The board outline closes around the other cells (a 4×3 board that grows a row). |
+| `show`    | These visual objects (by `id`) are drawn. Until then they are not drawn.                        |
+| `hide`    | These visual objects are not drawn.                                                             |
+| `enable`  | These constraints (by compiled id such as `killer#2`, or by `source`/name) are enforced. Until then they are not enforced. |
+| `disable` | These constraints are not enforced.                                                             |
 
-Nothing is stored: each effect is a function of the board right now, so undo, reload and share links need no extra
-state, and a rule switches off again if the board stops satisfying it. `enable`/`disable` are folded into the
-constraint itself at compile time (`implies(when, c)` / `or(when, c)`), so the solver and the uniqueness check see
-them without knowing about rules. A reference that matches nothing is a compile error.
+The runtime stores no extra state. Each effect is a function of the current
+board. So undo, reload, and share links need no extra state. A rule switches off
+again if the board stops satisfying it. At compile time, `enable` and `disable`
+become part of the constraint itself (`implies(when, c)` and `or(when, c)`). The
+solver and the uniqueness check see them and do not need to know about rules. A
+reference that matches nothing is a compile error.
 
 ### Fog
 
-`fog.hidden` lists cells that start hidden and reveal progressively as the
-player solves correctly — requiring `solution` to be present, since
-"correct" is defined against it. A hidden cell clears once the player fills
-it in correctly themselves, or once an orthogonally adjacent cell is known
-to hold its correct value *because of the player's own progress* — a
-pre-existing given just sitting there from the start doesn't count on its
-own, or every hidden cell touching one would reveal instantly with no
-player action. Fog only affects rendering (what's drawn over a hidden cell's
-given/clue and any constraint graphics) — constraints evaluate the real
-board state as usual regardless of fog, and the player's own entry in a
-still-fogged cell stays visible.
+`fog.hidden` lists the cells that start hidden. They are revealed step by step
+as the player solves correctly. The puzzle must have `solution`, because
+"correct" is defined against it. A hidden cell clears in one of two cases:
 
-A hidden *given* stays editable, exactly like an empty cell, for as long as
-it's hidden — the player has no way to tell it apart from a hidden empty
-cell, so normal givens' usual lock stays suspended until it's revealed. Once
-revealed it locks and displays the real clue as usual, and any guess typed
-underneath it is discarded.
+- The player fills it in correctly.
+- An orthogonally adjacent cell holds its correct value *because of the
+  player's own progress*.
+
+A given that is there from the start does not count. If it did, every hidden
+cell next to a given would reveal at once, with no action from the player.
+
+Fog affects only rendering. It affects what the renderer draws over the given or
+clue of a hidden cell, and over any constraint graphics. Constraints evaluate
+the real board state, with or without fog. The player's own entry in a cell that
+is still hidden stays visible.
+
+A hidden *given* stays editable, like an empty cell, while it is hidden. The
+player cannot tell it from a hidden empty cell. So the usual lock on givens does
+not apply until the cell is revealed. When the cell is revealed, it locks and
+shows the real clue. The runtime discards any guess that the player typed under it.
 
 ### Region selectors
 
-Anywhere a constraint wants a group of cells it uses a selector string:
+A constraint uses a selector string when it needs a group of cells:
 
 | Selector      | Meaning                                  |
 |---------------|------------------------------------------|
@@ -108,12 +117,13 @@ Anywhere a constraint wants a group of cells it uses a selector string:
 | `col:8`       | geometry column                          |
 | `box:4`       | geometry box                             |
 | `all`         | every cell                               |
-| `cage:top-left` | a puzzle-defined named region           |
+| `cage:top-left` | a region that the puzzle names         |
 | `["r1c1","r1c2"]` | an explicit list (as a JSON array)   |
 
 ### Composite geometry
 
-Several grids in one coordinate space (linked and Samurai sudokus, boards with a gap between them):
+A composite geometry puts several grids in one coordinate space. Use it for
+linked and Samurai sudokus, and for boards with a gap between grids:
 
 ```jsonc
 "geometry": { "type": "composite", "grids": [
@@ -122,11 +132,13 @@ Several grids in one coordinate space (linked and Samurai sudokus, boards with a
 ] }
 ```
 
-`row`/`col` place each grid's top-left cell (from 0) in the shared space; `boxWidth`/`boxHeight` work as for a
-single grid. Cells keep the `rNcM` names, counted across the whole space, so a constraint can reach any grid. Grids may
-overlap (a shared cell exists once) and leave gaps (no cells). Each grid has its own regions, named
-`nw/row:0`, `nw/col:3`, `nw/box:4` (plus `all`); a bare `row:0` doesn't exist, as it would be ambiguous. `sudoku`
-constrains every grid on its own.
+`row` and `col` give the position of the top-left cell of each grid in the
+shared space (from 0). `boxWidth` and `boxHeight` work as they do for a single
+grid. Cells keep the `rNcM` names. The numbers count across the whole space, so
+a constraint can reach any grid. Grids can overlap, and a shared cell exists
+once. Grids can also leave gaps, which have no cells. Each grid has its own
+regions, named `nw/row:0`, `nw/col:3`, and `nw/box:4` (plus `all`). A bare `row:0`
+does not exist, because it is ambiguous. `sudoku` constrains every grid on its own.
 
 ## Constraints
 
@@ -135,14 +147,16 @@ definition reference.
 
 ### Primitive expressions
 
-To give an expression a name of your own, wrap it: `{ "rule": ["==", 1, 1], "name": "German whispers" }`.
-The name replaces `"primitive"` as the constraint's `source`, so same-named rules group together in the
-constraint list. Without `name` the bare array is the same thing.
+To give an expression your own name, wrap it:
+`{ "rule": ["==", 1, 1], "name": "German whispers" }`. The name replaces
+`"primitive"` as the `source` of the constraint. Rules with the same name group
+together in the constraint list. Without `name`, the bare array has the same meaning.
 
-An S-expression encoded as a JSON array: `[operator, ...args]`. Bare numbers and
-booleans are literals. Bare strings are only meaningful as the argument of a
-cell-shaped operator (`value`, `cells`, `region`, `adjacent`) or the token `"$"`
-inside a `count` predicate.
+An expression is an S-expression that is encoded as a JSON array:
+`[operator, ...args]`. Bare numbers and booleans are literals. A bare string has
+a meaning only in two places: as the argument of an operator that takes cells
+(`value`, `cells`, `region`, `adjacent`), and as the token `"$"` inside a
+`count` predicate.
 
 ```jsonc
 ["allDifferent", ["cells", "row:0"]]
@@ -160,21 +174,25 @@ inside a `count` predicate.
 | `values` | cells | list of (number \| empty) |
 | `cells` / `region` | selector \| list | cells |
 | `list` | exprs… | number list |
-| `sum` | cells \| list | number (unknown until all filled) |
+| `sum` | cells \| list | number (unknown until all cells are filled) |
 | `+` `-` `*` | scalars | number |
-| `count` | cells, predicate (`$` = value) | number (unknown if any empty) |
+| `count` | cells, predicate (`$` = value) | number (unknown if any cell is empty) |
 | `countValue` | cells, n | number |
-| `allDifferent` / `distinct` | cells | bool — false on a duplicate immediately |
+| `allDifferent` / `distinct` | cells | bool; false at once on a duplicate |
 | `strictIncreasing` / `strictDecreasing` | sequence | bool |
-| `increasing` / `decreasing` | sequence | bool (allows equal) |
+| `increasing` / `decreasing` | sequence | bool (allows equal values) |
 | `==` `!=` `<` `<=` `>` `>=` | 2 scalars | bool |
 | `and` `or` `not` `implies` | predicates | bool (Kleene 3-valued) |
 | `adjacent` | 2 cell ids | bool (constant, from geometry) |
 
-Every constraint evaluates to **satisfied** (definitely true), **violated**
-(definitely false), or **incomplete** (not enough cells filled to decide). A
-puzzle is `valid` when nothing is violated and `complete` when every cell is
-filled and every constraint is satisfied.
+Every constraint evaluates to one of three results:
+
+- **satisfied**: definitely true
+- **violated**: definitely false
+- **incomplete**: too few cells are filled to decide
+
+A puzzle is `valid` when no constraint is violated. A puzzle is `complete` when
+every cell is filled and every constraint is satisfied.
 
 ### Definition references
 
@@ -189,17 +207,17 @@ filled and every constraint is satisfied.
 { "use": "even", "cells": ["r1c2","r1c3"] }
 ```
 
-`compilePuzzle(def, registry)` expands these against the injected registry. Each
-definition returns primitive constraints (and optional visual objects) — exactly
-what you could have written by hand. The compiled puzzle contains only
-primitives; `source` on each compiled constraint records which definition (or
-`"primitive"`) produced it.
+`compilePuzzle(def, registry)` expands these references against the injected
+registry. Each definition returns primitive constraints and, optionally, visual
+objects. These are what you can also write by hand. The compiled puzzle contains
+only primitives. The `source` of each compiled constraint records which
+definition made it (or `"primitive"`).
 
-Any definition reference can also restyle what its definition draws, per
-instance — `color` recolours strokes and (non-empty) fills; `style` sets
-individual `VisualStyle` properties (`stroke`, `fill`, `strokeWidth`, `dashed`,
-`opacity`, `z`) on top of it. The definition's logic is untouched; this is a
-presentation choice only, applied by `compilePuzzle` so no definition needs to
+A definition reference can also restyle what its definition draws, for each
+instance. `color` recolors strokes and non-empty fills. `style` sets single
+`VisualStyle` properties (`stroke`, `fill`, `strokeWidth`, `dashed`, `opacity`,
+`z`) on top of that. The logic of the definition does not change. This is a
+presentation choice only. `compilePuzzle` applies it, so no definition needs to
 know about it:
 
 ```jsonc
@@ -207,68 +225,79 @@ know about it:
 { "use": "thermometer", "cells": ["r2c1","r2c2"], "style": { "opacity": 1, "dashed": true } }
 ```
 
-`style` may also fill filled shapes (circles, rects, polygons, regions) with a
-`pattern` (`stripes`, `dots`, `checks`, `crosshatch`; drawn in the fill colour)
-or an `image` (an `https:`, `data:image/…` or site-relative URL, fitted to the
-whole object). Set one or the other. Anything else is a compile error, so an
-imported puzzle cannot make the page load an arbitrary scheme.
+`style` can also fill filled shapes (circles, rects, polygons, regions) with a
+`pattern` or an `image`. The patterns are `stripes`, `dots`, `checks`, and
+`crosshatch`. A pattern uses the fill color. An `image` is an `https:`,
+`data:image/…`, or site-relative URL. It fits the whole object. Set one of the
+two, not both. Anything else is a compile error. So an imported puzzle cannot
+make the page load an arbitrary URL scheme.
 
-Built-in definitions: `sudoku`, `thermometer`, `killer`, `arrow`,
-`kropkiDifference`, `kropkiRatio`, `odd`, `even` (`src/definitions/`).
+The built-in definitions are `sudoku`, `thermometer`, `killer`, `arrow`,
+`kropkiDifference`, `kropkiRatio`, `odd`, and `even` (`src/definitions/`).
 
 ## Interop
 
 `src/interop/fpuzzles.ts` imports and exports the
-[f-puzzles](https://www.f-puzzles.com/) JSON format used across the
-SudokuPad/Logic Mines/Crack The Cuber ecosystem — `importFPuzzles`/
-`exportFPuzzles`, both returning `{ ..., warnings }` or an `Error`. Coverage is
-intentionally partial (classic sudoku including jigsaw regions, givens, killer
-cages, thermometers, arrows, kropki dots, odd/even); anything else in the
-source, or any puzzle constraint it can't represent on export, is reported as a
-warning rather than silently dropped. Reachable from the Author page's
-f-puzzles import/export icon buttons.
+[f-puzzles](https://www.f-puzzles.com/) JSON format. SudokuPad, Logic Mines,
+and Crack The Cuber also use this format. The functions are `importFPuzzles` and
+`exportFPuzzles`. Each returns `{ ..., warnings }` or an `Error`. The coverage is
+partial on purpose. It covers these types:
 
-When no cell declares a `region` at all, `importFPuzzles` falls back to the
-grid's default (√-based) box size if the grid size is a perfect square — a
-real exported puzzle had no region data yet still used standard boxes — and
-otherwise (box size would degenerate to the whole grid) drops the box
-constraint outright. Either way it's reported as a warning, since it's a
-guess: the source may genuinely have no boxes, or genuinely custom ones, with
-no way to tell from absent data alone.
+- classic sudoku, including jigsaw regions
+- givens
+- killer cages
+- thermometers
+- arrows
+- kropki dots
+- odd and even cells
 
-The Author page's import buttons open an in-app dialog (a `<textarea>` plus
-Cancel/Import) rather than `window.prompt` — browsers let a user permanently
-suppress native dialogs after a few fire, which would silently break the
-feature, and a native prompt is a single-line input anyway, awkward for
-pasting multi-line JSON.
+The code reports anything else in the source as a warning. It does the same for
+any puzzle constraint that it cannot represent on export. It never drops them
+silently. The f-puzzles import and export icon buttons on the Author page use
+these functions.
 
-`importFPuzzles` also accepts an f-puzzles.com share link directly (the
-`?load=<payload>` URL, or just the payload on its own) — that's the artifact a
-real user actually has, not raw JSON. The payload is lz-string-compressed and
-base64-encoded; it is deliberately extracted with a plain regex rather than
-`URLSearchParams`, because the payload's literal `+` characters are valid
-unencoded base64 and would otherwise be corrupted into spaces by
-form-urlencoded decoding. `encodeFPuzzlesShareLink` is the inverse — it's what
-the Author page's f-puzzles export button actually opens (a loadable
-`https://f-puzzles.com/?load=...` URL, in a new tab), not raw JSON, since
-that's what's actually useful to load back into the source app.
+Sometimes no cell declares a `region`. Then `importFPuzzles` uses the default
+(√-based) box size of the grid, if the grid size is a perfect square. A real
+exported puzzle had no region data, and still used standard boxes. If the grid
+size is not a perfect square, the box size would be the whole grid. In that
+case the import drops the box constraint. Both cases give a warning, because
+the import guesses. The source can have no boxes, or custom boxes, and absent
+data does not show which.
+
+The import buttons on the Author page open a dialog in the app (a `<textarea>`
+with Cancel and Import). They do not use `window.prompt`. A browser can let the
+user block native dialogs for good after a few of them, and this would break the
+feature without a message. A native prompt also has a single-line input, which
+is bad for pasting multi-line JSON.
+
+`importFPuzzles` also accepts an f-puzzles.com share link directly. This is the
+`?load=<payload>` URL, or only the payload. A real user has this link, not raw
+JSON. The payload is compressed with lz-string and encoded in base64. The code
+extracts it with a plain regex, not `URLSearchParams`. The payload has literal
+`+` characters. They are valid in unencoded base64. Form-urlencoded decoding
+would change them to spaces and corrupt the payload. `encodeFPuzzlesShareLink`
+does the reverse. The f-puzzles export button on the Author page opens its
+result in a new tab. The result is a loadable `https://f-puzzles.com/?load=...`
+URL, not raw JSON. A user can load that URL back into the source app.
 
 `src/interop/sudokumaker.ts` does the same for the
-[SudokuMaker](https://sudokumaker.app/) JSON format — `importSudokuMaker`/
-`exportSudokuMaker`, same common-types coverage and `{ ..., warnings }`
-contract, reachable from the Author page's SudokuMaker import/export icon
-buttons. It also accepts a share link (`?puzzle=<payload>`,
-raw-deflate-compressed via `pako`, or a legacy lz-string-compressed payload
-behind an `N` prefix instead of `D`) or the plain uncompressed `.json` export.
-`encodeSudokuMakerShareLink` is the inverse, always writing the current
-(non-legacy) `D`-prefixed format against the production `sudokumaker.app`
-host (not `dev.`); the export button opens that link in a new tab, same as
-the f-puzzles button.
+[SudokuMaker](https://sudokumaker.app/) JSON format. The functions are
+`importSudokuMaker` and `exportSudokuMaker`. They cover the same common types
+and use the same `{ ..., warnings }` contract. The SudokuMaker import and export
+icon buttons on the Author page use them. The import also accepts these inputs:
+
+- a share link (`?puzzle=<payload>`) that is compressed with raw deflate through `pako`
+- a legacy payload that is compressed with lz-string and has an `N` prefix instead of `D`
+- the plain uncompressed `.json` export
+
+`encodeSudokuMakerShareLink` does the reverse. It always writes the current
+(non-legacy) `D`-prefixed format. It targets the production host `sudokumaker.app`,
+not `dev.`. The export button opens this link in a new tab, like the f-puzzles button.
 
 ## Visual objects
 
-Generic shapes the renderer knows how to draw. Definitions attach whichever they
-need; the renderer never switches on "thermometer".
+Visual objects are generic shapes that the renderer can draw. A definition
+attaches the ones that it needs. The renderer never switches on "thermometer".
 
 ```jsonc
 { "kind": "path",    "cells": ["r1c1","r1c2"], "style": { "stroke": "…" } }
@@ -281,12 +310,12 @@ need; the renderer never switches on "thermometer".
 { "kind": "region",  "cells": [...] }                  // shaded cells
 ```
 
-A `PointRef` is a cell id (its centre), `{ cell, corner }`, or `{ x, y }` in
-grid units.
+A `PointRef` is one of these: a cell id (its centre), `{ cell, corner }`, or
+`{ x, y }` in grid units.
 
 ## Transport
 
-`encodePuzzle(def)` → `<codec><base64url(JSON)>`; `decodePuzzle` reverses it and
-re-validates. Codec `1` is raw base64url JSON. `parsePuzzle` does shallow
-structural validation of untrusted input; `compilePuzzle` does the deep checks
-and never throws (returns `Error`).
+`encodePuzzle(def)` returns `<codec><base64url(JSON)>`. `decodePuzzle` does the
+reverse and validates again. Codec `1` is raw base64url JSON. `parsePuzzle` does
+a shallow structural check of untrusted input. `compilePuzzle` does the deep
+checks. It never throws. It returns an `Error` instead.

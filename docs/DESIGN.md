@@ -1,51 +1,53 @@
 # Visual identity
 
-One visual language app-wide, as of #139: **ink & paper**. If you're picking up
-a UI card, this is what to match.
+The whole app uses one visual language, since #139: **ink & paper**. When you
+work on a UI card, match this look.
 
 ## The look
 
-Not pulled from a template or component library — hand-written CSS combining
-two nameable ingredients:
+The CSS is hand-written. It does not come from a template or a component
+library. It combines two named ideas:
 
-- **Neobrutalism for interactive elements:** solid 2px ink borders, flat offset
-  drop-shadows instead of blurred ones, a small translate-on-hover "press"
-  instead of a color fade, no gradients. `.btn` (`src/style.css`) is the one
-  button primitive; landing CTAs are plain `.btn`/`.btn-primary` (`.lp-btn` only enlarges them). Panels
-  (`.pp-solve`, the constraint/shortcut boxes, toasts) use the same 2px ink
-  border.
-- **A paper-and-ink palette plus serif display type**, picked by hand to read
-  like a marked-up puzzle book rather than a SaaS dashboard: cream paper,
-  near-black ink, one warm accent (the red "grading pen"), one cooler secondary
-  (moss green — stamp badges, the cage motif). Headings use `--font-display`
-  (`Georgia, "Iowan Old Style", …, serif`); body text stays `system-ui`.
+- **Neobrutalism for interactive elements.** Borders are solid 2px ink. Shadows
+  are flat and offset, not blurred. On hover, an element moves a little to
+  look pressed, instead of fading its color. There are no gradients. `.btn`
+  (`src/style.css`) is the one button primitive. Landing page CTAs are plain
+  `.btn` or `.btn-primary`. `.lp-btn` only makes them larger. Panels (`.pp-solve`,
+  the constraint and shortcut boxes, toasts) use the same 2px ink border.
+- **A paper-and-ink palette with serif display type.** We chose it by hand so
+  that the app looks like a marked-up puzzle book, not a SaaS dashboard. It has
+  cream paper and near-black ink. It has one warm accent (the red "grading
+  pen") and one cooler second color (moss green, used for stamp badges and the
+  cage motif). Headings use `--font-display` (`Georgia, "Iowan Old Style", …,
+  serif`). Body text uses `system-ui`.
 
 ## Tokens
 
-All in `src/style.css`, `:root[data-theme="light"|"dark"]`.
+All tokens are in `src/style.css`, under `:root[data-theme="light"|"dark"]`.
 
-- **Surfaces/text:** `--bg` (paper), `--surface` (lighter cream: board, panels,
-  inputs), `--surface-alt` (hover/headers), `--ink`, `--ink-soft`, `--line`,
-  `--line-strong`.
-- **`--brand`: pen-blue ink.** The one cool color, used for interactive state —
-  selection rings, active toggles, links, focus, and the player's own entered
-  digits. It is deliberately *not* the red pen: red already means "this breaks a
-  rule", and a red selection ring would read as a violation.
-- **Board/state colors:** `--violated`/`--violated-line`, `--invalid`,
+- **Surfaces and text:** `--bg` (paper), `--surface` (lighter cream, for the
+  board, panels, and inputs), `--surface-alt` (hover and headers), `--ink`,
+  `--ink-soft`, `--line`, `--line-strong`.
+- **`--brand`: pen-blue ink.** This is the one cool color. Use it for
+  interactive state: selection rings, active toggles, links, focus, and the
+  digits that the player enters. It is deliberately *not* the red pen. Red
+  already means "this breaks a rule". A red selection ring looks like a
+  violation.
+- **Board and state colors:** `--violated`/`--violated-line`, `--invalid`,
   `--satisfied*`, `--incomplete`, `--fog*`, and the constraint graphics
   `--thermo`, `--cage`, `--arrow`, `--palindrome`, `--betweenline`,
-  `--diagonal`. These are the only way a player tells "violated" from "fine"
-  from "still fogged", so they are tuned for contrast, not decoration.
-- **`--chrome-*`:** the names the landing page/header/puzzle cards were built on.
-  Where they mean the same as an app token they alias it (`--chrome-paper` =
-  `--bg`); the rest (`--chrome-moss`, …) are still their own
-  values. Prefer the app tokens in new code.
+  `--diagonal`. A player uses these colors to tell "violated" from "fine" from
+  "still fogged". We tuned them for contrast, not decoration.
+- **`--chrome-*`:** the names that the landing page, header, and puzzle cards
+  first used. Where a name has the same meaning as an app token, it is an alias
+  (`--chrome-paper` = `--bg`). The other names (`--chrome-moss` and others) still
+  have their own values. In new code, use the app tokens.
 - **Scales:** `--space-1..4`, `--radius-sm/md/lg`, `--font-display`.
 
-## Contrast (measured, WCAG ratios vs `--surface`)
+## Contrast (measured, WCAG ratios against `--surface`)
 
-The board colors were re-tuned against cream, not carried over from the old cool
-theme, and nothing got worse than before the change:
+We re-tuned the board colors against cream. We did not carry them over from the
+old cool theme. No ratio is worse than before the change:
 
 | Token | Light (old → new) | Dark (old → new) |
 | --- | --- | --- |
@@ -57,14 +59,16 @@ theme, and nothing got worse than before the change:
 | violated-line on violated fill | 3.8 → 4.4 | — → 5.2 |
 | brand / entered digit | 5.5 → 7.8 | — → 7.0 |
 
-Fills like fog/violated are *tints* meant to be subtle; the line/text colors
-(and, for violations, the screen-reader announcement — see #64) carry the
-meaning. Re-check this table if you touch a state color.
+Fills such as fog and violated are *tints*, and they are subtle on purpose. The
+line and text colors carry the meaning. For violations, the screen-reader
+announcement also carries the meaning (see #64). Check this table again if you
+change a state color.
 
-## Don't
+## Do not
 
-- Don't invent new hex values for chrome; use the tokens above.
-- Don't use red (`--accent`, `--violated*`) for anything that isn't "wrong" or
-  a purely decorative accent (the landing page's "data." underline and thermometer art) — never on anything clickable, including hover states.
-- Don't conflate "where does this control go" (`docs/UI_PLACEMENT.md`) with
+- Do not add new hex values for chrome. Use the tokens above.
+- Do not use red (`--accent`, `--violated*`) for anything except "wrong" or a
+  purely decorative accent (the "data." underline and the thermometer art on
+  the landing page). Never use red on anything clickable, including hover states.
+- Do not mix up "where does this control go" (`docs/UI_PLACEMENT.md`) with
   "what does it look like" (this file).

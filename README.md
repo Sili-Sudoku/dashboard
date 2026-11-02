@@ -1,27 +1,27 @@
 # Constraint Puzzle Runtime
 
-A generic runtime for Sudoku and variant-Sudoku puzzles. The engine understands
-generic primitives — cells, regions, values, sums, ordering, counting, logic,
-adjacency. **Puzzle types are definitions expressed with those primitives, not
-features baked into the engine.**
+A generic runtime for Sudoku and variant-Sudoku puzzles. The engine knows only
+generic primitives: cells, regions, values, sums, ordering, counting, logic, and
+adjacency. **Puzzle types are definitions built from these primitives. They are
+not features of the engine.**
 
-A thermometer is not a runtime concept. It is a five-line function that compiles
-to `["strictIncreasing", ["cells", [...]]]` plus a couple of visual objects.
-Delete `src/definitions/` and the runtime doesn't notice: puzzles written in
-primitive constraints still load, evaluate, render and play.
+A thermometer is not a runtime concept. It is a five-line function. It compiles
+to `["strictIncreasing", ["cells", [...]]]` plus a few visual objects.
+Delete `src/definitions/` and the runtime still works. Puzzles written with
+primitive constraints still load, evaluate, render, and play.
 
 ## Quickstart
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 100+ unit tests, runtime-focused
+npm test           # unit tests, mostly for the runtime
 npm run build      # tsc -b && vite build
 npm run lint
 ```
 
-Open the **"Four Systems, One Grid"** puzzle: classic Sudoku + a killer cage + a
-thermometer + an arrow, all on one board, none known to the engine.
+Open the **"Four Systems, One Grid"** puzzle. It has a classic Sudoku, a killer
+cage, a thermometer, and an arrow on one board. The engine knows none of them.
 
 ## How it fits together
 
@@ -42,29 +42,30 @@ notes, undo/redo    satisfied /          (polyline, circle, cage,
                     incomplete
 ```
 
-- `src/runtime/` — the engine. Pure TypeScript, no React import. This is the
-  intellectual property and where the tests concentrate.
-- `src/definitions/` — variant packages (`sudoku`, `thermometer`, `killer`,
-  `arrow`). Pure `(params, ctx) => { constraints, objects }`. The registry is
-  **passed into** `compilePuzzle`, never imported by the runtime.
-- `src/renderer/` — `scene.ts` (pure geometry → drawable shapes) + `Board.tsx`.
-- `src/player/` — React bridge (`usePuzzleSession`), number pad, controls,
-  constraint panel.
-- `src/puzzles/` — the dev registry. `mini_sudoku.ts` is authored entirely in
-  primitives to prove runtime independence from definitions.
-- `src/authoring/` — `PuzzleBuilder`, the fluent seam a hosted editor would use.
+- `src/runtime/` is the engine. It is pure TypeScript and has no React import.
+  Most tests are here.
+- `src/definitions/` holds the variant packages (`sudoku`, `thermometer`,
+  `killer`, `arrow`). Each one is a pure function `(params, ctx) => { constraints, objects }`.
+  The caller passes the registry **into** `compilePuzzle`. The runtime never imports it.
+- `src/renderer/` has `scene.ts` (pure function: geometry to drawable shapes) and `Board.tsx`.
+- `src/player/` is the React layer: `usePuzzleSession`, the number pad, the
+  controls, and the constraint panel.
+- `src/puzzles/` is the dev registry. `mini_sudoku.ts` uses only primitives. It
+  shows that the runtime does not depend on definitions.
+- `src/authoring/` has `PuzzleBuilder`. A hosted editor can use this fluent API.
 
 ## Docs
 
-- [`docs/PUZZLE_FORMAT.md`](docs/PUZZLE_FORMAT.md) — the artifact JSON and the
+- [`docs/PUZZLE_FORMAT.md`](docs/PUZZLE_FORMAT.md): the artifact JSON and the
   constraint language reference.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — decisions and tradeoffs.
-- [`docs/DESIGN.md`](docs/DESIGN.md) — the visual identity: what's migrated to
-  the warm "ink & paper" look, what's deliberately still on the original
-  theme, and why.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): decisions and trade-offs.
+- [`docs/DESIGN.md`](docs/DESIGN.md): the visual identity. It lists which
+  parts use the warm "ink & paper" look, which parts keep the original theme,
+  and why.
 
 ## URL sharing
 
-`/p/<id>` resolves against the dev registry. `/p/<blob>` decodes a full artifact
-straight from the URL (`<codec><base64url(JSON)>`) — no server, no account. The
-codec byte leaves room for a compressed encoding later without a breaking change.
+`/p/<id>` looks up a puzzle in the dev registry. `/p/<blob>` decodes a full
+artifact from the URL (`<codec><base64url(JSON)>`). It needs no server and no
+account. The codec byte lets a compressed encoding be added later without a
+breaking change.
