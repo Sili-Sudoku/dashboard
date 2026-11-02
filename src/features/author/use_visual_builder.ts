@@ -15,6 +15,7 @@ import {
     type AuthoringSchema,
     type FieldValue,
 } from "@/authoring/schema.ts";
+import { getAt, isComplete, setAt, toExpr, type Path, type RuleNode } from "@/authoring/rule_tree.ts";
 
 /** The pinned-tools list lives with the page's undo history, so the hook only reports changes to it. */
 export interface Toolbox {
@@ -25,6 +26,9 @@ export interface Toolbox {
 
 /** Fog (#129) is a tool like the others, but it edits a puzzle-level field rather than adding a constraint. */
 export const FOG_TOOL = "fog";
+
+/** The custom-rule editor (#127) is a tool too: it builds one constraint from primitive operators. */
+export const RULE_TOOL = "rule";
 
 /** The puzzle with no `fog` field at all (an empty one isn't the same as none). */
 const withoutFog = (def: PuzzleDefinition): PuzzleDefinition => {
@@ -49,8 +53,28 @@ export interface FogControls {
     clear: () => void;
 }
 
+export interface RuleControls {
+    active: boolean;
+    start: () => void;
+    /** The rule so far, with the board's live selection already in the slot being filled. */
+    tree: RuleNode | null;
+    /** The slot the board's selection flows into. */
+    path: Path;
+    setPath: (path: Path) => void;
+    /** Put a node (or nothing) in the slot at `path`; a cells/cell leaf also becomes the slot the board fills. */
+    set: (path: Path, node: RuleNode | null) => void;
+    /** Replace the whole tree (adding or removing a variadic operator's slots). */
+    replace: (tree: RuleNode | null) => void;
+    complete: boolean;
+    /** What the rule is called in the puzzle's list (blank: it is shown as its expression). */
+    name: string;
+    setName: (name: string) => void;
+    add: () => void;
+}
+
 export interface VisualBuilderState {
     fog: FogControls;
+    rule: RuleControls;
     /** Names of the tools pinned to quick access. */
     tools: readonly string[];
     pinTool: (name: string) => void;
@@ -211,6 +235,7 @@ export const useVisualBuilder = (
             setActiveSchema(undefined);
             setActiveFieldKeyState(undefined);
             setCellValues({});
+            setRulePlacing(false);
             setFogPlacing(true);
         },
         hidden: fogHidden,
@@ -220,6 +245,53 @@ export const useVisualBuilder = (
         findSolution,
         finding,
         clear: () => setFog([]),
+    };
+
+    // Custom rule (#127): the tree under construction and the slot the board's selection flows into.
+    const [rulePlacing, setRulePlacing] = useState(false);
+    const [ruleTree, setRuleTree] = useState<RuleNode | null>(null);
+    const [rulePath, setRulePathState] = useState<Path>([]);
+    const [ruleName, setRuleName] = useState("");
+    const ruleActive = rulePlacing && toolbox.tools.includes(RULE_TOOL);
+    const withSelection = (tree: RuleNode | null, path: Path): RuleNode | null => {
+        const node = getAt(tree, path);
+        if (node?.k === "cells" && node.selector.trim() === "") return setAt(tree, path, { ...node, cells: [...selection] });
+        if (node?.k === "cell") return setAt(tree, path, { ...node, cell: [...selection][0] });
+        return tree;
+    };
+    const liveRule = ruleActive ? withSelection(ruleTree, rulePath) : ruleTree;
+    const rule: RuleControls = {
+        active: ruleActive,
+        start: () => {
+            setActiveSchema(undefined);
+            setActiveFieldKeyState(undefined);
+            setCellValues({});
+            setFogPlacing(false);
+            setRulePlacing(true);
+        },
+        tree: liveRule,
+        path: rulePath,
+        setPath: (path) => {
+            setRuleTree(liveRule);
+            setRulePathState(path);
+        },
+        set: (path, node) => {
+            setRuleTree(setAt(liveRule, path, node));
+            setRulePathState(path);
+        },
+        replace: setRuleTree,
+        complete: isComplete(liveRule),
+        name: ruleName,
+        setName: setRuleName,
+        add: () => {
+            if (!def || !liveRule || !isComplete(liveRule)) return;
+            const name = ruleName.trim();
+            const spec = name ? { rule: toExpr(liveRule), name } : toExpr(liveRule);
+            onChange({ ...def, constraints: [...def.constraints, spec] });
+            setRuleName("");
+            setRuleTree(null);
+            setRulePathState([]);
+        },
     };
 
     const commit = (schema: AuthoringSchema, values: Readonly<Record<string, FieldValue>>) => {
@@ -232,6 +304,7 @@ export const useVisualBuilder = (
 
     const startPlacing = (schema: AuthoringSchema) => {
         setFogPlacing(false);
+        setRulePlacing(false);
         setCellValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
@@ -246,6 +319,7 @@ export const useVisualBuilder = (
 
     const cancelPlacing = () => {
         setFogPlacing(false);
+        setRulePlacing(false);
         setActiveSchema(undefined);
         setActiveFieldKeyState(undefined);
         setCellValues({});
@@ -265,6 +339,10 @@ export const useVisualBuilder = (
     };
 
     const onBoardSelectionEnd = () => {
+        if (ruleActive) {
+            setRuleTree(liveRule);
+            return;
+        }
         if (fogActive) {
             if (selection.size === 0 || !fog.hasSolution) return;
             setFog(
@@ -299,10 +377,19 @@ export const useVisualBuilder = (
     };
 
     const removeTool = (name: string) => {
-        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing)) cancelPlacing();
+        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing) || (name === RULE_TOOL && rulePlacing)) {
+            cancelPlacing();
+        }
+        if (name === RULE_TOOL) {
+            setRuleName("");
+            setRuleTree(null);
+            setRulePathState([]);
+        }
         const stripped = def && {
             ...def,
-            constraints: def.constraints.filter((c) => !(isDefinitionRef(c) && c.use === name)),
+            constraints: def.constraints.filter((c) =>
+                name === RULE_TOOL ? isDefinitionRef(c) : !(isDefinitionRef(c) && c.use === name),
+            ),
         };
         // Fog isn't a constraint: removing its tool takes the puzzle's `fog` field with it.
         const next = stripped && name === FOG_TOOL ? withoutFog(stripped) : stripped;
@@ -314,6 +401,7 @@ export const useVisualBuilder = (
 
     return {
         fog,
+        rule,
         tools: toolbox.tools,
         pinTool,
         removeTool,

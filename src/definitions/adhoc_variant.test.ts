@@ -51,10 +51,10 @@ describe("the built-in whisper-line puzzle carries the variant as primitives", (
     const compiled = compilePuzzle(whisperLinePuzzle, definitions);
     if (compiled instanceof Error) throw compiled;
 
-    it("the whisper constraints have source 'primitive', not a definition", () => {
+    it("the whisper constraints are named primitive rules, not a definition", () => {
         const nonSudoku = compiled.constraints.filter((c) => c.source !== "sudoku");
         expect(nonSudoku).toHaveLength(3);
-        expect(nonSudoku.every((c) => c.source === "primitive")).toBe(true);
+        expect(nonSudoku.every((c) => c.source === "German whispers")).toBe(true);
         expect(Array.isArray(nonSudoku[0].expr) && nonSudoku[0].expr[0]).toBe("or");
     });
 

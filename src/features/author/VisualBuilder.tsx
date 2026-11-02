@@ -10,7 +10,8 @@ import {
     type AuthoringSchema,
 } from "@/authoring/schema.ts";
 import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
-import { FOG_TOOL, isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
+import RuleEditor from "@/features/author/RuleEditor.tsx";
+import { FOG_TOOL, RULE_TOOL, isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
 
 interface Props {
     def: PuzzleDefinition | undefined;
@@ -26,6 +27,7 @@ const PALETTE_GROUPS: { title: string; names: string[] }[] = [
     { title: "Cell marks", names: ["kropkiDifference", "kropkiRatio", "odd", "even", "minimum", "maximum", "xv"] },
     { title: "Whole grid", names: ["sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups"] },
     { title: "Hidden cells", names: [FOG_TOOL] },
+    { title: "Custom", names: [RULE_TOOL] },
 ];
 
 /** Every tool the palette offers: each definition that declares a builder schema, plus fog (which edits the puzzle itself). */
@@ -34,6 +36,7 @@ interface PaletteTool {
     label: string;
 }
 const FOG_ENTRY: PaletteTool = { name: FOG_TOOL, label: "Fog" };
+const RULE_ENTRY: PaletteTool = { name: RULE_TOOL, label: "Custom rule" };
 
 /** Visual/drag-and-drop puzzle authoring (#54): a palette of definitions, a
  *  small param form per definition, and a list of already-placed constraints.
@@ -48,6 +51,7 @@ const FOG_ENTRY: PaletteTool = { name: FOG_TOOL, label: "Fog" };
 export default function VisualBuilder({ def, state }: Props) {
     const {
         fog,
+        rule,
         activeSchema,
         activeFieldKey,
         fieldValues,
@@ -71,14 +75,18 @@ export default function VisualBuilder({ def, state }: Props) {
     // Quick access = what the author pinned, plus anything the puzzle's JSON already uses; every other
     // tool sits behind the "Add tool" dropdown.
     const pinned = new Set(state.tools);
-    const used = new Set([...def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [])), ...(def.fog ? [FOG_TOOL] : [])]);
-    const tools: PaletteTool[] = [...AUTHORING_SCHEMAS, FOG_ENTRY];
+    const used = new Set([
+        ...def.constraints.flatMap((c) => (isDefinitionRef(c) ? [c.use] : [RULE_TOOL])),
+        ...(def.fog ? [FOG_TOOL] : []),
+    ]);
+    const tools: PaletteTool[] = [...AUTHORING_SCHEMAS, FOG_ENTRY, RULE_ENTRY];
     const isQuick = (tool: PaletteTool) => pinned.has(tool.name) || used.has(tool.name);
     const hidden = tools.filter((tool) => !isQuick(tool));
     const quickCount = tools.length - hidden.length;
     const isFog = (tool: PaletteTool) => tool.name === FOG_TOOL;
     const startTool = (tool: PaletteTool) => {
         if (isFog(tool)) fog.start();
+        else if (tool.name === RULE_TOOL) rule.start();
         else startPlacing(AUTHORING_SCHEMAS.find((s) => s.name === tool.name) as AuthoringSchema);
     };
     // The tools not in quick access, as the shared dropdown's items: each group's name is a
@@ -86,7 +94,9 @@ export default function VisualBuilder({ def, state }: Props) {
     const removeToolTitle = (tool: PaletteTool): string | undefined => {
         const count = isFog(tool)
             ? (def.fog?.hidden.length ?? 0)
-            : def.constraints.filter((c) => isDefinitionRef(c) && c.use === tool.name).length;
+            : def.constraints.filter((c) =>
+                  tool.name === RULE_TOOL ? !isDefinitionRef(c) : isDefinitionRef(c) && c.use === tool.name,
+              ).length;
         const what = isFog(tool) ? "hidden cell" : "placed constraint";
         return count > 0
             ? `Remove from quick access and delete its ${count} ${what}${count === 1 ? "" : "s"} (undo brings them back)`
@@ -126,7 +136,13 @@ export default function VisualBuilder({ def, state }: Props) {
                                         <button
                                             type="button"
                                             className="btn btn-sm visual-builder-chip"
-                                            aria-pressed={isFog(tool) ? fog.active : activeSchema?.name === tool.name}
+                                            aria-pressed={
+                                                isFog(tool)
+                                                    ? fog.active
+                                                    : tool.name === RULE_TOOL
+                                                      ? rule.active
+                                                      : activeSchema?.name === tool.name
+                                            }
                                             disabled={placed}
                                             title={
                                                 placed
@@ -171,7 +187,9 @@ export default function VisualBuilder({ def, state }: Props) {
                 <div className="visual-builder-form" aria-label="Fog">
                     {fog.hasSolution ? (
                         <p className="author-hint">
-                            {fog.reveal ? "Drag on the board to reveal cells." : "Drag on the board to hide cells until they're solved."}
+                            {fog.reveal
+                                ? "Drag on the board to reveal cells."
+                                : "Drag on the board to hide cells until they're solved."}
                             {fog.hidden.length > 0 &&
                                 ` ${fog.hidden.length} cell${fog.hidden.length === 1 ? " is" : "s are"} hidden.`}
                         </p>
@@ -217,6 +235,8 @@ export default function VisualBuilder({ def, state }: Props) {
                     </div>
                 </div>
             )}
+
+            {rule.active && <RuleEditor rule={rule} />}
 
             {activeSchema && (
                 <div className="visual-builder-form">

@@ -87,6 +87,10 @@ definition reference.
 
 ### Primitive expressions
 
+To give an expression a name of your own, wrap it: `{ "rule": ["==", 1, 1], "name": "German whispers" }`.
+The name replaces `"primitive"` as the constraint's `source`, so same-named rules group together in the
+constraint list. Without `name` the bare array is the same thing.
+
 An S-expression encoded as a JSON array: `[operator, ...args]`. Bare numbers and
 booleans are literals. Bare strings are only meaningful as the argument of a
 cell-shaped operator (`value`, `cells`, `region`, `adjacent`) or the token `"$"`

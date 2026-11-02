@@ -759,3 +759,78 @@
         min-height: calc(min(100vw - 2.4rem, 75vh) + 3.3rem);
     }
 }
+
+/* Custom rule editor (#127): a nested list, one indent per operator. */
+.rule-editor input[type="number"],
+.rule-editor input[type="text"] {
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.85rem;
+}
+.rule-editor input[type="number"] {
+    width: 6rem;
+}
+.rule-editor input[type="text"] {
+    width: 11rem;
+}
+.rule-editor input:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+.rule-op {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
+}
+.rule-op-head,
+.rule-leaf {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+.rule-args {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    margin: 0;
+    padding: 0 0 0 0.8rem;
+    border-left: 2px solid var(--line);
+    list-style: none;
+}
+.rule-args > li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.rule-arg-label {
+    min-width: 4.5rem;
+    padding-top: 0.25rem;
+    color: var(--ink-soft);
+    font-size: 0.85em;
+}
+.rule-clear {
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+.rule-clear:hover {
+    background: var(--surface-alt);
+    color: var(--ink);
+}

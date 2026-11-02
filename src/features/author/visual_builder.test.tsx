@@ -16,7 +16,7 @@ afterEach(() => {
     cleanup();
 });
 
-const ALL_TOOLS = [...AUTHORING_SCHEMAS.map((schema) => schema.name), "fog"];
+const ALL_TOOLS = [...AUTHORING_SCHEMAS.map((schema) => schema.name), "fog", "rule"];
 
 const basePuzzle: PuzzleDefinition = {
     version: 1,
@@ -363,5 +363,80 @@ describe("VisualBuilder fog tool (#129)", () => {
     it("tints the fogged cells on the board while authoring", () => {
         const { container } = renderBuilder({ ...solved, fog: { hidden: ["r2c2", "r3c3"] } }, vi.fn(), ["fog"]);
         expect(container.querySelectorAll(".shapes rect").length).toBeGreaterThanOrEqual(2);
+    });
+});
+
+describe("VisualBuilder custom rule tool (#127)", () => {
+    const pick = (label: string | RegExp, option: string | RegExp) => {
+        fireEvent.click(screen.getByRole("button", { name: label }));
+        fireEvent.click(within(screen.getByRole("menu")).getByText(option));
+    };
+    const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
+        onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;
+
+    it("builds `sum of the dragged cells = 7` from parts and adds it as a raw expression", () => {
+        const { container, onChange } = renderBuilder(basePuzzle, vi.fn(), ["rule"]);
+        fireEvent.click(screen.getByRole("button", { name: "Custom rule" }));
+        const add = screen.getByRole("button", { name: "Add rule" }) as HTMLButtonElement;
+        expect(add.disabled).toBe(true);
+
+        pick("Rule", "equals (=)");
+        pick("Left", "sum of");
+        pick("Numbers", "Cells from the board");
+        const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
+        const svg = container.querySelector("svg.board") as SVGSVGElement;
+        fireEvent.pointerDown(cells[0]!);
+        fireEvent.pointerEnter(cells[1]!);
+        fireEvent.pointerUp(svg);
+        expect(add.disabled).toBe(true); // right-hand side still empty
+
+        pick("Right", "A number");
+        fireEvent.change(screen.getByLabelText("Right"), { target: { value: "7" } });
+        expect(add.disabled).toBe(false);
+        fireEvent.click(add);
+
+        expect(lastDef(onChange).constraints).toEqual([["==", ["sum", ["cells", ["r1c1", "r1c2"]]], 7]]);
+    });
+
+    it("names the rule when asked, and shows that name in the list", () => {
+        const { onChange } = renderBuilder(basePuzzle, vi.fn(), ["rule"]);
+        fireEvent.click(screen.getByRole("button", { name: "Custom rule" }));
+        pick("Rule", "equals (=)");
+        pick("Left", "A number");
+        fireEvent.change(screen.getByLabelText("Left"), { target: { value: "2" } });
+        pick("Right", "A number");
+        fireEvent.change(screen.getByLabelText("Right"), { target: { value: "2" } });
+        fireEvent.change(screen.getByLabelText("Name"), { target: { value: " Twos " } });
+        fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+        expect(lastDef(onChange).constraints).toEqual([{ rule: ["==", 2, 2], name: "Twos" }]);
+        expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(""); // ready for the next one
+    });
+
+    it("grows a variadic operator, and offers `$` only inside a count's per-cell rule", () => {
+        renderBuilder(basePuzzle, vi.fn(), ["rule"]);
+        fireEvent.click(screen.getByRole("button", { name: "Custom rule" }));
+        pick("Rule", "all of");
+        expect(screen.getAllByRole("button", { name: /^Rule \d$/ })).toHaveLength(2);
+        fireEvent.click(screen.getByRole("button", { name: /^Add another/ }));
+        expect(screen.getAllByRole("button", { name: /^Rule \d$/ })).toHaveLength(3);
+
+        pick("Rule 1", "equals (=)");
+        fireEvent.click(screen.getByRole("button", { name: "Left" }));
+        expect(within(screen.getByRole("menu")).queryByText(/cell being checked/)).toBeNull();
+        fireEvent.click(within(screen.getByRole("menu")).getByText("how many cells satisfy"));
+        pick(/^Where/, "is less than (<)");
+        fireEvent.click(screen.getByRole("button", { name: "Left" }));
+        expect(within(screen.getByRole("menu")).getByText(/cell being checked/)).toBeTruthy();
+    });
+
+    it("shows as quick access when the puzzle already has custom rules, and x removes them as one step", () => {
+        const puzzle: PuzzleDefinition = { ...basePuzzle, constraints: [{ use: "antiknight" }, ["==", 1, 1]] };
+        const { onChange, onTools } = renderBuilder(puzzle, vi.fn(), []);
+        expect(screen.getByRole("button", { name: "Custom rule" })).toBeTruthy();
+        expect(screen.getByText("1 = 1")).toBeTruthy();
+        fireEvent.click(screen.getByLabelText(/Remove Custom rule/));
+        expect(lastDef(onChange).constraints).toEqual([{ use: "antiknight" }]);
+        expect(onTools).toHaveBeenCalledWith([]);
     });
 });

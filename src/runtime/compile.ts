@@ -18,6 +18,7 @@ import { collectCells, ExpressionError, type EvalContext, type Expr } from "@/ru
 import { staticCheckExpr } from "@/runtime/operators.ts";
 import {
     isDefinitionRef,
+    isNamedRule,
     PUZZLE_FORMAT_VERSION,
     type CompiledConstraint,
     type CompiledPuzzle,
@@ -199,6 +200,11 @@ const expandSpec = (
     registry: DefinitionRegistry,
     ctx: CompileContext,
 ): ExpandedSpec | Error => {
+    if (isNamedRule(spec)) {
+        // Commas are the separator in object ids, so a name can't carry one.
+        const name = (spec.name ?? "").trim().replace(/,/g, " ");
+        return { source: name || "primitive", constraints: [{ expr: spec.rule }] };
+    }
     if (!isDefinitionRef(spec)) {
         return { source: "primitive", constraints: [{ expr: spec as Expr }] };
     }

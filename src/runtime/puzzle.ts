@@ -74,11 +74,21 @@ export type VisualObject =
  */
 export type ConstraintSpec =
     | Expr
+    | NamedRule
     | {
           use: string;
           /** Free-form parameters passed to the definition. */
           [param: string]: unknown;
       };
+
+/** A primitive expression with a name of the author's choosing: `{ "rule": [...], "name": "German whispers" }`. */
+export interface NamedRule {
+    rule: Expr;
+    name?: string;
+}
+
+export const isNamedRule = (spec: ConstraintSpec): spec is NamedRule =>
+    typeof spec === "object" && spec !== null && !Array.isArray(spec) && !isDefinitionRef(spec) && "rule" in spec;
 
 export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k: string]: unknown } =>
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && typeof (spec as { use?: unknown }).use === "string";

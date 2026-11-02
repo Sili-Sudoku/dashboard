@@ -171,3 +171,29 @@ describe("compilePuzzle", () => {
         expect(result).not.toBeInstanceOf(Error);
     });
 });
+
+describe("named rules", () => {
+    it("takes the author's name as the constraint's source, grouping same-named rules", () => {
+        const result = compilePuzzle({
+            ...base,
+            constraints: [
+                { rule: ["<", ["value", "r1c1"], ["value", "r1c2"]], name: "Left smaller" },
+                { rule: ["<", ["value", "r2c1"], ["value", "r2c2"]], name: " Left smaller " },
+                { rule: ["allDifferent", ["cells", "row:0"]] },
+            ],
+        });
+        if (result instanceof Error) throw result;
+        expect(result.constraints.map((c) => [c.id, c.source])).toEqual([
+            ["Left smaller#1", "Left smaller"],
+            ["Left smaller#2", "Left smaller"],
+            ["primitive#1", "primitive"],
+        ]);
+    });
+
+    it("keeps commas out of the name, and still checks the expression", () => {
+        const ok = compilePuzzle({ ...base, constraints: [{ rule: ["==", 1, 1], name: "a, b" }] });
+        if (ok instanceof Error) throw ok;
+        expect(ok.constraints[0]?.source).toBe("a  b");
+        expect(compilePuzzle({ ...base, constraints: [{ rule: ["nope", 1], name: "x" }] })).toBeInstanceOf(Error);
+    });
+});

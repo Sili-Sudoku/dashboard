@@ -13,7 +13,7 @@
 
 import type { Expr } from "@/runtime/expression.ts";
 import type { CellId } from "@/runtime/geometry.ts";
-import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
+import type { ConstraintSpec, PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { givensFromRows, omit } from "@/puzzles/grid_text.ts";
 
 /** |value(a) - value(b)| >= 5, written with primitive operators only. */
@@ -23,9 +23,9 @@ const differBy = (a: CellId, b: CellId, min: number): Expr => [
     [">=", ["-", ["value", b], ["value", a]], min],
 ];
 
-/** One constraint per adjacent pair along a path. */
-const whisperLine = (cells: readonly CellId[], min = 5): Expr[] =>
-    cells.slice(1).map((cell, i) => differBy(cells[i], cell, min));
+/** One named rule per adjacent pair along a path, so they group together as "German whispers". */
+const whisperLine = (cells: readonly CellId[], min = 5): ConstraintSpec[] =>
+    cells.slice(1).map((cell, i) => ({ rule: differBy(cells[i], cell, min), name: "German whispers" }));
 
 const LINE: readonly CellId[] = ["r1c4", "r2c4", "r2c5", "r3c5"];
 

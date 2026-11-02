@@ -57,7 +57,7 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     if (!Array.isArray(obj.constraints)) return new Error("constraints must be an array");
     for (const spec of obj.constraints as unknown[]) {
         if (!isConstraintSpecShape(spec)) {
-            return new Error("each constraint must be an expression array or a { use } object");
+            return new Error("each constraint must be an expression array, a { use } object or a { rule } object");
         }
     }
 
@@ -79,7 +79,10 @@ const isPositiveInt = (v: unknown): v is number => typeof v === "number" && Numb
 const isConstraintSpecShape = (spec: unknown): spec is ConstraintSpec => {
     if (Array.isArray(spec)) return spec.length > 0;
     if (typeof spec === "object" && spec !== null) {
-        return typeof (spec as Record<string, unknown>).use === "string";
+        const o = spec as Record<string, unknown>;
+        if (typeof o.use === "string") return true;
+        // A named rule: { rule: [...], name?: "..." }
+        return Array.isArray(o.rule) && o.rule.length > 0 && (o.name === undefined || typeof o.name === "string");
     }
     return false;
 };

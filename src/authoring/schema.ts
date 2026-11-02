@@ -7,7 +7,9 @@
 
 import type { AuthoringField, DefinitionRegistry, DefinitionSchema } from "@/definitions/types.ts";
 import { definitions } from "@/definitions/index.ts";
-import { isDefinitionRef, type ConstraintSpec } from "@/runtime/puzzle.ts";
+import { isDefinitionRef, isNamedRule, type ConstraintSpec } from "@/runtime/puzzle.ts";
+import type { Expr } from "@/runtime/expression.ts";
+import { describeExpr } from "@/authoring/rule_tree.ts";
 
 export type { AuthoringField };
 
@@ -82,7 +84,8 @@ export const buildConstraintParams = (
 
 /** A one-line human label for an already-placed constraint, for the builder's list. */
 export const summarizeConstraint = (spec: ConstraintSpec): string => {
-    if (!isDefinitionRef(spec)) return "(raw expression)";
+    if (isNamedRule(spec)) return spec.name?.trim() || describeExpr(spec.rule);
+    if (!isDefinitionRef(spec)) return describeExpr(spec as Expr);
     const { use, ...rest } = spec;
     const schema = AUTHORING_SCHEMAS.find((s) => s.name === use);
     const label = schema?.label ?? use;

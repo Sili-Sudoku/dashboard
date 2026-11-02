@@ -45,7 +45,7 @@ describe("Play — JSON viewer", () => {
         fireEvent.click(screen.getByRole("button", { name: /compiled/i }));
 
         const pre = container.querySelector(".play-json pre") as HTMLElement;
-        expect(pre.textContent).toContain('"source": "primitive"');
+        expect(pre.textContent).toContain('"source": "German whispers"');
         expect(pre.textContent).toContain('"source": "sudoku"');
     });
 
