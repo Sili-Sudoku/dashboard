@@ -57,3 +57,12 @@ export const killer: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
 
     return { constraints, objects };
 };
+
+killer.schema = {
+    label: "Killer cage",
+    fields: [
+        { kind: "cells", key: "cells", label: "Cage cells", min: 1 },
+        { kind: "number", key: "sum", label: "Sum (optional)", required: false },
+        { kind: "boolean", key: "distinct", label: "All different", default: true },
+    ],
+};

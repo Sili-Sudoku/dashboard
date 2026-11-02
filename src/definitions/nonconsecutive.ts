@@ -27,3 +27,8 @@ export const nonconsecutive: ConstraintDefinition = (_params, ctx): DefinitionOu
     }
     return { constraints };
 };
+
+nonconsecutive.schema = {
+    label: "Nonconsecutive (global)",
+    fields: [],
+};

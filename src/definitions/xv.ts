@@ -39,3 +39,11 @@ export const xv: ConstraintDefinition = (params, ctx): DefinitionOutput | Error 
         objects,
     };
 };
+
+xv.schema = {
+    label: "XV",
+    fields: [
+        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
+        { kind: "number", key: "target", label: "Target sum (10=X, 5=V)", required: true },
+    ],
+};

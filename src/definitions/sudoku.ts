@@ -43,3 +43,10 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
         objects,
     };
 };
+
+sudoku.schema = {
+    label: "Sudoku (rows/cols/boxes)",
+    fields: [
+        { kind: "boolean", key: "boxes", label: "Include boxes", default: true },
+    ],
+};

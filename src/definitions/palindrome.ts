@@ -26,3 +26,10 @@ export const palindrome: ConstraintDefinition = (params, ctx): DefinitionOutput 
 
     return { constraints, objects };
 };
+
+palindrome.schema = {
+    label: "Palindrome",
+    fields: [
+        { kind: "cells", key: "cells", label: "Path", min: 2 },
+    ],
+};

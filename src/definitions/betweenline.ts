@@ -36,3 +36,10 @@ export const betweenline: ConstraintDefinition = (params, ctx): DefinitionOutput
         objects,
     };
 };
+
+betweenline.schema = {
+    label: "Between line",
+    fields: [
+        { kind: "cells", key: "cells", label: "Path, endpoints first/last", min: 3 },
+    ],
+};

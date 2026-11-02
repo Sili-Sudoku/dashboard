@@ -31,3 +31,8 @@ export const antiking: ConstraintDefinition = (_params, ctx): DefinitionOutput |
     }
     return { constraints };
 };
+
+antiking.schema = {
+    label: "Antiking (global)",
+    fields: [],
+};

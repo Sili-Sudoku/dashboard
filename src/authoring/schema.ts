@@ -1,125 +1,30 @@
 /**
- * Declarative UI schema for the visual puzzle builder (#54) — maps each
- * definition's ad-hoc param shape (see src/definitions/*.ts, which read
- * `params` by hand with no declared shape) onto a small set of field kinds a
- * generic palette/form can render. Kept separate from the definitions
- * themselves (same spirit as the registry in src/definitions/index.ts): a
- * definition still works with no visual-builder entry at all, it just won't
- * show up in the palette yet.
+ * What the visual puzzle builder (#54) knows about each definition: a small set of field kinds a
+ * generic palette/form can render. Each definition declares its own (`definition.schema`, see
+ * src/definitions/types.ts), so adding a variant is one place; this module just gathers them
+ * from a registry and holds the helpers that work on them.
  */
 
+import type { AuthoringField, DefinitionRegistry, DefinitionSchema } from "@/definitions/types.ts";
+import { definitions } from "@/definitions/index.ts";
 import { isDefinitionRef, type ConstraintSpec } from "@/runtime/puzzle.ts";
 
-export type AuthoringField =
-    | { kind: "cell"; key: string; label: string }
-    | { kind: "cells"; key: string; label: string; min: number; max?: number }
-    | { kind: "number"; key: string; label: string; required: boolean }
-    | { kind: "boolean"; key: string; label: string; default: boolean }
-    | { kind: "numberList"; key: string; label: string };
+export type { AuthoringField };
 
-export interface AuthoringSchema {
+export interface AuthoringSchema extends DefinitionSchema {
     /** Registry key — the "use" value written into the constraint. */
     name: string;
-    label: string;
-    fields: readonly AuthoringField[];
 }
 
 export type FieldValue = string | readonly string[] | number | readonly number[] | boolean | undefined;
 
-export const AUTHORING_SCHEMAS: readonly AuthoringSchema[] = [
-    {
-        name: "sudoku",
-        label: "Sudoku (rows/cols/boxes)",
-        fields: [{ kind: "boolean", key: "boxes", label: "Include boxes", default: true }],
-    },
-    {
-        name: "thermometer",
-        label: "Thermometer",
-        fields: [
-            { kind: "cells", key: "cells", label: "Path, bulb first", min: 2 },
-            { kind: "boolean", key: "strict", label: "Strictly increasing", default: true },
-        ],
-    },
-    {
-        name: "killer",
-        label: "Killer cage",
-        fields: [
-            { kind: "cells", key: "cells", label: "Cage cells", min: 1 },
-            { kind: "number", key: "sum", label: "Sum (optional)", required: false },
-            { kind: "boolean", key: "distinct", label: "All different", default: true },
-        ],
-    },
-    {
-        name: "arrow",
-        label: "Arrow",
-        fields: [
-            { kind: "cells", key: "bulb", label: "Bulb cell(s)", min: 1 },
-            { kind: "cells", key: "cells", label: "Shaft path", min: 1 },
-        ],
-    },
-    {
-        name: "kropkiDifference",
-        label: "Kropki (white dot)",
-        fields: [
-            { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
-            { kind: "number", key: "value", label: "Difference (default 1)", required: false },
-        ],
-    },
-    {
-        name: "kropkiRatio",
-        label: "Kropki (black dot)",
-        fields: [
-            { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
-            { kind: "number", key: "value", label: "Ratio (default 2)", required: false },
-        ],
-    },
-    { name: "odd", label: "Odd marker", fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }] },
-    { name: "even", label: "Even marker", fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }] },
-    { name: "antiknight", label: "Antiknight (global)", fields: [] },
-    { name: "antiking", label: "Antiking (global)", fields: [] },
-    { name: "nonconsecutive", label: "Nonconsecutive (global)", fields: [] },
-    { name: "disjointgroups", label: "Disjoint groups (global)", fields: [] },
-    { name: "palindrome", label: "Palindrome", fields: [{ kind: "cells", key: "cells", label: "Path", min: 2 }] },
-    {
-        name: "clone",
-        label: "Clone region",
-        fields: [
-            { kind: "cells", key: "cells", label: "Region A", min: 1 },
-            { kind: "cells", key: "cloneCells", label: "Region B (same size, same order)", min: 1 },
-        ],
-    },
-    {
-        name: "quadruple",
-        label: "Quadruple",
-        fields: [
-            { kind: "cells", key: "cells", label: "Cells (usually 4 at a corner)", min: 1 },
-            { kind: "numberList", key: "values", label: "Required values" },
-        ],
-    },
-    { name: "minimum", label: "Minimum marker", fields: [{ kind: "cell", key: "cell", label: "Cell" }] },
-    { name: "maximum", label: "Maximum marker", fields: [{ kind: "cell", key: "cell", label: "Cell" }] },
-    {
-        name: "xv",
-        label: "XV",
-        fields: [
-            { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
-            { kind: "number", key: "target", label: "Target sum (10=X, 5=V)", required: true },
-        ],
-    },
-    {
-        name: "sandwich",
-        label: "Sandwich sum",
-        fields: [
-            { kind: "cells", key: "cells", label: "Full line", min: 2 },
-            { kind: "number", key: "sum", label: "Sum", required: true },
-        ],
-    },
-    {
-        name: "betweenline",
-        label: "Between line",
-        fields: [{ kind: "cells", key: "cells", label: "Path, endpoints first/last", min: 3 }],
-    },
-];
+/** The builder schemas of every definition in `registry` that declares one, in registry order. */
+export const authoringSchemasOf = (registry: DefinitionRegistry): AuthoringSchema[] =>
+    Object.entries(registry).flatMap(([name, definition]) =>
+        definition.schema ? [{ name, ...definition.schema }] : [],
+    );
+
+export const AUTHORING_SCHEMAS: readonly AuthoringSchema[] = authoringSchemasOf(definitions);
 
 /** Only the fields a board click can fill — "number"/"boolean"/"numberList" are typed in, not clicked. */
 export const cellFieldsOf = (schema: AuthoringSchema): AuthoringField[] =>

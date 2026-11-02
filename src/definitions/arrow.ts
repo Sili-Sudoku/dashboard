@@ -69,3 +69,11 @@ const bulbNumberExpr = (bulbCells: readonly CellId[], domain: readonly number[])
     });
     return ["+", ...terms];
 };
+
+arrow.schema = {
+    label: "Arrow",
+    fields: [
+        { kind: "cells", key: "bulb", label: "Bulb cell(s)", min: 1 },
+        { kind: "cells", key: "cells", label: "Shaft path", min: 1 },
+    ],
+};

@@ -33,3 +33,8 @@ export const disjointgroups: ConstraintDefinition = (_params, ctx): DefinitionOu
     }
     return { constraints };
 };
+
+disjointgroups.schema = {
+    label: "Disjoint groups (global)",
+    fields: [],
+};

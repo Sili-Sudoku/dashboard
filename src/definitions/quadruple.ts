@@ -43,3 +43,11 @@ export const quadruple: ConstraintDefinition = (params, ctx): DefinitionOutput |
 
     return { constraints, objects };
 };
+
+quadruple.schema = {
+    label: "Quadruple",
+    fields: [
+        { kind: "cells", key: "cells", label: "Cells (usually 4 at a corner)", min: 1 },
+        { kind: "numberList", key: "values", label: "Required values" },
+    ],
+};

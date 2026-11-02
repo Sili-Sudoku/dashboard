@@ -51,3 +51,11 @@ export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | 
         objects: [{ kind: "text", at: clueAt, text: String(sum), style: { fontSize: 0.4, bold: true } }],
     };
 };
+
+sandwich.schema = {
+    label: "Sandwich sum",
+    fields: [
+        { kind: "cells", key: "cells", label: "Full line", min: 2 },
+        { kind: "number", key: "sum", label: "Sum", required: true },
+    ],
+};

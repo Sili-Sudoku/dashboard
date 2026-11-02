@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
     AUTHORING_SCHEMAS,
+    authoringSchemasOf,
     buildConstraintParams,
     cellFieldsOf,
     isSchemaComplete,
     summarizeConstraint,
 } from "@/authoring/schema.ts";
 import { definitions } from "@/definitions/index.ts";
+import type { ConstraintDefinition } from "@/definitions/types.ts";
 import type { ConstraintSpec } from "@/runtime/puzzle.ts";
 
 describe("AUTHORING_SCHEMAS", () => {
@@ -106,5 +108,24 @@ describe("summarizeConstraint", () => {
 
     it("flags a raw primitive expression distinctly", () => {
         expect(summarizeConstraint(["==", 1, 1])).toBe("(raw expression)");
+    });
+});
+
+describe("authoringSchemasOf (#126: a definition carries its own schema)", () => {
+    it("collects the schema each definition declares, keyed by its registry name, and skips the rest", () => {
+        const mine: ConstraintDefinition = () => ({ constraints: [] });
+        mine.schema = { label: "Mine", fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }] };
+        const bare: ConstraintDefinition = () => ({ constraints: [] });
+
+        const schemas = authoringSchemasOf({ mine, bare });
+        expect(schemas).toEqual([{ name: "mine", label: "Mine", fields: mine.schema.fields }]);
+    });
+
+    it("gives the built-in palette exactly the definitions that declare one", () => {
+        const declared = Object.entries(definitions)
+            .filter(([, d]) => d.schema)
+            .map(([name]) => name);
+        expect(AUTHORING_SCHEMAS.map((s) => s.name)).toEqual(declared);
+        expect(declared).toContain("thermometer");
     });
 });

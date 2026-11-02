@@ -40,3 +40,11 @@ export const thermometer: ConstraintDefinition = (params, ctx): DefinitionOutput
         objects,
     };
 };
+
+thermometer.schema = {
+    label: "Thermometer",
+    fields: [
+        { kind: "cells", key: "cells", label: "Path, bulb first", min: 2 },
+        { kind: "boolean", key: "strict", label: "Strictly increasing", default: true },
+    ],
+};

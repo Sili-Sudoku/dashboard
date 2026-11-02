@@ -67,3 +67,17 @@ const minmaxDefinition = (kind: "minimum" | "maximum"): ConstraintDefinition =>
 
 export const minimum = minmaxDefinition("minimum");
 export const maximum = minmaxDefinition("maximum");
+
+minimum.schema = {
+    label: "Minimum marker",
+    fields: [
+        { kind: "cell", key: "cell", label: "Cell" },
+    ],
+};
+
+maximum.schema = {
+    label: "Maximum marker",
+    fields: [
+        { kind: "cell", key: "cell", label: "Cell" },
+    ],
+};

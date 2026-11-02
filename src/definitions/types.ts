@@ -28,10 +28,32 @@ export interface DefinitionOutput {
     objects?: readonly VisualObject[];
 }
 
-export type ConstraintDefinition = (
+/**
+ * How the Visual tab lets an author place a definition: the fields of its `params` as a few
+ * kinds a generic palette/form can render. Optional and declared with the definition itself
+ * (`thermometer.schema = {...}` beside the function), so a definition that travels — a shared
+ * variant — brings its builder support with it. Plain data, nothing more. A definition without
+ * one still works everywhere; it just isn't offered in the palette.
+ */
+export type AuthoringField =
+    | { kind: "cell"; key: string; label: string }
+    | { kind: "cells"; key: string; label: string; min: number; max?: number }
+    | { kind: "number"; key: string; label: string; required: boolean }
+    | { kind: "boolean"; key: string; label: string; default: boolean }
+    | { kind: "numberList"; key: string; label: string };
+
+export interface DefinitionSchema {
+    label: string;
+    fields: readonly AuthoringField[];
+}
+
+export type ConstraintDefinition = ((
     params: Readonly<Record<string, unknown>>,
     ctx: CompileContext,
-) => DefinitionOutput | Error;
+) => DefinitionOutput | Error) & {
+    /** Visual-builder metadata for this definition (see `DefinitionSchema`). */
+    schema?: DefinitionSchema;
+};
 
 export type DefinitionRegistry = Readonly<Record<string, ConstraintDefinition>>;
 

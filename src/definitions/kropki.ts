@@ -66,3 +66,19 @@ const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): Cons
 
 export const kropkiDifference = dotDefinition("difference", 1);
 export const kropkiRatio = dotDefinition("ratio", 2);
+
+kropkiDifference.schema = {
+    label: "Kropki (white dot)",
+    fields: [
+        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
+        { kind: "number", key: "value", label: "Difference (default 1)", required: false },
+    ],
+};
+
+kropkiRatio.schema = {
+    label: "Kropki (black dot)",
+    fields: [
+        { kind: "cells", key: "cells", label: "Two adjacent cells", min: 2, max: 2 },
+        { kind: "number", key: "value", label: "Ratio (default 2)", required: false },
+    ],
+};

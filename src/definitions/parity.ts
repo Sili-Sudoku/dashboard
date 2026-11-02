@@ -56,3 +56,17 @@ const parityDefinition = (parity: "odd" | "even"): ConstraintDefinition =>
 
 export const odd = parityDefinition("odd");
 export const even = parityDefinition("even");
+
+odd.schema = {
+    label: "Odd marker",
+    fields: [
+        { kind: "cells", key: "cells", label: "Cells", min: 1 },
+    ],
+};
+
+even.schema = {
+    label: "Even marker",
+    fields: [
+        { kind: "cells", key: "cells", label: "Cells", min: 1 },
+    ],
+};

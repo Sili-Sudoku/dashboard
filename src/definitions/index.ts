@@ -5,6 +5,9 @@
  * `src/runtime` imports it. Adding a variant is: write a function, add a line
  * here. Removing every entry leaves the runtime fully functional for puzzles
  * authored in primitive constraints.
+ *
+ * A definition can also declare how the visual builder places it (`definition.schema`, see types.ts),
+ * right beside its function — no second table to keep in step.
  */
 
 import type { DefinitionRegistry } from "@/definitions/types.ts";

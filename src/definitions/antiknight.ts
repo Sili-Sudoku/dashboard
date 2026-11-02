@@ -34,3 +34,8 @@ export const antiknight: ConstraintDefinition = (_params, ctx): DefinitionOutput
     }
     return { constraints };
 };
+
+antiknight.schema = {
+    label: "Antiknight (global)",
+    fields: [],
+};
