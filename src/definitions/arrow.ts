@@ -32,7 +32,7 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
             kind: "circle",
             at: bulbCells[0],
             r: BULB_RADIUS,
-            style: { stroke: "var(--arrow)", fill: "none", strokeWidth: 0.04, z: 1 },
+            style: { stroke: "var(--arrow)", fill: "none", strokeWidth: 0.035, z: 1 },
         },
         {
             kind: "line",
@@ -41,7 +41,7 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
             // Start at the rim of the bulb. Stop the head short of the last digit.
             // This keeps the shaft off both numbers.
             trim: { start: BULB_RADIUS, end: HEAD_CLEARANCE },
-            style: { stroke: "var(--arrow)", strokeWidth: 0.04, z: 1 },
+            style: { stroke: "var(--arrow)", strokeWidth: 0.035, z: 1 },
         },
     ];
 
