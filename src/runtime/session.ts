@@ -120,6 +120,8 @@ export class PuzzleSession {
     private futureStack: HistoryEntry[] = [];
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
+    /** The cell whose digit the player asked to see everywhere (double-click). Moving the cursor off it clears the highlight. */
+    private matchCell: CellId | null = null;
     private flaggedCells = new Set<CellId>();
     /** Cells flagged by `checkAgainstSolution` as holding a placed value that does not match the solution. */
     private incorrectCells = new Set<CellId>();
@@ -215,6 +217,18 @@ export class PuzzleSession {
 
     getCursor(): CellId | null {
         return this.cursor;
+    }
+
+    /** Whether the player asked to highlight every cell that has the cursor cell's digit. */
+    isMatchHighlighted(): boolean {
+        return this.matchCell !== null && this.matchCell === this.cursor;
+    }
+
+    /** Asks to highlight every cell that has the cursor cell's digit, until the cursor moves. It does nothing on an empty cell. */
+    highlightMatches(): void {
+        if (!this.cursor || this.valueOf(this.cursor) === null) return;
+        this.matchCell = this.cursor;
+        this.emit();
     }
 
     /** Cells whose centre notes exclude the solution digit. `checkNotesOnLeave` or `checkAgainstSolution` sets them. */
@@ -371,6 +385,7 @@ export class PuzzleSession {
      * or has no notes (nothing was removed).
      */
     private leaveCursorCell(nextCursor: CellId | null): void {
+        if (this.cursor !== nextCursor) this.matchCell = null;
         if (!this.checkNotesOnLeave || !this.cursor || this.cursor === nextCursor) return;
         const cell = this.cursor;
 

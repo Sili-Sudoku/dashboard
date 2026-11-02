@@ -164,7 +164,7 @@ export default function PuzzlePlayer({
                 hiddenCells: session.getHiddenCells(),
                 absentCells: session.getAbsentCells(),
                 invalidConstraintIds,
-                highlightSameValue: settings.highlightSameValue,
+                highlightSameValue: settings.highlightSameValue && session.isMatchHighlighted(),
                 colorsOf: (c) => session.displayState(c).colors,
                 markPalette: settings.markColors,
                 pen: session.getPen(),
@@ -278,6 +278,7 @@ export default function PuzzlePlayer({
                     onPaintStart={onPaintStart}
                     onPaintMove={onPaintMove}
                     onPaintEnd={() => onSelectionEnd?.()}
+                    onCellDoubleClick={() => session.highlightMatches()}
                     onClearSelection={() => session.selectNone()}
                     hideFooter={stacked && !keepFooter}
                     header={header}

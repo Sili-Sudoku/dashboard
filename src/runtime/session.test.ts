@@ -260,6 +260,28 @@ describe("PuzzleSession", () => {
         expect(session.getSelection()).toEqual(new Set(["r1c2"]));
     });
 
+    it("highlights matches only on request, and clears them when the cursor moves", () => {
+        session.select("r1c2");
+        session.input(3);
+        expect(session.isMatchHighlighted()).toBe(false); // plain select/entry never highlights
+
+        session.highlightMatches();
+        expect(session.isMatchHighlighted()).toBe(true);
+        session.select("r1c2"); // same cell again (the second click of a double-click)
+        expect(session.isMatchHighlighted()).toBe(true);
+
+        session.moveCursor("right");
+        expect(session.isMatchHighlighted()).toBe(false);
+        session.select("r1c2"); // coming back does not bring it back
+        expect(session.isMatchHighlighted()).toBe(false);
+    });
+
+    it("highlightMatches is a no-op on an empty cell", () => {
+        session.select("r1c2");
+        session.highlightMatches();
+        expect(session.isMatchHighlighted()).toBe(false);
+    });
+
     it("jumps to the next/previous empty cell, wrapping around the board", () => {
         session.select("r1c1"); // a given, but a valid cursor position
         session.jumpToEmptyCell(1);

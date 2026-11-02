@@ -62,6 +62,8 @@ interface Props {
     onPaintStart: (cell: CellId, additive: boolean) => void;
     onPaintMove: (cell: CellId) => void;
     onPaintEnd: () => void;
+    /** A double-click or double-tap on a cell. */
+    onCellDoubleClick?: (cell: CellId) => void;
     onClearSelection: () => void;
     /** Accessible name for the board. The SVG has no per-cell DOM (see the live region in PuzzlePlayer). */
     label?: string;
@@ -126,6 +128,7 @@ export default function Board({
     onPaintStart,
     onPaintMove,
     onPaintEnd,
+    onCellDoubleClick,
     onClearSelection,
     label,
     describedBy,
@@ -538,6 +541,7 @@ export default function Board({
                     width={c.size}
                     height={c.size}
                     onPointerDown={handleCellDown(c.cell)}
+                    onDoubleClick={() => onCellDoubleClick?.(c.cell)}
                     onPointerEnter={handleCellEnter(c.cell)}
                 />
             ))}

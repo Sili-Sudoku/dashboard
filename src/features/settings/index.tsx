@@ -33,7 +33,8 @@ export default function Settings() {
                     <div>
                         <div className="settings-row-title">Highlight matching numbers</div>
                         <div className="settings-row-desc">
-                            Tint each cell that has the same digit as the selected cell.
+                            Double-click a cell that has a digit to tint every cell with the same digit. The tint goes
+                            away when you move to another cell.
                         </div>
                     </div>
                     <input
@@ -49,8 +50,8 @@ export default function Settings() {
                         <div className="settings-row-desc">
                             The palette for Color mode on the number pad. Press 1-9 in Color mode to paint with the
                             matching color. Press 0 to paint the board background. The background is always the paper
-                            color, so you cannot change it. A cell can have more than one color, for example color 1
-                            and the background. If you change a color, the cells that have it change too.
+                            color, so you cannot change it. A cell can have more than one color, for example color 1 and
+                            the background. If you change a color, the cells that have it change too.
                         </div>
                         <div className="settings-palette">
                             {settings.markColors.map((color, i) => (
