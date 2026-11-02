@@ -1,10 +1,24 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import * as path from "node:path";
 
 export default defineConfig({
-    plugins: [react()],
+    plugins: [
+        react(),
+        // Precaches the whole build (including lazy route chunks) so visited-once
+        // or not, the app opens offline. The manifest is the hand-written one in
+        // public/, so the plugin does not generate its own.
+        VitePWA({
+            registerType: "autoUpdate",
+            manifest: false,
+            workbox: {
+                globPatterns: ["**/*.{js,css,html,svg,webmanifest}"],
+                navigateFallback: "/index.html",
+            },
+        }),
+    ],
     base: "/",
     resolve: {
         alias: {
