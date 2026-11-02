@@ -22,9 +22,9 @@ const SHORTCUTS: { keys: string; action: string }[] = [
 ];
 
 export default function HotkeyLegend() {
-    // Collapsed to just the toggle button by default — this *is* the
-    // "Show/Hide shortcuts" control, not a separate button sitting above a
-    // second collapsible section (same pattern as ConstraintPanel).
+    // Collapsed by default: only the toggle button shows.
+    // This button is the "Show/Hide shortcuts" control.
+    // It is not a separate button above a second collapsible section (same pattern as ConstraintPanel).
     const [settings, setSetting] = useSettings();
     const open = settings.hotkeyLegendOpen;
 

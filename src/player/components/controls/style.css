@@ -1,5 +1,5 @@
-/* One row: Undo, Redo and Check share the width; the menu button keeps its own
-   44px square. Every target is at least 44px tall. */
+/* One row. Undo, Redo and Check share the width.
+   The menu button keeps its own 44px square. Each target is at least 44px tall. */
 .controls {
     display: flex;
     gap: var(--space-1);

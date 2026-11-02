@@ -11,7 +11,7 @@ import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
 
-/** Key events must originate inside the player (#155), so tests dispatch from its root. */
+/** Key events must start inside the player (#155), so tests dispatch from its root. */
 const root = () => document.querySelector(".puzzle-player")!;
 
 const compiled = () => {
@@ -35,8 +35,8 @@ const compiledWithZeroInDomain = () => {
     return result;
 };
 
-/** A tiny geometry with a 1-25 domain — enough to exercise multi-digit keyboard
- * entry without pulling in the 625-cell large-demo puzzle and its virtualization. */
+/** A tiny geometry with a 1-25 domain. It is enough to test multi-digit keyboard entry
+ * without the 625-cell large-demo puzzle and its virtualization. */
 const compiledWithLargeDomain = () => {
     const result = compilePuzzle(
         {
@@ -76,11 +76,11 @@ describe("<PuzzlePlayer />", () => {
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         fireEvent.pointerDown(cells[1]); // r1c2, empty in mini sudoku
         fireEvent.click(screen.getByRole("button", { name: "3" }));
-        expect(container.querySelectorAll(".digit")).toHaveLength(5); // 4 givens + the one just entered
+        expect(container.querySelectorAll(".digit")).toHaveLength(5); // 4 givens + the digit just entered
 
         rerender(<PuzzlePlayer puzzle={puzzle} showSolution />);
-        // Every cell now shows a digit (solution is a full board); the real
-        // entry made above is masked, not overwritten -- confirmed below.
+        // Every cell now shows a digit (the solution is a full board).
+        // The real entry made above is masked, not overwritten (confirmed below).
         expect(container.querySelectorAll(".digit")).toHaveLength(16);
         expect(container.querySelectorAll(".digit.given")).toHaveLength(4);
 
@@ -108,9 +108,9 @@ describe("<PuzzlePlayer />", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         expect(container.querySelector(".cp-groups")).toBeNull();
 
-        // The toggle button doubles as the status line once open, so its
-        // accessible name changes (e.g. to "In progress — n/m cells") —
-        // hold the node rather than re-querying by the "show/hide" label.
+        // The toggle button is also the status line when open, so its accessible name changes
+        // (for example to "In progress — n/m cells").
+        // Hold the node. Do not query again by the "show/hide" label.
         const toggle = screen.getByRole("button", { name: /show constraints/i });
         fireEvent.click(toggle);
         expect(container.querySelector(".cp-groups")).not.toBeNull();
@@ -131,12 +131,12 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
         const panel = container.querySelector(".constraint-panel") as HTMLElement;
         expect(within(panel).getByText("Some constraints are broken")).toBeTruthy();
-        // row:0, the top-left box, and col:1 each break on a duplicate '1' — but only
-        // the specific duplicate cells (r1c1+r1c2, and r1c2+r3c2) should be flagged,
-        // not every cell those three groups span (which would be 8+ cells).
+        // row:0, the top-left box, and col:1 each break on a duplicate '1'.
+        // Only the specific duplicate cells (r1c1+r1c2, and r1c2+r3c2) must be flagged,
+        // not each cell that those three groups span (8+ cells).
         expect(container.querySelectorAll(".cell-violated").length).toBe(3);
-        // the clicked cell is both violated and the cursor — the cursor ring must
-        // still render, so a click on a broken cell still visibly registers.
+        // The clicked cell is both violated and the cursor.
+        // The cursor ring must still render, so a click on a broken cell visibly registers.
         expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
     });
 
@@ -404,8 +404,8 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("flags a cell's remaining centre notes in red on leave, once the Settings (#69) preference is on", () => {
-        // No in-page toggle anymore — this is a Settings-page preference, read
-        // once when the puzzle session is constructed.
+        // No in-page toggle now. This is a preference of the Settings page,
+        // read once when the puzzle session is built.
         localStorage.setItem("cpr:settings", JSON.stringify({ checkNotesOnLeave: true }));
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
@@ -414,8 +414,8 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
         fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
         fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
-        fireEvent.pointerDown(cells[2]); // leave r1c2 — candidates {1,3} still missing '2'
-        // Centre notes render as one joined <text>, unlike one-per-digit corner notes.
+        fireEvent.pointerDown(cells[2]); // leave r1c2; candidates {1,3} still miss '2'
+        // Centre notes render as one joined <text>. Corner notes render as one <text> per digit.
         expect(container.querySelectorAll(".note-flagged")).toHaveLength(1);
 
         // fixing the candidates (adding the correct digit back) clears the flag on next leave
@@ -498,7 +498,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
         fireEvent.click(screen.getByRole("button", { name: /^Center$/ }));
         fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
-        fireEvent.click(screen.getByRole("button", { name: "Center note 3" })); // candidates {1,3} — missing '2'
+        fireEvent.click(screen.getByRole("button", { name: "Center note 3" })); // candidates {1,3} miss '2'
 
         fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
         expect(screen.queryByText(/eliminated the correct digit/i)).not.toBeNull();
@@ -520,15 +520,15 @@ describe("<PuzzlePlayer />", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiledWithLargeDomain()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[0]);
 
-        // "1" alone is ambiguous (could become 1, or 10-19) — but it's shown right
-        // away rather than waiting to see if a second digit follows.
+        // "1" alone is ambiguous (it can become 1, or 10-19), but it shows at once,
+        // without a wait for a second digit.
         fireEvent.keyDown(root(), { key: "1" });
         let entered = container.querySelectorAll(".digit.entered");
         expect(entered).toHaveLength(1);
         expect(entered[0].textContent).toBe("1");
 
-        // "10" can't be extended any further within a 1-25 domain — the second
-        // keystroke corrects the preview immediately.
+        // "10" cannot extend further in a 1-25 domain.
+        // The second keystroke corrects the preview at once.
         fireEvent.keyDown(root(), { key: "0" });
         entered = container.querySelectorAll(".digit.entered");
         expect(entered).toHaveLength(1);
@@ -579,7 +579,7 @@ describe("<PuzzlePlayer />", () => {
             fireEvent.click(screen.getByRole("button", { name: "15" }));
             expect(container.querySelectorAll(".digit.entered")[0]?.textContent).toBe("15");
 
-            // if the stale "2" buffer were still live, this would stomp the click.
+            // if the stale "2" buffer were still live, this would overwrite the click.
             act(() => {
                 vi.advanceTimersByTime(600);
             });
@@ -638,7 +638,7 @@ describe("<PuzzlePlayer />", () => {
             expect(screen.getByText("0:05")).toBeTruthy();
             expect(screen.getByText("best 0:05")).toBeTruthy();
 
-            // Further ticks don't move it — the timer is stopped, not just paused.
+            // More ticks do not move it. The timer is stopped, not only paused.
             act(() => {
                 vi.advanceTimersByTime(5000);
             });

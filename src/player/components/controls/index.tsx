@@ -10,14 +10,14 @@ interface Props {
     onUndo: () => void;
     onRedo: () => void;
     onReset: () => void;
-    /** Omitted entirely when the puzzle has no declared solution to check against (#52). */
+    /** Omitted when the puzzle has no declared solution to check against (#52). */
     onCheck?: () => void;
-    /** Items listed above Reset in the menu (on a phone: the timer and the zoom controls). */
+    /** Items above Reset in the menu (on a phone: the timer and the zoom controls). */
     extraItems?: readonly MenuItem[];
 }
 
-/** The frequent actions (Undo, Redo, Check) sit in one row; Reset, which throws the
- *  whole attempt away, lives in the menu at the end of it behind a confirm step. */
+/** The frequent actions (Undo, Redo, Check) are in one row.
+ *  Reset throws the whole attempt away. It is in the menu at the end of the row, behind a confirm step. */
 export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, onCheck, extraItems = [] }: Props) {
     return (
         <div className="controls">

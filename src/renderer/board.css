@@ -8,33 +8,34 @@
     background: var(--surface);
 }
 
-/* A SudokuPad-style pan/zoom canvas instead of shrinking the whole board to fit
-   (#48/#49). .board-wrap/.board-viewport get an exact pixel size computed by
-   Board.tsx from how much space .board-measure actually has (the chain is
-   completed by player.css and the app shell's style.css, gated by the
-   route-driven .app--board/.app-main--board classes set in router.tsx) — the
-   window, not some fixed vh/px box, is the bounding box. The SVG inside is
-   sized via width/height="100%" attributes, which need a *definite* ancestor
-   height to resolve against — flexbox gives every ancestor in the chain a
-   definite computed height after layout, even without a literal `height`
-   value; skip a link in that chain (e.g. the above classes not being
-   applied) and the SVG falls back to sizing itself by its own aspect ratio
-   instead, which is how this broke once before. Board.tsx then drives
-   pan/zoom entirely by rewriting the SVG's viewBox (scroll wheel = zoom at
-   cursor, middle/right-drag = pan), and culls offscreen cells/shapes to keep
-   the DOM small regardless of total board size or zoom level. */
-/* .board-viewport is still a distinct bordered region that the toolbar sits
-   above and the sidebar sits beside — a current implementation detail, not
-   the end state. SudokuPad has no such region at all: the puzzle canvas is
-   borderless and fills the whole page, with the controls floating on top of
-   it rather than reserving space around it. Collapsing to that (no border/
-   box, controls as overlays) is a later redesign, not implied by anything
-   here — flagged so it isn't mistaken for the final shape of this. */
+/* A SudokuPad-style pan/zoom canvas. The board does not shrink to fit (#48/#49).
+   Board.tsx computes an exact pixel size for .board-wrap and .board-viewport.
+   It uses the space that .board-measure has.
+   player.css and the style.css of the app shell complete the chain.
+   The route-driven classes .app--board and .app-main--board (set in router.tsx) enable it.
+   The window is the bounding box. A fixed vh/px box is not.
+   The SVG inside gets its size from the attributes width/height="100%".
+   These attributes need an ancestor with a *definite* height.
+   Flexbox gives each ancestor in the chain a definite computed height after layout.
+   This is true even when no `height` value is set.
+   If one link in the chain is missing (for example, the classes above are not applied),
+   the SVG uses its own aspect ratio for its size. This broke the layout once before.
+   Board.tsx drives pan/zoom only by a rewrite of the viewBox of the SVG
+   (scroll wheel = zoom at cursor, middle/right-drag = pan).
+   It also culls the cells and shapes that are off screen.
+   This keeps the DOM small for all board sizes and zoom levels. */
+/* .board-viewport is still a separate region with a border.
+   The toolbar is above it and the sidebar is beside it.
+   This is the current implementation, not the final design.
+   SudokuPad has no such region. Its puzzle canvas has no border and fills the whole page.
+   The controls float on top of the canvas and do not reserve space around it.
+   A later redesign can change to that (no border or box, controls as overlays).
+   Nothing here requires that change. */
 .board-viewport {
     width: 100%;
-    /* Just a floor against total collapse, not a target size — small enough that
-       the normal case (plenty of window height) never has to fall back to the
-       app shell's overflow-y:auto scroll in style.css. */
+    /* A floor that prevents a total collapse. It is not a target size.
+       It is small, so a normal window height never uses
+       the overflow-y:auto scroll of the app shell in style.css. */
     min-height: 140px;
     overflow: hidden;
     border: 2px solid var(--line-strong);
@@ -48,20 +49,21 @@
     display: block;
 }
 
-/* The always-uncapped flex-filling region the board's on-screen size is fit
-   against (#77 follow-up) — .board-wrap/.board-viewport below get an exact
-   pixel size from Board.tsx (not just a max-width/max-height ceiling), kept
-   in sync via a ResizeObserver on *this* element so the fit keeps up with
-   window/devtools-panel resizes instead of freezing at whatever size was
-   available on first mount. Horizontally centers .board-wrap once it's
-   narrower than the full available width, same as the old margin:auto did —
-   but top-aligned (not vertically centered), so the toolbar/grid starts
-   flush with this element's own top edge instead of floating in empty space
-   whenever the board doesn't fill the full height (small puzzles, or
-   anything capped by MAX_ZOOM before reaching it). PuzzlePlayer.tsx measures
-   .board-viewport's own top directly for the sidebar's position, so this
-   isn't load-bearing for that alignment anymore — it's just the more
-   predictable default look on its own. */
+/* The flex region that has no cap. The on-screen size of the board fits to it (#77 follow-up).
+   Board.tsx gives .board-wrap and .board-viewport below an exact pixel size.
+   A max-width or max-height limit alone is not enough.
+   A ResizeObserver on *this* element keeps the size current.
+   So the fit follows window and devtools-panel resizes.
+   It does not stay at the size that was available on the first mount.
+   It centers .board-wrap horizontally when .board-wrap is narrower than the available width.
+   The old margin:auto did the same.
+   It aligns to the top and does not center vertically.
+   So the toolbar and grid start at the top edge of this element.
+   They do not float in empty space when the board does not fill the full height
+   (small puzzles, or a size that MAX_ZOOM caps before it reaches the full height).
+   PuzzlePlayer.tsx measures the top of .board-viewport directly to position the sidebar.
+   So this alignment is not required for that position.
+   It only gives a more predictable default look. */
 .board-measure {
     flex: 1;
     min-height: 0;
@@ -74,13 +76,13 @@
 .board-wrap {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* keep in step with FOOTER_GAP in Board.tsx */
+    gap: 0.5rem; /* keep equal to FOOTER_GAP in Board.tsx */
 }
 
-/* One slim row under the grid: the caller's own content (the player's timer) on the
-   left, the zoom button on the right. Zoom used to float over the grid's corner, which
-   covered digits; below it, nothing is in the way. Wheel and two-finger pinch still
-   zoom directly. */
+/* One thin row under the grid. The content of the caller (the timer of the player) is on the
+   left. The zoom button is on the right. The zoom button was over the corner of the grid
+   and covered digits. Below the grid, nothing blocks the view. The wheel and the
+   two-finger pinch still zoom directly. */
 .board-footer {
     position: relative;
     display: flex;
@@ -106,7 +108,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* The full set (lock, zoom out/in, slider, fit, actual size) opens upward from the button. */
+/* The full set (lock, zoom out/in, slider, fit, actual size) opens up from the button. */
 .board-zoom-toolbar {
     position: absolute;
     bottom: calc(100% + 0.4rem);
@@ -131,7 +133,7 @@
     min-width: 44px;
     flex: 1 1 auto;
 }
-/* Fit and Actual size go below the slider. */
+/* Fit and Actual size are below the slider. */
 .board-zoom-toolbar .btn:nth-last-child(-n + 2) {
     order: 6;
 }
@@ -173,9 +175,9 @@
     pointer-events: none;
 }
 
-/* #35: the palette is light, tuned for dark digits on cream. On the dark theme the
-   digits are cream, so mute the marks there (they stay distinguishable, just darker)
-   instead of putting light text on light pastels. */
+/* #35: the palette is light and made for dark digits on cream. In the dark theme the
+   digits are cream, so the marks are muted there (you can still see them, but they are darker).
+   This prevents light text on light pastels. */
 :root[data-theme="dark"] .board .cell-mark {
     opacity: 0.4;
 }
@@ -214,12 +216,11 @@
     fill: var(--entered);
     font-weight: 500;
 }
-/* checkAgainstSolution (#52): a placed value that's legal so far (no rule
-   broken yet) but doesn't match the known solution — distinct from
-   .cell-violated/.cell-invalid, which flag rule breaks, not "wrong" per se.
-   A horizontal line-through reads oddly against digits that already have
-   their own horizontal strokes (e.g. 4, 7) — a diagonal slash (drawn
-   separately, see .incorrect-slash) reads as "crossed out" more clearly. */
+/* checkAgainstSolution (#52): a placed value is legal so far (no rule is broken yet),
+   but it does not match the known solution.
+   This differs from .cell-violated and .cell-invalid. They show a broken rule, not a "wrong" value.
+   A horizontal line-through is hard to read on digits that already have horizontal strokes (for example 4, 7).
+   A diagonal slash (drawn separately, see .incorrect-slash) shows "crossed out" more clearly. */
 .board .digit.incorrect {
     fill: var(--violated-line);
 }
@@ -240,18 +241,19 @@
     font-weight: 700;
 }
 
-/* The board is a Tab stop (#64); keep a visible ring for keyboard focus. */
+/* The board is a Tab stop (#64). Keep a visible ring for keyboard focus. */
 .board:focus-visible {
     outline: 3px solid var(--brand);
-    outline-offset: -3px; /* inside: the viewport clips anything outside the board */
+    outline-offset: -3px; /* inside: the viewport clips all that is outside the board */
 }
 
-/* A caller's row above the grid (Author's Edit / Test bar): inside .board-wrap, so it shares the grid's left edge. */
+/* A row of the caller above the grid (Author's Edit / Test bar).
+   It is inside .board-wrap, so it has the same left edge as the grid. */
 .board-header {
     min-width: 0;
 }
 
-/* Pen tool (#45): the stroke being drawn, and the surface that takes the pen's pointer input. */
+/* Pen tool (#45): the stroke in progress, and the surface that receives the pointer input of the pen. */
 .board .pen-draft {
     fill: none;
     stroke: var(--pen);
@@ -265,8 +267,8 @@
     cursor: crosshair;
 }
 
-/* A stroke that would rub out the line beneath it: those pieces turn red and heavier, so the
-   removal is plain before the pointer is released. */
+/* A stroke that erases the line below it. Those pieces turn red and heavier,
+   so the removal is clear before the player releases the pointer. */
 .board .pen-erasing {
     stroke: var(--violated-line);
     stroke-width: 9;

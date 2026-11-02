@@ -152,7 +152,7 @@ describe("buildScene", () => {
         expect(left).toBeGreaterThan(64); // a cell of margin plus half the glyph
         expect(scene.height).toBe(plain.height);
         expect(scene.viewBox).toBe(`0 0 ${scene.width} ${scene.height}`);
-        // every cell moved right by exactly the margin; the clue now sits inside the viewBox
+        // every cell moved right by exactly the margin. The clue now sits inside the viewBox
         expect(scene.cells[0].x).toBeCloseTo(plain.cells[0].x + left, 6);
         const text = scene.shapes.find((s) => s.kind === "text" && s.text === "7");
         expect(text && text.kind === "text" && text.x).toBeGreaterThan(0);
@@ -198,10 +198,11 @@ describe("buildScene", () => {
     });
 
     describe("same-value highlight (#73)", () => {
-        // r1c1=5, r1c5=7, r2c1=6 ... come from the demo's givens; fill extra 5s by hand.
+        // r1c1=5, r1c5=7, r2c1=6 ... come from the givens of the demo. Fill the extra 5s by hand.
         const values: Record<string, number> = { r1c1: 5, r4c4: 5, r7c9: 5, r2c2: 3 };
         const at = (c: string): number | null => values[c] ?? null;
-        // Not Partial<SceneInput>: its `valueOf` property collides with Object.prototype.valueOf when TS checks a partial.
+        // Not Partial<SceneInput>. Its `valueOf` property collides with Object.prototype.valueOf
+        // when TS checks a partial.
         const build = (
             over: Partial<Pick<SceneInput, "cursor" | "selection" | "hiddenCells" | "highlightSameValue">> = {},
             valueOf: (c: string) => number | null = at,
@@ -343,10 +344,10 @@ describe("buildScene", () => {
     });
 
     it("trusts valueOf as already fog-aware, and only styles given digits once revealed", () => {
-        // This module does no masking of its own — PuzzleSession.displayState
-        // is responsible for ever passing in a hidden given's real value, so
-        // here r1c1 (hidden, given) simulates the player's own guess
-        // underneath it (5), not the puzzle's actual clue.
+        // This module does no masking of its own. PuzzleSession.displayState
+        // is responsible: it never passes in the real value of a hidden given.
+        // So here r1c1 (hidden, given) simulates the own guess of the player
+        // under it (5), not the actual clue of the puzzle.
         const scene = buildScene({
             puzzle,
             valueOf: (c) => (c === "r1c1" ? 5 : c === "r1c3" ? 9 : null),
@@ -363,8 +364,8 @@ describe("buildScene", () => {
         // Value passes straight through, whatever it is.
         expect(scene.cells.find((c) => c.cell === "r1c1")?.value).toBe(5);
         expect(scene.cells.find((c) => c.cell === "r1c3")?.value).toBe(9);
-        // r1c1 is structurally given, but still hidden — rendered as a plain
-        // entry (not given-digit styling) until it's actually revealed.
+        // r1c1 is structurally given, but still hidden. It renders as a plain
+        // entry (not given-digit styling) until it is revealed.
         expect(scene.cells.find((c) => c.cell === "r1c1")?.given).toBe(false);
         // unlisted cells are unaffected either way.
         expect(scene.cells.find((c) => c.cell === "r1c2")?.hidden).toBe(false);
@@ -467,7 +468,7 @@ describe("cells that are not on the board yet (#72)", () => {
         expect(scene.cells).toHaveLength(12);
         const size = scene.cells[0]!.size;
         const horizontals = scene.gridLines.filter((l) => l.points[0]!.y === l.points[1]!.y);
-        // no line below the third row's bottom edge, which is now the heavy outline
+        // no line below the bottom edge of the third row, which is now the heavy outline
         expect(Math.max(...horizontals.map((l) => l.points[0]!.y))).toBe(3 * size);
         const bottom = horizontals.find((l) => l.points[0]!.y === 3 * size)!;
         expect(bottom.weight).toBe(3);
@@ -514,7 +515,7 @@ describe("pen layer shapes (#45)", () => {
 
     it("places lattice points at half-cell steps from the grid's corner", () => {
         const scene = build({ segments: ["1,1|2,1"], marks: {} });
-        // cell size 64: lattice (1,1) is the first cell's centre, (2,1) the middle of its right edge
+        // cell size 64: lattice (1,1) is the centre of the first cell, (2,1) the middle of its right edge
         expect(scene.pen).toHaveLength(1);
         expect(scene.pen[0]).toMatchObject({ kind: "polyline", points: [{ x: 32, y: 32 }, { x: 64, y: 32 }] });
     });

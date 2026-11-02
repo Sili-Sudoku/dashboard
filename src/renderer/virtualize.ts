@@ -1,16 +1,16 @@
 /**
- * Pure viewport-culling helpers for the pan/zoom board (#48). `buildScene()`
- * always builds the full cell/shape list — a puzzle's geometry is independent
- * of any viewport — so culling is purely a rendering concern, applied by
- * `Board.tsx` just before mapping shapes to SVG elements. Until a view is
- * established (or on a puzzle small enough that it never needs to cull
- * anything out), everything just renders, same as before this card.
+ * Pure viewport-culling helpers for the pan/zoom board (#48).
+ * `buildScene()` always builds the full list of cells and shapes.
+ * The geometry of a puzzle does not depend on a viewport, so culling is only a rendering task.
+ * `Board.tsx` applies it just before it maps shapes to SVG elements.
+ * The board renders everything until a view exists.
+ * It also renders everything when the puzzle is small enough that no cell needs culling.
  */
 
 import type { Point } from "@/runtime/geometry.ts";
 import type { CellShape, Shape } from "@/renderer/scene.ts";
 
-/** A visible pixel rect, in the same coordinate space as `Scene` (absolute px). */
+/** A visible pixel rect in the coordinate space of `Scene` (absolute px). */
 export interface ViewportRect {
     left: number;
     top: number;
@@ -25,21 +25,22 @@ export const ZOOM_STEP = 1.25;
 export const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 
 /**
- * Pans/zooms a SudokuPad-style board: the visible rect (in board units) *is*
- * the SVG's viewBox, directly. No scrolling, no scaling the SVG's own pixel
- * size — the container is whatever size CSS gives it, and this rect decides
- * what portion of the board fills that container.
+ * Pan and zoom of a SudokuPad-style board.
+ * The visible rect (in board units) is the viewBox of the SVG.
+ * The board does not scroll, and the pixel size of the SVG does not change.
+ * CSS sets the size of the container.
+ * This rect sets which part of the board fills the container.
  */
 
 /**
- * A view rect centered on the whole scene, scaled (and letterboxed) to fit
- * `containerWidth` x `containerHeight`, same as the "Fit" toolbar button —
- * clamped to the same MIN_ZOOM..MAX_ZOOM range as manual zooming, so the
- * initial fit can never land somewhere the player couldn't also reach by
- * hand. (#77 follow-up: this used to cap at 1 — never scale up past native
- * size — but that fought with Board.tsx's own box-sizing cap to pin small
- * puzzles at an undersized box no matter how much screen was available;
- * growing to fill available space, SudokuPad-style, is the actual goal.)
+ * A view rect centered on the whole scene.
+ * It is scaled (and letterboxed) to fit `containerWidth` x `containerHeight`, like the "Fit" toolbar button.
+ * The scale stays in the MIN_ZOOM..MAX_ZOOM range of manual zoom.
+ * So the initial fit is always a zoom level that the player can also reach by hand.
+ * (#77 follow-up: the scale had a cap of 1, so the board never grew past its native size.
+ * That cap conflicted with the box-sizing cap in Board.tsx.
+ * Small puzzles stayed in a box that was too small, even on a large screen.
+ * The goal is to grow to fill the available space, like SudokuPad.)
  */
 export const fitView = (
     sceneWidth: number,
@@ -53,7 +54,7 @@ export const fitView = (
     return { left: (sceneWidth - width) / 2, top: (sceneHeight - height) / 2, width, height };
 };
 
-/** Keeps a view rect from drifting so far that it no longer overlaps the scene at all. */
+/** Keeps a view rect from moving so far that it no longer overlaps the scene. */
 export const clampView = (view: ViewportRect, sceneWidth: number, sceneHeight: number): ViewportRect => ({
     left: clamp(view.left, Math.min(0, sceneWidth - view.width), Math.max(0, sceneWidth - view.width)),
     top: clamp(view.top, Math.min(0, sceneHeight - view.height), Math.max(0, sceneHeight - view.height)),
@@ -61,7 +62,7 @@ export const clampView = (view: ViewportRect, sceneWidth: number, sceneHeight: n
     height: view.height,
 });
 
-/** Shifts a view rect by a board-unit delta (e.g. from a pan drag), clamped to stay over the scene. */
+/** Moves a view rect by a delta in board units (for example from a pan drag). The rect stays over the scene. */
 export const panView = (
     view: ViewportRect,
     sceneWidth: number,
@@ -71,11 +72,11 @@ export const panView = (
 ): ViewportRect => clampView({ ...view, left: view.left + dx, top: view.top + dy }, sceneWidth, sceneHeight);
 
 /**
- * Zooms a view rect by `factor` (>1 zooms in) while keeping the board-unit point
- * under the fractional container position (`fracX`/`fracY`, each 0..1) stationary
- * on screen — the "zoom toward the cursor" feel of a map/graphics app. The zoom
- * bound is in terms of `containerWidth` (actual on-screen pixels per board unit),
- * not scene size — so it zooms just as deep into a tiny board as a huge one.
+ * Zooms a view rect by `factor` (>1 zooms in).
+ * The board-unit point under the fractional container position (`fracX`/`fracY`, each 0..1) stays fixed on screen.
+ * This gives the "zoom toward the cursor" behavior of a map or graphics app.
+ * The zoom limit uses `containerWidth` (on-screen pixels per board unit), not the scene size.
+ * So the zoom depth is the same for a tiny board and a huge board.
  */
 export const zoomViewAt = (
     view: ViewportRect,
@@ -101,7 +102,7 @@ export const zoomViewAt = (
     );
 };
 
-/** Grows a viewport by `margin` on every side — cull *slightly* outside what's visible, not exactly at the edge. */
+/** Grows a viewport by `margin` on every side. The cull edge is *slightly* outside the visible area. */
 export const expandViewport = (v: ViewportRect, margin: number): ViewportRect => ({
     left: v.left - margin,
     top: v.top - margin,

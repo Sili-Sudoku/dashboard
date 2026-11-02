@@ -39,10 +39,10 @@ export default function NumberPad({
     onModeChange,
 }: Props) {
     const swatches = mode === "color";
-    // The pad's shape never changes with the mode (as in SudokuPad): the digits, with
-    // a 0 key beside Erase. In colour mode the digits become swatches 1-9 and 0 is
-    // the background colour (see mark_colors.ts); otherwise 0 is only live when the
-    // puzzle's own domain includes it.
+    // The shape of the pad never changes with the mode (as in SudokuPad).
+    // It has the digits and a 0 key beside Erase.
+    // In colour mode, the digits are swatches 1-9 and 0 is the background colour (see mark_colors.ts).
+    // In other modes, 0 is live only when the domain of the puzzle includes it.
     const base = swatches ? palette.map((_, i) => i + 1) : values.filter((v) => v !== 0);
     const columns = padColumns(base.length);
     const key = (v: number, extra = "") => (
@@ -106,8 +106,8 @@ export default function NumberPad({
     );
 }
 
-/** How the pen works, as four small tiles in the footprint the digit keys leave empty — so the pad
- *  keeps its size when you switch to Pen. Not buttons: the pen is used on the board itself. */
+/** How the pen works, as four small tiles in the space that the digit keys leave empty.
+ *  The pad then keeps its size in Pen mode. The tiles are not buttons: the pen works on the board. */
 function PenGuide({ rows }: { rows: number }) {
     const stroke = { stroke: "currentColor", strokeWidth: 3, strokeLinecap: "round", fill: "none" } as const;
     const steps = [

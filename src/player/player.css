@@ -1,10 +1,9 @@
-/* The board gets the full available window, not a small fixed cap — the
-   point of zoom/fit-to-screen is to actually use the screen (#48/#49). This
-   also stretches the row's items full-height (instead of the default
-   flex-start-sized-to-content) and makes the column itself a flex container,
-   so the fill-the-remaining-space chain continuing down into board.css's
-   .board-wrap/.board-viewport has a definite height to grow into at
-   every level. */
+/* The board uses the full available window, not a small fixed cap.
+   Zoom and fit-to-screen exist to use the screen (#48/#49).
+   This rule stretches the items of the row to full height, instead of the default flex-start size.
+   It makes the column a flex container.
+   So each level of the fill-the-remaining-space chain has a definite height to grow into.
+   The chain continues down into .board-wrap and .board-viewport in board.css. */
 .puzzle-player {
     display: flex;
     gap: 1.6rem;
@@ -21,25 +20,24 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    /* The sidebar is position:fixed (see .pp-side below) and so no longer
-       takes up space in the row's normal flow — reserve the same width +
-       gap by hand so the board doesn't render underneath it. */
+    /* The sidebar is position:fixed (see .pp-side below).
+       It does not take space in the normal flow of the row.
+       Reserve the same width and gap by hand, so the board does not render under it. */
     margin-right: calc(340px + 1.6rem);
 }
-/* Sticky still has to "catch up" past whatever's above it (header, title)
-   before it locks — on a short window where .app itself scrolls, that reads
-   as the sidebar moving. position:fixed never moves at all, at the cost of
-   needing a concrete top offset, which --pp-side-top supplies (set in
-   PuzzlePlayer.tsx from the board column's actual on-screen position, so it
-   isn't a guess that breaks whenever the header/title's height changes). Its
-   own content still scrolls internally (max-height + overflow-y) so a tall
-   constraint panel/hotkey legend can't push the box itself past the bottom
-   of the screen. */
+/* A sticky sidebar must "catch up" past the header and title before it locks.
+   On a short window where .app scrolls, this looks like the sidebar moves.
+   position:fixed never moves, but it needs a concrete top offset.
+   --pp-side-top supplies the offset.
+   PuzzlePlayer.tsx sets it from the real on-screen position of the board column.
+   So the offset stays correct when the height of the header or title changes.
+   The content scrolls inside the box (max-height + overflow-y).
+   So a tall constraint panel or hotkey legend cannot push the box past the bottom of the screen. */
 .pp-side {
     position: fixed;
     top: var(--pp-side-top, 0px);
     right: 1.2rem;
-    /* PuzzlePlayer.tsx sets this to just right of the grid; without it, flush right. */
+    /* PuzzlePlayer.tsx sets this to the right of the grid. Without it, the sidebar is flush right. */
     left: var(--pp-side-left, auto);
     width: 340px;
     max-height: calc(100vh - var(--pp-side-top, 0px) - 1.6rem);
@@ -49,23 +47,23 @@
     gap: 0.8rem;
 }
 
-/* Sidebar groups (#133), by purpose: the status strip (timer/solved) sits
-   bare on top; the solving controls are the visually primary, boxed group;
-   reference disclosures (constraints, shortcuts) sit below a labelled rule so
-   they read as secondary. New controls go in the group matching their bucket
-   (docs/UI_PLACEMENT.md). */
+/* Sidebar groups (#133), by purpose.
+   The status strip (timer, solved) is bare on top.
+   The solving controls are the main group, in a box.
+   Reference disclosures (constraints, shortcuts) are below a labelled rule, so they look secondary.
+   Put a new control in the group of its bucket (docs/UI_PLACEMENT.md). */
 .pp-group {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
 }
 
-/* Pad and action row share one width and centre in the box, so their edges line up. */
+/* The pad and the action row have the same width and are centred in the box, so their edges line up. */
 .pp-solve {
     align-items: center;
     padding: var(--space-3);
-    /* The keys inside already carry their own outlines, so the box is a quiet frame — a heavy
-       border plus shadow here made a second, louder box around every key. */
+    /* The keys already have their own outlines, so the box is a quiet frame.
+       A heavy border and shadow here made a second, louder box around each key. */
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     background: var(--surface);
@@ -91,20 +89,18 @@
     color: var(--ink-soft);
 }
 
-/* Below this, the fixed 340px sidebar plus the board column's own 300px
-   floor no longer fit side by side (#70) — there's nothing left to shrink,
-   so they just overlap instead of one of them actually yielding. Drop the
-   sidebar out of fixed/floating mode and let it stack below the board like
-   a normal block instead. */
+/* Below this width, the fixed 340px sidebar and the 300px floor of the board column do not fit (#70).
+   Nothing is left to shrink, so they overlap.
+   Remove the sidebar from fixed mode and stack it below the board as a normal block. */
 @media (max-width: 820px) {
-    /* The hint is keyboard talk; a stacked (phone/tablet) layout has the shortcuts
-       disclosure and pinch/tap instead, and the pad needs the room. */
+    /* The hint is about the keyboard. The stacked (phone, tablet) layout has the shortcuts
+       disclosure and pinch or tap instead. The pad needs the room. */
     .pp-hint {
         display: none;
     }
-    /* Stacked, the board column's height comes from its own content, so the board's
-       fit has nothing to grow into and settles well short of the screen's width. Give
-       it a roughly square slot to fill instead. */
+    /* In the stacked layout, the height of the board column comes from its own content.
+       The fit has nothing to grow into, so it stops well short of the screen width.
+       Give the column a roughly square slot to fill. */
     .pp-board-col .board-measure {
         min-height: min(calc(100vw - 2.4rem), 75vh);
     }
@@ -119,28 +115,26 @@
     .pp-side {
         position: static;
         left: auto;
-        /* width:auto (a flex item with no flex-grow) shrink-wraps to its
-           narrowest child's content instead of filling the row it just wrapped
-           onto — left the number pad, controls, timer etc. all stuck flush left
-           with a wide stripe of dead space to their right. The row is already
-           full-width once wrapped (.pp-board-col is the only thing that was
-           sharing it), so just claiming 100% here is the fix, not a flex-grow
-           tug-of-war with a sibling that's no longer on the same line. */
+        /* width:auto (a flex item with no flex-grow) shrinks to the content of its narrowest child.
+           It does not fill the row it wrapped onto.
+           The number pad, controls and timer then stayed flush left with dead space to their right.
+           The row is full width after the wrap (.pp-board-col is the only item that shared it).
+           So width:100% is the fix, not a flex-grow with a sibling that is no longer on the same line. */
         width: 100%;
         max-height: none;
         overflow-y: visible;
     }
 }
 
-/* Lives in the row under the grid (Board's footer), between the timer and the zoom button. */
+/* Sits in the row under the grid (footer of Board), between the timer and the zoom button. */
 .pp-hint {
     flex: 1;
     min-width: 0;
     margin: 0;
     text-align: center;
-    /* One line, ellipsized: the row's width follows the grid's, and its height is
-       subtracted from the grid's budget — a hint that wrapped as the grid shrank would
-       make the row taller and shrink the grid further. */
+    /* One line, with an ellipsis. The row width follows the grid width.
+       The height of the row is subtracted from the grid budget.
+       A hint that wrapped while the grid shrank would make the row taller and shrink the grid more. */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -3,10 +3,10 @@
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
-    /* .pp-side (player.css) is a flex column with the default align-items:stretch,
-       so without this the pad — capped at 260px so its buttons don't balloon on a
-       wide sidebar — just sits flush left with the leftover width as dead space
-       beside it instead of centered in it. */
+    /* .pp-side (player.css) is a flex column with the default align-items:stretch.
+       Without this rule, the pad stays flush left, with the free width as dead space beside it.
+       The pad is capped at 260px, so its buttons do not grow too big in a wide sidebar.
+       This rule centres the pad in the sidebar. */
     margin: 0 auto;
 }
 
@@ -21,8 +21,8 @@
     gap: 0.4rem;
 }
 
-/* Five modes in one row, each a stacked icon over its label, so the pad stays short
-   enough for the Erase/Undo/Check rows to sit above a phone's fold. */
+/* Five modes in one row. Each mode is an icon over its label.
+   So the pad stays short and the Erase, Undo and Check rows sit above the fold of a phone. */
 .number-pad .pad-modes .pad-key.wide {
     flex: 1 1 0;
     flex-direction: column;
@@ -33,9 +33,9 @@
     font-size: 0.7rem;
 }
 
-/* Colour mode: the key *is* the swatch, so its digit is just the hotkey hint. The
-   swatches are all light (>= 7:1 against the ink), so the ink digit stays readable. */
-/* The background swatch is the paper colour itself, so it needs an outline to read as a key. */
+/* Colour mode: the key is the swatch, so its digit is only the hotkey hint.
+   All swatches are light (>= 7:1 against the ink), so the ink digit stays readable. */
+/* The background swatch is the paper colour itself, so it needs an outline to look like a key. */
 .pad-key-color[aria-label="Background color"] {
     border-style: dashed;
     color: var(--ink);
@@ -47,7 +47,7 @@
     font-size: 0.85rem;
 }
 
-/* 0 sits beside Erase at the width of one digit column; Erase takes the rest. */
+/* 0 is beside Erase and has the width of one digit column. Erase takes the rest. */
 .number-pad .pad-actions .pad-key-zero {
     flex: 1;
     height: 44px;
@@ -62,21 +62,21 @@
     font-size: 1.1rem;
 }
 
-/* Fixed height so switching the preview content (full digit / shrunk centre
-   note / absolutely-positioned corner note) never changes the button's box. */
+/* Fixed height. A change of the preview content (full digit, shrunk centre note,
+   absolutely-positioned corner note) then never changes the box of the button. */
 .pad-grid .pad-key {
     height: 44px;
 }
 
-/* Center mode: preview the compact, smaller, centred note style the digit
-   will actually render as, instead of the full-size digit-entry glyph. */
+/* Center mode: preview the compact, smaller, centred note style that the digit renders as,
+   not the full-size digit-entry glyph. */
 .pad-key-center {
     font-size: 0.85rem;
     color: var(--entered);
 }
 
-/* Corner mode: preview the exact 3x3 slot the note will land in, rather
-   than a centred digit, so the spatial mapping is visible before clicking. */
+/* Corner mode: preview the exact 3x3 slot where the note lands, not a centred digit.
+   So the spatial mapping is visible before the click. */
 .pad-key-preview {
     position: absolute;
     font-size: 0.65rem;
@@ -92,8 +92,8 @@
     min-height: 44px;
 }
 
-/* Pen mode (#45): four tiles say how the pen works, filling the space the digit keys take so the
-   pad doesn't change size. They look like the keys' quieter cousins — flat, not pressable. */
+/* Pen mode (#45): four tiles show how the pen works. They fill the space of the digit keys,
+   so the pad keeps its size. They look like the keys but are quieter: flat and not pressable. */
 .number-pad .pad-pen-guide {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -1,6 +1,6 @@
 /**
- * Bridges the framework-agnostic `PuzzleSession` into React and wires the two
- * pieces of interaction that belong to the app rather than the runtime:
+ * Connects the framework-agnostic `PuzzleSession` to React.
+ * It adds two interaction pieces that belong to the app, not to the runtime:
  * keyboard input and progress persistence.
  */
 
@@ -35,7 +35,7 @@ const writeProgress = (id: string, snapshot: ProgressSnapshot): void => {
     try {
         localStorage.setItem(progressStorageKey(id), JSON.stringify(snapshot));
     } catch {
-        // storage unavailable (private mode etc.) — progress just isn't persisted
+        // Storage is not available (for example private mode). Progress is not persisted.
     }
 };
 
@@ -54,7 +54,7 @@ const writePen = (id: string, pen: ReturnType<PuzzleSession["toPen"]>): void => 
             localStorage.removeItem(penStorageKey(id));
         else localStorage.setItem(penStorageKey(id), JSON.stringify(pen));
     } catch {
-        // storage unavailable — the pen layer just isn't persisted
+        // Storage is not available. The pen layer is not persisted.
     }
 };
 
@@ -71,7 +71,7 @@ const writeStats = (id: string, stats: PuzzleStats): void => {
     try {
         localStorage.setItem(statsStorageKey(id), JSON.stringify(stats));
     } catch {
-        // storage unavailable — stats just aren't persisted
+        // Storage is not available. Stats are not persisted.
     }
 };
 
@@ -83,28 +83,28 @@ const ARROW_KEYS: Record<string, Direction> = {
 };
 
 /**
- * Digit from the physical key code rather than `e.key`, since on many layouts
- * a held Shift changes `e.key` for the top-row digits (e.g. Shift+1 -> "!").
+ * Gets the digit from the physical key code, not from `e.key`.
+ * On many layouts a held Shift changes `e.key` for the top-row digits (for example Shift+1 -> "!").
  */
 const digitFromCode = (code: string): number | null => {
     const match = /^(?:Digit|Numpad)([1-9])$/.exec(code);
     return match ? Number(match[1]) : null;
 };
 
-/** Does some *other*, longer domain value start with `prefix`'s digits? i.e. could
- *  one more keypress extend `prefix` into a different, still-valid value. */
+/** Does a *different*, longer domain value start with the digits of `prefix`?
+ *  That is: can one more keypress extend `prefix` into a different, valid value? */
 const hasLongerMatch = (domain: readonly number[], prefix: string): boolean =>
     domain.some((v) => v !== Number(prefix) && String(v).startsWith(prefix));
 
-/** Multi-digit-aware commit delay (#large-domain follow-up): long enough for a
- * deliberate second keystroke, short enough not to feel like a stuck key. */
+/** Commit delay for multi-digit entry (#large-domain follow-up).
+ * It is long enough for a deliberate second keystroke and short enough that the key does not feel stuck. */
 const DIGIT_COMMIT_DELAY_MS = 500;
 
 const CHECK_TOAST_KEY = "check";
 
-/** A second history the board's Undo/Redo falls back to once the board's own
- *  (entered digits/notes) is exhausted — the Author page's edits to the puzzle
- *  definition itself (#116), so one Undo/Redo control covers both. */
+/** A second history that Undo/Redo of the board uses when its own history (entered digits and notes) is empty.
+ *  It holds the edits of the Author page to the puzzle definition (#116).
+ *  So one Undo/Redo control covers both. */
 export interface ExternalHistory {
     canUndo: boolean;
     canRedo: boolean;
@@ -113,9 +113,9 @@ export interface ExternalHistory {
 }
 
 /**
- * `scope` is the player's root element: keyboard shortcuts only fire for key events that
- * originate inside it (focused board, number pad, controls), so typing elsewhere on the page —
- * a dialog, the site header — can never edit a cell.
+ * `scope` is the root element of the player.
+ * Keyboard shortcuts fire only for key events that start inside it (focused board, number pad, controls).
+ * So typing elsewhere on the page (a dialog, the site header) cannot edit a cell.
  */
 export const usePuzzleSession = (
     puzzle: CompiledPuzzle,
@@ -137,15 +137,15 @@ export const usePuzzleSession = (
         () => session.revision,
     );
 
-    // The check result is a transient toast, not board state — a *revealed*
-    // mistake stays visibly red/flagged until fixed, but a plain confirmation
-    // has nothing to keep showing. Lives here, not in the component, so the
-    // Check button and the 'V' hotkey below both drive the exact same
-    // feedback — the keyboard is just a shortcut for the same action.
+    // The check result is a transient toast, not board state.
+    // A *revealed* mistake stays red and flagged until it is fixed.
+    // A plain confirmation has nothing to keep showing.
+    // The result is here, not in the component, so the Check button and the 'V' hotkey below
+    // give the same feedback. The keyboard is a shortcut for the same action.
     const check = useCallback(() => {
         const outcome = session.checkAgainstSolution();
         if (outcome === "revealed") {
-            // No toast — the highlighted cells are the feedback.
+            // No toast. The highlighted cells are the feedback.
             dismissToastByKey(CHECK_TOAST_KEY);
             return;
         }
@@ -161,9 +161,9 @@ export const usePuzzleSession = (
             });
     }, [session]);
 
-    // Undo/redo: the board's own history first, then (if given) the external one.
-    // Through a ref so the keyboard handler below always sees the latest callbacks
-    // without re-registering on every render.
+    // Undo/redo: the history of the board first, then the external history (if given).
+    // Use a ref. Then the keyboard handler below always sees the latest callbacks,
+    // and it does not register again on each render.
     const externalRef = useRef(externalHistory);
     useEffect(() => {
         externalRef.current = externalHistory;
@@ -189,19 +189,18 @@ export const usePuzzleSession = (
         });
     }, [session, puzzle.metadata.id]);
 
-    // Solve timer (#68): a plain stopwatch, running while the puzzle isn't
-    // complete. Driven entirely from the interval/subscribe callbacks and
-    // effect cleanup below (never from the render body itself, and never
-    // from a ref read during render) — both react-hooks rules this project
-    // lints against. `elapsedBase`/`runningTimer` are plain mutable
-    // bookkeeping, not render input: `elapsedBase` is the running total as
-    // of the last pause (tick stop, completion, or a manual reset);
-    // `runningTimer` tells a stale cleanup (firing after `resetTimer`
-    // already zeroed everything) not to re-fold a leftover delta on top of
-    // the fresh zero. Completion is detected via `session.subscribe`, not by
-    // polling `evaluation.complete` once a second in the interval tick — a
-    // poll would let the clock run up to a second past the actual solve
-    // before noticing, inflating the recorded time by that much.
+    // Solve timer (#68): a plain stopwatch that runs while the puzzle is not complete.
+    // The interval and subscribe callbacks and the effect cleanup below drive it.
+    // The render body never drives it, and no ref is read during render.
+    // This project lints against both (react-hooks rules).
+    // `elapsedBase` and `runningTimer` are plain mutable bookkeeping, not render input.
+    // `elapsedBase` is the running total at the last pause (tick stop, completion, or manual reset).
+    // `runningTimer` tells a stale cleanup that it must not add a leftover delta to the fresh zero.
+    // A stale cleanup is one that fires after `resetTimer` zeroed everything.
+    // Completion is detected with `session.subscribe`,
+    // not by a poll of `evaluation.complete` in the interval tick.
+    // A poll lets the clock run up to one second past the real solve before it notices.
+    // That inflates the recorded time by the same amount.
     const initialStats = useMemo(() => readStats(puzzle.metadata.id), [puzzle.metadata.id]);
     const [elapsedMs, setElapsedMs] = useState(() => initialStats?.elapsedMs ?? 0);
     const [bestElapsedMs, setBestElapsedMs] = useState(() => initialStats?.bestElapsedMs);
@@ -211,7 +210,7 @@ export const usePuzzleSession = (
     const [tickGeneration, setTickGeneration] = useState(0);
 
     useEffect(() => {
-        if (session.evaluation.complete) return; // already solved — nothing to tick
+        if (session.evaluation.complete) return; // already solved: nothing to tick
         resumedAt.current = Date.now();
         runningTimer.current = true;
 
@@ -232,9 +231,8 @@ export const usePuzzleSession = (
         const id = window.setInterval(() => {
             const current = elapsedBase.current + (Date.now() - resumedAt.current);
             setElapsedMs(current);
-            // `bestElapsedMs` only ever changes at completion, which stops this
-            // interval — so the value closed over here stays accurate for as
-            // long as this interval keeps running.
+            // `bestElapsedMs` changes only at completion, which stops this interval.
+            // So the value that this closure holds stays accurate while the interval runs.
             writeStats(puzzle.metadata.id, { elapsedMs: current, bestElapsedMs });
         }, 1000);
 
@@ -260,21 +258,19 @@ export const usePuzzleSession = (
     }, []);
 
     // Keyboard interaction.
-    // While Shift/Ctrl/Cmd is held on its own (no other key yet), the number
-    // pad previews the mode that key would apply — held state restores
-    // `baseMode` on release rather than leaving the pad stuck in that mode.
+    // While Shift/Ctrl/Cmd is held alone (no other key yet), the number pad previews the mode that the key applies.
+    // On release, the held state restores `baseMode`, so the pad is not stuck in that mode.
     const baseMode = useRef<InputMode>(session.inputMode);
     const modifierHeld = useRef(false);
 
-    // Multi-digit entry (#large-domain follow-up): domains past 1-9 (e.g. a
-    // 25x25 puzzle's 1-25) need more than one keypress per value. In "digit"
-    // mode, each keystroke is applied live — the first via input() (one undo
-    // step, instant feedback instead of a wait to see anything happen) and
-    // any further digit that extends it via replaceValue() (same undo step,
-    // just correcting the preview) — so entering "20" never looks like
-    // nothing happened while waiting to see if a second digit follows. In the
-    // note modes, toggling is a flip rather than an overwrite, so there's no
-    // equivalent live preview — notes resolve once, same as before.
+    // Multi-digit entry (#large-domain follow-up): domains past 1-9 (for example 1-25 of a 25x25 puzzle)
+    // need more than one keypress per value.
+    // In "digit" mode, each keystroke applies live.
+    // The first keystroke uses input() (one undo step, instant feedback, no wait).
+    // A further digit that extends it uses replaceValue() (same undo step, it only corrects the preview).
+    // So entry of "20" never looks like nothing happened while the code waits for a second digit.
+    // In the note modes, a toggle is a flip, not an overwrite, so there is no live preview.
+    // Notes resolve once, as before.
     const digitBuffer = useRef("");
     const digitTimer = useRef<number | undefined>(undefined);
     const applyingOwnChange = useRef(false);
@@ -300,14 +296,14 @@ export const usePuzzleSession = (
         };
 
         const pushDigit = (digitChar: string) => {
-            // Colour mode: the digit picks a palette colour, so there's no
-            // multi-digit value to buffer, whatever the puzzle's domain.
+            // Colour mode: the digit picks a palette colour.
+            // So there is no multi-digit value to buffer, whatever the domain of the puzzle.
             if (session.inputMode === "color") {
                 session.input(Number(digitChar));
                 return;
             }
-            // Domains that are entirely single digits behave exactly as before —
-            // instant commit, no waiting around for a second keystroke.
+            // Domains with single digits only behave as before:
+            // instant commit, no wait for a second keystroke.
             if (!puzzle.domain.some((v) => v >= 10)) {
                 session.input(Number(digitChar));
                 return;
@@ -318,10 +314,11 @@ export const usePuzzleSession = (
             let next = digitBuffer.current + digitChar;
 
             if (!puzzle.domain.includes(Number(next)) && !hasLongerMatch(puzzle.domain, next)) {
-                // Dead end for whatever was buffered. In digit mode it's already
-                // showing (applied live as it was typed) — nothing to flush, just
-                // start over. In note mode nothing's been toggled yet, so resolve
-                // it now before starting over with this digit.
+                // Dead end for the buffered digits.
+                // In digit mode, they already show (applied live as typed), so there is nothing to flush.
+                // Start over.
+                // In note mode, nothing is toggled yet. Resolve the buffer now,
+                // then start over with this digit.
                 if (isNoteMode) resolveNoteBuffer();
                 else resetBuffer();
                 next = digitChar;
@@ -350,20 +347,18 @@ export const usePuzzleSession = (
             }
         };
 
-        // Finishes whatever's still buffered when the player does something
-        // else entirely (moves the cursor, erases, switches mode...) rather
-        // than leaving it to resolve on its own timer. Digit mode has already
-        // applied it live, so there's nothing left to do but drop the buffer;
-        // note mode hasn't toggled anything yet, so it needs resolving now.
+        // Finishes the buffered digits when the player does something else (moves the cursor, erases, switches mode).
+        // It does not wait for the timer.
+        // Digit mode already applied the digits live, so it only drops the buffer.
+        // Note mode did not toggle anything yet, so it must resolve the buffer now.
         const flushBuffer = () => {
             if (session.inputMode === "digit") resetBuffer();
             else resolveNoteBuffer();
         };
 
-        // Anything that changes the board other than our own live-applied
-        // digit — a NumberPad click, undo/redo — invalidates whatever's still
-        // pending, so a stale buffer doesn't extend into a later keystroke and
-        // overwrite that other change.
+        // Any board change that is not our own live-applied digit (a NumberPad click, undo/redo)
+        // invalidates the pending buffer.
+        // So a stale buffer does not extend into a later keystroke and overwrite that other change.
         const unsubscribe = session.subscribe(() => {
             if (applyingOwnChange.current) return;
             resetBuffer();
@@ -376,16 +371,17 @@ export const usePuzzleSession = (
             );
         };
 
-        /** Focus is on a control whose own Enter/Space behaviour must not be hijacked. */
+        /** Focus is on a control. Its own Enter/Space behaviour must stay. */
         const isActivatable = () => {
             const active = document.activeElement;
             return active instanceof HTMLElement && !!active.closest("button, a[href], summary, select, [role=button]");
         };
 
         /**
-         * The board is a Tab stop. While it has focus Tab/Shift+Tab step to the next/previous empty
-         * cell, but never wrap: at the last (first) empty cell Tab falls through to normal focus
-         * order, so keyboard users can always leave the board (no keyboard trap).
+         * The board is a Tab stop.
+         * While it has focus, Tab/Shift+Tab move to the next/previous empty cell, but never wrap.
+         * At the last (first) empty cell, Tab goes on to the normal focus order.
+         * So keyboard users can always leave the board (no keyboard trap).
          */
         const isBoardFocused = () => {
             const active = document.activeElement;
@@ -401,8 +397,8 @@ export const usePuzzleSession = (
             if (isInputTarget(e)) return;
 
             const isPlainDigit = /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.shiftKey;
-            // Doing anything else commits whatever's still buffered from a
-            // part-typed multi-digit value rather than leaving it to land later.
+            // Any other action commits the buffered digits of a part-typed multi-digit value,
+            // so they do not land later.
             if (!isPlainDigit) flushBuffer();
 
             if (e.key in ARROW_KEYS) {
@@ -410,8 +406,8 @@ export const usePuzzleSession = (
                 session.moveCursor(ARROW_KEYS[e.key], e.shiftKey);
                 return;
             }
-            // Ctrl/Cmd+<digit> toggles a centre note; Shift+<digit> toggles a corner
-            // note — both directly, regardless of the current note-mode toggle.
+            // Ctrl/Cmd+<digit> toggles a centre note. Shift+<digit> toggles a corner note.
+            // Both act directly, whatever the current note-mode toggle is.
             // Note: some browsers reserve Ctrl+1-9 for tab switching.
             if (e.ctrlKey || e.metaKey) {
                 const digit = digitFromCode(e.code);
@@ -428,9 +424,9 @@ export const usePuzzleSession = (
                     return;
                 }
             }
-            // Bare modifier press (no digit yet): preview that mode on the pad —
-            // held held alone previews corner, Ctrl/Cmd previews centre — for as
-            // long as the key stays down.
+            // Bare modifier press (no digit yet): preview that mode on the pad.
+            // Shift alone previews corner. Ctrl/Cmd previews centre.
+            // The preview lasts while the key is down.
             if (e.key === "Shift" || e.key === "Control" || e.key === "Meta") {
                 if (!modifierHeld.current) {
                     baseMode.current = session.inputMode;
@@ -439,10 +435,10 @@ export const usePuzzleSession = (
                 session.setInputMode(e.key === "Shift" ? "corner" : "center");
                 return;
             }
-            // "0" is a plain digit here, same as any other — it only means "erase"
-            // in domains that don't include it, and input()/pushDigit() already
-            // no-op on a digit outside the domain, so there's nothing special to
-            // do for it.
+            // "0" is a plain digit here, as any other digit.
+            // It means "erase" only in domains that do not include it.
+            // input() and pushDigit() already do nothing for a digit outside the domain,
+            // so 0 needs no special code.
             if (isPlainDigit) {
                 pushDigit(e.key);
                 return;
@@ -479,8 +475,8 @@ export const usePuzzleSession = (
                 redo();
                 return;
             }
-            // SudokuPad's 'V' check (#52) — a no-op on PuzzleSession's side if
-            // the puzzle has no declared solution, so no need to gate it here.
+            // SudokuPad 'V' check (#52).
+            // PuzzleSession does nothing if the puzzle has no declared solution, so no gate is needed here.
             if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "v") {
                 e.preventDefault();
                 check();

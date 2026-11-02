@@ -35,20 +35,21 @@ import {
 
 import "./board.css";
 
-// Breathing room against window.innerWidth/innerHeight when clamping the fit (#77
-// follow-up) — keeps the box from touching the very edge of the browser viewport.
+// Space kept free against window.innerWidth/innerHeight when the fit is clamped (#77 follow-up).
+// This keeps the box away from the edge of the browser viewport.
 const EDGE_MARGIN = 16;
 
-// Matches board.css's `.board-wrap { gap }` — the footer row sits below the grid in the
-// same wrap, so that gap plus the row's own height comes out of the height budget.
+// Matches the `.board-wrap { gap }` in board.css. The footer row is below the grid in the same wrap.
+// This gap and the height of the row come out of the height budget.
 const FOOTER_GAP = 8;
 
 /**
- * Pen input (#45): while set, the board doesn't select cells. A drag draws a line; a click (no
- * movement off its lattice point) hands that point to `onMark`, which cycles its X / O / nothing.
+ * Pen input (#45). While set, the board does not select cells. A drag draws a line.
+ * A click that does not leave its lattice point gives that point to `onMark`.
+ * `onMark` cycles the point through X, O, and nothing.
  */
 export interface PenInput {
-    /** The line pieces already drawn — a stroke lying entirely on them rubs them out, and is previewed as such. */
+    /** The line pieces already drawn. A stroke that lies fully on them erases them. The preview shows this. */
     segments: readonly string[];
     onStroke: (points: PenPoint[]) => void;
     onMark: (point: PenPoint) => void;
@@ -56,23 +57,26 @@ export interface PenInput {
 
 interface Props {
     scene: Scene;
-    /** When set the board is in pen mode (see `PenInput`). */
+    /** When set, the board is in pen mode (see `PenInput`). */
     pen?: PenInput;
     onPaintStart: (cell: CellId, additive: boolean) => void;
     onPaintMove: (cell: CellId) => void;
     onPaintEnd: () => void;
     onClearSelection: () => void;
-    /** Accessible name for the board (the SVG has no per-cell DOM; see PuzzlePlayer's live region). */
+    /** Accessible name for the board. The SVG has no per-cell DOM (see the live region in PuzzlePlayer). */
     label?: string;
-    /** Id of an element describing how to operate the board. */
+    /** Id of an element that describes how to operate the board. */
     describedBy?: string;
-    /** Shown in the row under the grid, left of the zoom button (the player puts its timer here). */
+    /** Shown in the row under the grid, left of the zoom button. The player puts its timer here. */
     footer?: ReactNode;
-    /** A row above the grid, inside the same box so it shares the grid's left edge however the board is placed. */
+    /** A row above the grid, in the same box. It shares the left edge of the grid wherever the board is. */
     header?: ReactNode;
-    /** Drop the row under the grid (footer and zoom button) — the caller offers zoom elsewhere via `onZoomControls`. */
+    /**
+     * Removes the row under the grid (footer and zoom button).
+     * The caller offers zoom elsewhere through `onZoomControls`.
+     */
     hideFooter?: boolean;
-    /** Publishes the zoom actions and state whenever they change (null on unmount), for a caller's own menu. */
+    /** Publishes the zoom actions and state each time they change (null on unmount), for a menu of the caller. */
     onZoomControls?: (controls: ZoomControls | null) => void;
 }
 
@@ -86,7 +90,10 @@ export interface ZoomControls {
     toggleLock: () => void;
 }
 
-/** Culls scene.cells/gridLines/shapes to a margin around `viewport` — or returns `scene` as-is when `viewport` is null. */
+/**
+ * Culls scene.cells/gridLines/shapes to a margin around `viewport`.
+ * Returns `scene` unchanged when `viewport` is null.
+ */
 const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
     if (!viewport) return scene;
     const v = expandViewport(viewport, scene.cellSize * 2);
@@ -98,15 +105,16 @@ const cullToViewport = (scene: Scene, viewport: ViewportRect | null): Scene => {
     };
 };
 
-/** Center notes share one text run, so more candidates means less room each. A flat
- * per-character shrink rate doesn't actually track how wide the rendered text gets
- * (short runs looked tiny/wasted the space, longer runs still crept toward the cell's
- * edge) — this instead targets a roughly constant *rendered width* (~82% of the cell,
- * leaving a clean margin on each side) for as long as that's achievable, using a
- * typical digit's width-to-font-size ratio. MAX caps a 1-2 candidate run from blowing
- * up to fill most of the cell (it'd otherwise read as a huge, oddly-centered digit);
- * MIN floors out a long run (a large-domain puzzle's candidate list) before it'd
- * shrink past legible, letting it modestly overflow the target width instead. */
+/** Center notes share one text run. More candidates leave less room for each one.
+ * A flat shrink rate for each character does not follow the rendered width of the text.
+ * Short runs looked tiny and wasted space. Longer runs still grew toward the edge of the cell.
+ * This code instead targets a roughly constant *rendered width* (~82% of the cell).
+ * This leaves a clean margin on each side. It holds while the target is achievable.
+ * It uses a typical ratio of digit width to font size.
+ * MAX stops a run of 1-2 candidates from filling most of the cell.
+ * Such a run would read as a huge digit that is off center.
+ * MIN stops a long run (the candidate list of a large-domain puzzle) from shrinking until it is not legible.
+ * That run overflows the target width a little. */
 const CENTER_NOTE_TARGET_WIDTH = 0.82;
 const CENTER_NOTE_GLYPH_WIDTH_EM = 0.6;
 const centerNoteFontFactor = (charCount: number): number =>
@@ -129,13 +137,12 @@ export default function Board({
     const zoomPanelId = `zoom-${useId().replace(/:/g, "")}`;
     const hatchId = `hatch-${useId().replace(/:/g, "")}`;
     const painting = useRef(false);
-    // The pen stroke being drawn (#45), as lattice points — shown live, committed on release.
+    // The pen stroke being drawn (#45), as lattice points. It shows live and commits on release.
     const [penDraft, setPenDraft] = useState<PenPoint[]>([]);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
-    // Two-finger touch pan/zoom (#70 follow-up): a touchscreen has no middle/right
-    // button for the desktop pan below, and a single finger is already claimed by
-    // cell-selection drag (handleCellDown) — so this follows the same convention as
-    // maps/photo viewers, where a second finger is what pans/pinch-zooms instead.
+    // Two-finger touch pan/zoom (#70 follow-up). A touchscreen has no middle or right
+    // button for the desktop pan below. One finger already drives the cell-selection drag (handleCellDown).
+    // So this follows the convention of maps and photo viewers: a second finger pans and pinch-zooms.
     const activeTouches = useRef(new Map<number, { x: number; y: number }>());
     const pinchAnchor = useRef<{ x: number; y: number; dist: number } | null>(null);
 
@@ -145,23 +152,22 @@ export default function Board({
     const footerRef = useRef<HTMLDivElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
     const hasHeader = !!header;
-    // The visible rect, in board units — this *is* the SVG's viewBox. No scrolling:
-    // panning/zooming just change this rect, like SudokuPad's canvas.
+    // The visible rect, in board units. This *is* the viewBox of the SVG. There is no scrolling.
+    // Panning and zooming only change this rect, as in the canvas of SudokuPad.
     const [view, setView] = useState<ViewportRect | null>(null);
     const [zoomPct, setZoomPct] = useState(100);
-    // Freezes the view's scale (wheel, +/-, slider, Fit, Actual size) while panning
-    // still works — e.g. for a player who keeps nudging the zoom by accident while
-    // just trying to scroll/pan around a puzzle they've already sized how they want.
-    // Defaults from (and persists to) Settings (#69) instead of always starting
-    // unlocked and forgetting the choice on reload.
+    // Freezes the scale of the view (wheel, +/-, slider, Fit, Actual size). Panning still works.
+    // It helps a player who changes the zoom by accident when they pan a puzzle that has the size they want.
+    // It starts from the Settings value (#69) and saves to Settings.
+    // Without this, it always started unlocked and forgot the choice on reload.
     const [settings, setSetting] = useSettings();
     const zoomLocked = settings.zoomLocked;
-    // The wrap/viewport box's own on-screen size (#77 follow-up) — a stable canvas
-    // the view pans/zooms *within*, not something that visibly resizes every time
-    // the player zooms, but it does track .board-measure's available space via a
-    // ResizeObserver (below) so it doesn't freeze at whatever happened to be
-    // available on first mount and then overflow once the window/devtools panel
-    // changes size. Left unset until the first measurement runs.
+    // The on-screen size of the wrap/viewport box (#77 follow-up). It is a stable canvas.
+    // The view pans and zooms *within* it. The box does not resize each time the player zooms.
+    // It does track the space available in .board-measure through a ResizeObserver (below).
+    // So it does not freeze at the size available on first mount.
+    // It does not overflow when the window or devtools panel changes size.
+    // It stays unset until the first measurement runs.
     const [boxSize, setBoxSize] = useState<{ width: number; height: number } | null>(null);
 
     useLayoutEffect(() => {
@@ -169,49 +175,46 @@ export default function Board({
         if (!el) return;
         let firstFit = true;
 
-        // Not fitView() here — that letterboxes the viewBox to match the *measured*
-        // container's aspect ratio, which is right when the box is a fixed external
-        // shape (e.g. a later manual "Fit to screen"). But here the box's own shape
-        // is *derived* from the scene (below), so the starting view should just be
-        // the scene's own bounding box — no letterboxing to a container aspect
-        // ratio that the box won't actually keep.
+        // Not fitView() here. fitView() letterboxes the viewBox to the aspect ratio of the *measured*
+        // container. That is correct when the box has a fixed external shape
+        // (for example, a later manual "Fit to screen").
+        // Here the shape of the box is *derived* from the scene (below).
+        // So the starting view is the bounding box of the scene, with no letterbox to
+        // a container aspect ratio that the box does not keep.
         const fit = () => {
             const rect = el.getBoundingClientRect();
-            // .board-measure's *measured* size turned out not to be as independent of
-            // its own children as intended — confirmed with a logging run: every
-            // resize tick reported a size bigger than the last, by roughly the same
-            // amount, each time Board.tsx set boxSize onto the elements nested
-            // inside it (a feedback loop, not a one-off misread). Whatever the exact
-            // mechanism, the window's own bounds are a ceiling nothing can
-            // legitimately exceed, so clamp against those rather than trusting the
-            // flex-reported size outright — that caps the loop regardless of cause.
+            // The *measured* size of .board-measure was not independent of its own children, as intended.
+            // A logging run confirmed it. Every resize tick reported a size bigger than the last,
+            // by about the same amount, each time Board.tsx set boxSize on the elements inside it.
+            // This is a feedback loop, not a one-off misread.
+            // The exact mechanism is unknown. The bounds of the window are a ceiling
+            // that nothing can legitimately exceed. So clamp against them and do not trust
+            // the size from flex outright. This caps the loop whatever the cause.
             const width = Math.min(rect.width, window.innerWidth - rect.left - EDGE_MARGIN);
-            // Height is capped by the window itself, not by what is left of it below the board's
-            // top: on a scrolling (phone) page the board can start below the fold, and
-            // "what's left" would shrink it to a thumbnail (it was measured at 182px of 374).
+            // The window limits the height, not the space left below the top of the board.
+            // On a scrolling (phone) page the board can start below the fold.
+            // Then "what is left" would shrink it to a thumbnail (it measured 182px of 374).
             const height = Math.min(rect.height, window.innerHeight - EDGE_MARGIN);
             if (width <= 0 || height <= 0) return;
-            // The footer row sits below the grid inside the same wrap (see FOOTER_GAP), and
-            // its height isn't board-size-dependent, so measuring it and subtracting it
-            // from the budget is safe (not circular).
+            // The footer row is below the grid in the same wrap (see FOOTER_GAP).
+            // Its height does not depend on the board size.
+            // So it is safe (not circular) to measure it and subtract it from the budget.
             const footerHeight = footerRef.current?.getBoundingClientRect().height ?? 0;
-            // The header row above the grid (when given) is carved out of the budget the same way.
+            // The header row above the grid (when given) comes out of the budget in the same way.
             const headerHeight = headerRef.current ? headerRef.current.getBoundingClientRect().height + FOOTER_GAP : 0;
             const viewportHeight = height - footerHeight - headerHeight - (hideFooter ? 0 : FOOTER_GAP);
             if (width <= 0 || viewportHeight <= 0) return;
             const scale = clamp(Math.min(width / scene.width, viewportHeight / scene.height), MIN_ZOOM, MAX_ZOOM);
             setBoxSize({ width: scene.width * scale, height: scene.height * scale });
-            // Only the very first fit also sets the starting view/zoom — later
-            // resizes just let the existing canvas grow/shrink; they shouldn't
-            // fight the player's own pan/zoom by resetting it.
+            // Only the first fit sets the starting view and zoom. Later resizes only let
+            // the existing canvas grow or shrink. They must not reset the pan and zoom of the player.
             if (!firstFit) return;
             firstFit = false;
             setView({ left: 0, top: 0, width: scene.width, height: scene.height });
-            // 100% = the whole board fits in view, always — not the achieved physical
-            // scale, which swings with screen size/DPI/cell size and had no stable
-            // meaning to the player (#77 follow-up: this showed up as a baseline fit
-            // reading "169%" on one window and something else on another). Every other
-            // zoom% below is defined the same way: scene.width / view.width * 100.
+            // 100% = the whole board fits in the view, always. It is not the achieved physical scale.
+            // That scale changes with screen size, DPI, and cell size. It had no stable meaning to the player
+            // (#77 follow-up: a baseline fit read "169%" on one window and a different value on another).
+            // Every other zoom % below has the same definition: scene.width / view.width * 100.
             setZoomPct(100);
         };
 
@@ -219,7 +222,7 @@ export default function Board({
         window.addEventListener("resize", fit);
 
         if (typeof ResizeObserver === "undefined") {
-            // not available in every test/legacy env — initial fit above still runs
+            // Not available in every test/legacy env. The initial fit above still runs.
             return () => window.removeEventListener("resize", fit);
         }
         const observer = new ResizeObserver(fit);
@@ -228,8 +231,8 @@ export default function Board({
             window.removeEventListener("resize", fit);
             observer.disconnect();
         };
-        // Only re-runs if the scene itself changes (a different puzzle) — PuzzlePlayer
-        // remounts Board per-puzzle anyway, so in practice this is mount-only.
+        // Runs again only if the scene changes (a different puzzle). PuzzlePlayer
+        // remounts Board for each puzzle, so in practice this runs on mount only.
     }, [scene.width, scene.height, hideFooter, hasHeader]);
 
     const visibleScene = useMemo(() => cullToViewport(scene, view), [scene, view]);
@@ -242,9 +245,9 @@ export default function Board({
             const rect = el.getBoundingClientRect();
             const next = zoomViewAt(view, scene.width, scene.height, rect.width, fracX, fracY, factor);
             setView(next);
-            // scene.width / view.width, not rect.width / view.width — see the mount-fit
-            // comment above; this keeps every zoom action's % relative to "whole board
-            // visible", regardless of the container's actual pixel size.
+            // scene.width / view.width, not rect.width / view.width (see the mount-fit comment above).
+            // This keeps the % of every zoom action relative to "whole board visible",
+            // whatever the pixel size of the container.
             setZoomPct(Math.round((scene.width / next.width) * 100));
         },
         [view, scene.width, scene.height, zoomLocked],
@@ -253,7 +256,7 @@ export default function Board({
     const handleZoomSlider = (pct: number) => {
         if (!view) return;
         // Inverse of the display formula above: the view width (in board units) that
-        // would make scene.width / viewWidth * 100 equal the slider's chosen pct.
+        // makes scene.width / viewWidth * 100 equal the % chosen with the slider.
         const targetWidth = (scene.width * 100) / pct;
         applyZoom(0.5, 0.5, view.width / targetWidth);
     };
@@ -265,7 +268,7 @@ export default function Board({
         const rect = el.getBoundingClientRect();
         const next = fitView(scene.width, scene.height, rect.width, rect.height);
         setView(next);
-        setZoomPct(Math.round((scene.width / next.width) * 100)); // always 100 — see above
+        setZoomPct(Math.round((scene.width / next.width) * 100)); // always 100 (see above)
     };
 
     const handleResetZoom = () => {
@@ -275,11 +278,11 @@ export default function Board({
         const rect = el.getBoundingClientRect();
         const cx = view.left + view.width / 2;
         const cy = view.top + view.height / 2;
-        // "Actual size" = 1 board unit per screen pixel, recentered on wherever you
-        // currently are — a different, independently useful zoom level from "fit", so
-        // it isn't literally "100%" anymore now that 100% always means "fit" (#77
-        // follow-up); the displayed % below reflects whatever that native scale works
-        // out to relative to fit, same formula as every other zoom action.
+        // "Actual size" = 1 board unit for each screen pixel, centered on the current position.
+        // It is a different zoom level from "fit", and it is useful by itself.
+        // So it is not literally "100%", because 100% now always means "fit" (#77 follow-up).
+        // The % shown below is this native scale relative to fit.
+        // It uses the same formula as every other zoom action.
         const next = clampView(
             { left: cx - rect.width / 2, top: cy - rect.height / 2, width: rect.width, height: rect.height },
             scene.width,
@@ -289,7 +292,7 @@ export default function Board({
         setZoomPct(Math.round((scene.width / next.width) * 100));
     };
 
-    // Latest handlers behind a stable surface, so publishing them doesn't re-fire every render.
+    // The latest handlers sit behind a stable surface. So publishing them does not re-fire on every render.
     const zoomActions = useRef({
         zoomIn: () => {},
         zoomOut: () => {},
@@ -320,18 +323,17 @@ export default function Board({
         return () => onZoomControls(null);
     }, [onZoomControls, zoomPct, zoomLocked]);
 
-    // React's onWheel prop is attached passively at the root (for scroll-perf reasons
-    // shared with every other wheel listener on the page), so preventDefault() inside
-    // it can't actually stop the page from scrolling underneath — only a real native
-    // listener, explicitly registered non-passive, can zoom without the page scrolling
-    // along with it at the same time.
+    // The onWheel prop of React is attached passively at the root (for scroll performance,
+    // shared with every other wheel listener on the page). So preventDefault() inside it
+    // cannot stop the page from scrolling under it. Only a native listener, registered
+    // explicitly as non-passive, can zoom without the page scrolling at the same time.
     useLayoutEffect(() => {
         const el = containerRef.current;
         if (!el) return;
 
         const onNativeWheel = (e: WheelEvent) => {
-            // Locked: let the wheel event do whatever it'd normally do (scroll the
-            // page) instead of hijacking it for a zoom that's just going to no-op.
+            // Locked: let the wheel event do its normal action (scroll the page).
+            // Do not take it for a zoom that does nothing.
             if (zoomLocked) return;
             e.preventDefault();
             const rect = el.getBoundingClientRect();
@@ -345,8 +347,8 @@ export default function Board({
         return () => el.removeEventListener("wheel", onNativeWheel);
     }, [applyZoom, zoomLocked]);
 
-    // Panning (#49): middle- or right-button drag, so it never competes with the
-    // existing left-button cell-selection drag below.
+    // Panning (#49): drag with the middle or right button. So it never competes with
+    // the left-button cell-selection drag below.
     const handleContainerPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
         if (e.button !== 1 && e.button !== 2) return;
         e.preventDefault();
@@ -368,10 +370,10 @@ export default function Board({
         panningFrom.current = null;
     };
 
-    // Tracked at the container level (not per-cell) since the second finger usually
-    // lands on a cell — these *Capture handlers run during the capture phase, before
-    // that cell's own onPointerDown (bubble phase) below, so stopPropagation() here
-    // keeps a 2nd finger from also starting/extending a cell-selection drag.
+    // Tracked at the container level (not for each cell), because the second finger usually
+    // lands on a cell. These *Capture handlers run in the capture phase, before the own
+    // onPointerDown of that cell (bubble phase) below.
+    // So stopPropagation() here stops a second finger from starting or extending a cell-selection drag.
     const handleTouchDownCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
         if (e.pointerType !== "touch") return;
         activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -400,10 +402,9 @@ export default function Board({
         const factor = zoomLocked || anchor.dist === 0 ? 1 : dist / anchor.dist;
         const fracX = (mid.x - rect.left) / rect.width;
         const fracY = (mid.y - rect.top) / rect.height;
-        // Reads the *pending* view via the updater form, not the `view` closed over
-        // at render time — two fingers' pointermove events routinely land in the same
-        // synchronous burst (no render in between), and a second setView in that burst
-        // computing from the same stale `view` would silently clobber the first.
+        // Reads the *pending* view through the updater form, not the `view` closed over at render time.
+        // The pointermove events of two fingers often land in the same synchronous burst (no render between).
+        // A second setView in that burst would compute from the same stale `view` and silently overwrite the first.
         setView((v) => {
             if (!v) return v;
             const dx = ((mid.x - anchor.x) / rect.width) * v.width;
@@ -424,11 +425,11 @@ export default function Board({
     };
 
     const handleCellDown = (cell: CellId) => (e: ReactPointerEvent) => {
-        if (e.button === 1 || e.button === 2) return; // middle/right-click pans instead (see the container handlers below)
+        if (e.button === 1 || e.button === 2) return; // middle or right click pans (see the container handlers below)
         e.preventDefault();
         painting.current = true;
-        // preventDefault() above also suppresses the browser's own click-to-focus, so focus
-        // the board by hand — that's what makes Tab step between cells (see use_puzzle_session).
+        // preventDefault() above also suppresses the click-to-focus of the browser. So focus
+        // the board by hand. This is what makes Tab step between cells (see use_puzzle_session).
         (e.currentTarget as SVGElement).ownerSVGElement?.focus({ preventScroll: true });
         (e.target as Element).releasePointerCapture?.(e.pointerId);
         onPaintStart(cell, e.shiftKey || e.metaKey || e.ctrlKey);
@@ -454,7 +455,7 @@ export default function Board({
             x = p.x;
             y = p.y;
         } else {
-            // No screen matrix (a bare DOM): map through the SVG's box and its viewBox instead.
+            // No screen matrix (a bare DOM): map through the box of the SVG and its viewBox instead.
             const svgEl = el.ownerSVGElement;
             if (!svgEl) return undefined;
             const box = svgEl.getBoundingClientRect();
@@ -520,7 +521,7 @@ export default function Board({
             />
 
             <defs>
-                {/* Violated/invalid cells get a hatch on top of the tint, so "wrong" doesn't
+                {/* A hatch on top of the tint marks violated or invalid cells. So "wrong" does not
                     depend on telling two colours apart. */}
                 <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                     <line x1="0" y1="0" x2="0" y2="6" stroke="var(--violated-line)" strokeWidth="1.5" opacity="0.4" />
@@ -556,9 +557,9 @@ export default function Board({
                     ))}
             </g>
 
-            {/* colour marks (#35): the player's own cell colouring, under the grid and
-                digits. One mark fills the cell; several split it into even vertical
-                stripes (SudokuPad splits into wedges; stripes keep it simple). */}
+            {/* colour marks (#35): the own colouring of cells by the player, under the grid and
+                digits. One mark fills the cell. Several marks split it into even vertical
+                stripes. SudokuPad splits it into wedges. Stripes keep it simple. */}
             <g pointerEvents="none">
                 {visibleScene.cells.flatMap((c) =>
                     c.marks.map((mark, i) => (
@@ -575,8 +576,8 @@ export default function Board({
                 )}
             </g>
 
-            {/* same-value highlight (#73): a soft wash over matching cells, under the
-                grid and digits and separate from the tone fill and selection ring */}
+            {/* same-value highlight (#73): a soft wash over matching cells, under the grid and
+                digits. It is separate from the tone fill and the selection ring */}
             <g pointerEvents="none">
                 {visibleScene.cells
                     .filter((c) => c.sameValue)
@@ -592,9 +593,9 @@ export default function Board({
                     ))}
             </g>
 
-            {/* grid + box lines, drawn before constraint graphics so a dot/marker
-                sitting on a cell boundary (kropki, XV, ...) isn't painted over by
-                the line it sits on */}
+            {/* grid + box lines, drawn before constraint graphics. So a dot or marker
+                on a cell boundary (kropki, XV, ...) is not painted over by
+                the line under it */}
             <g className="grid" pointerEvents="none">
                 {visibleScene.gridLines.map((l, i) => (
                     <line
@@ -616,11 +617,11 @@ export default function Board({
                 ))}
             </g>
 
-            {/* fog: an opaque cover per still-hidden cell, painted after the grid
-                lines and constraint graphics so neither leaks through — simpler
-                than making every shape kind individually cell-aware. Layered
-                before the ring/digit groups below so the player's own selection
-                and typing (see scene.ts) still show up on top of the fog. */}
+            {/* fog: an opaque cover for each cell that is still hidden. It is painted after the grid
+                lines and constraint graphics, so neither shows through. This is simpler
+                than to make every shape kind aware of cells. It is layered
+                before the ring and digit groups below. So the selection and typing
+                of the player (see scene.ts) still show on top of the fog. */}
             <g className="fog" pointerEvents="none">
                 {visibleScene.cells
                     .filter((c) => c.hidden)
@@ -636,8 +637,8 @@ export default function Board({
                     ))}
             </g>
 
-            {/* selection/cursor ring — layered above the tone fill so a click still
-                shows feedback even on a violated/invalid cell */}
+            {/* selection/cursor ring, layered above the tone fill. So a click still
+                shows feedback on a violated or invalid cell */}
             <g className="rings" pointerEvents="none">
                 {visibleScene.cells
                     .filter((c) => c.ring === "cursor")
@@ -726,16 +727,16 @@ export default function Board({
                 })}
             </g>
 
-            {/* pen layer (#45): the player's lines and X/O marks over everything, plus the
-                stroke being drawn right now */}
+            {/* pen layer (#45): the lines and X/O marks of the player over everything, and also
+                the stroke that is being drawn now */}
             <g className="pen" pointerEvents="none">
                 {visibleScene.pen.map((s, i) => (
                     <ShapeNode key={i} shape={s} />
                 ))}
                 {penDraft.length > 1 &&
                     (erasingPieces ? (
-                        // The stroke lies wholly on existing lines, so releasing removes them:
-                        // mark exactly those pieces in red, thicker than the line itself.
+                        // The stroke lies wholly on existing lines, so release removes them.
+                        // Mark exactly those pieces in red, thicker than the line.
                         erasingPieces.map((key) => {
                             const [a, b] = parseSegmentKey(key);
                             return (
@@ -779,13 +780,13 @@ export default function Board({
     );
 
     return (
-        // .board-measure is the always-uncapped flex-filling region; .board-wrap is
-        // sized to exactly boxSize (#77 follow-up) and horizontally centered (top-
-        // aligned, not vertically centered — see board.css) within it — grows to
-        // fill available space up to the puzzle's own natural*MAX_ZOOM size, shrinks
-        // to hug small puzzles instead of forcing a mostly-empty box, and tracks
-        // .board-measure's size via ResizeObserver so it doesn't freeze at whatever
-        // happened to be available on first mount.
+        // .board-measure is the region that fills the flex space and is never capped.
+        // .board-wrap has exactly the size boxSize (#77 follow-up) and is centered horizontally
+        // (aligned to the top, not centered vertically; see board.css) within it.
+        // It grows to fill available space up to the natural size of the puzzle * MAX_ZOOM.
+        // It shrinks to fit small puzzles and does not force a box that is mostly empty.
+        // It tracks the size of .board-measure through a ResizeObserver.
+        // So it does not freeze at the size available on first mount.
         <div className="board-measure" ref={measureRef}>
             <div className="board-wrap" style={boxSize ? { width: boxSize.width } : undefined}>
                 {header && (

@@ -23,24 +23,25 @@ interface SourceGroup {
 
 export default function ConstraintPanel({ evaluation, selection }: Props) {
     const groups = useMemo(() => groupBySource(evaluation.constraints), [evaluation]);
-    // The whole panel is collapsed to just its toggle button by default — this
-    // *is* the "Show/Hide constraints" control now, not a separate button that
-    // sits above a second collapsible section.
+    // The panel is collapsed by default: only its toggle button shows.
+    // This button is the "Show/Hide constraints" control.
+    // It is not a separate button above a second collapsible section.
     const [settings, setSetting] = useSettings();
     const open = settings.constraintPanelOpen;
     const setOpen = (next: boolean) => setSetting("constraintPanelOpen", next);
-    // Selecting cells on the board lights up the constraints that cover every one of them (a
-    // single cell: all constraints it is part of; a dragged run: just the ones containing the run).
+    // Selected cells on the board highlight the constraints that cover all of them.
+    // A single cell highlights all constraints that include it.
+    // A dragged run highlights only the constraints that contain the run.
     const matched = useMemo(() => {
         if (!open || !selection || selection.size === 0) return new Set<string>();
         return new Set(
             evaluation.constraints.filter((c) => [...selection].every((cell) => c.cells.includes(cell))).map((c) => c.id),
         );
     }, [open, evaluation, selection]);
-    // Per-group collapse, independent of the panel-level toggle above.
-    // Collapsed by default — tracking which groups were opened (rather than
-    // which were closed) means a group newly appearing in `groups` starts
-    // collapsed without needing to know the full source list upfront.
+    // Collapse per group, independent of the panel-level toggle above.
+    // Groups are collapsed by default.
+    // The state tracks the groups that were opened, not the groups that were closed.
+    // So a group that is new in `groups` starts collapsed, and the full source list is not needed upfront.
     const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(new Set());
 
     const toggleGroup = (source: string) =>
@@ -51,8 +52,8 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
             return next;
         });
 
-    // While open, the toggle button doubles as the status line — no separate
-    // "Hide constraints" row above an "In progress — n/m cells" row, just one.
+    // When open, the toggle button is also the status line.
+    // There is one row, not a "Hide constraints" row above an "In progress — n/m cells" row.
     const label = open
         ? evaluation.complete
             ? "Solved — every constraint satisfied"
@@ -77,7 +78,7 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
                     <ul className="cp-groups">
                         {groups.map((g) => {
                             const hasMatch = g.items.some((item) => matched.has(item.id));
-                            // A group holding a highlighted constraint opens by itself, so the match is visible.
+                            // A group with a highlighted constraint opens by itself, so the match is visible.
                             const isCollapsed = !expandedGroups.has(g.source) && !hasMatch;
                             return (
                                 <li key={g.source} className="cp-group">

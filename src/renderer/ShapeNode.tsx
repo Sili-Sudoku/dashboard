@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 import type { ResolvedStyle, Shape } from "@/renderer/scene.ts";
 
-/** The tile for a named pattern, drawn in `color` and sized by `unit` (pixels per cell). */
+/** The tile for a named pattern. It uses `color` and the size `unit` (pixels per cell). */
 const patternTile = (name: NonNullable<ResolvedStyle["pattern"]>, color: string, unit: number): ReactNode => {
     const t = unit * 0.25;
     switch (name) {
@@ -27,7 +27,7 @@ const patternTile = (name: NonNullable<ResolvedStyle["pattern"]>, color: string,
     }
 };
 
-/** What to put in `fill`, plus the `<defs>` it refers to, when the style asks for a pattern or picture. */
+/** The value for `fill`, and the `<defs>` that it uses, when the style has a pattern or picture. */
 function useFill(s: ResolvedStyle): { fill: string; defs: ReactNode } {
     const id = useId().replace(/:/g, "");
     const unit = s.unit ?? 40;
@@ -61,7 +61,7 @@ function useFill(s: ResolvedStyle): { fill: string; defs: ReactNode } {
     return { fill: s.fill, defs: null };
 }
 
-/** One constraint graphic as SVG. Shared by the live Board and the static thumbnail renderer. */
+/** One constraint graphic as SVG. The live Board and the static thumbnail renderer both use it. */
 export default function ShapeNode({ shape }: { shape: Shape }) {
     const s = shape.style;
     const { fill, defs } = useFill(s);

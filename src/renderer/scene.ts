@@ -1,10 +1,10 @@
 /**
- * Pure geometry for the renderer: convert a puzzle's generic visual objects and
- * board state into flat lists of drawable shapes in absolute pixel coordinates.
+ * Pure geometry for the renderer. It converts the generic visual objects of a puzzle and
+ * the board state into flat lists of drawable shapes in absolute pixel coordinates.
  *
  * The renderer component (`Board.tsx`) is a thin mapping from these shapes to
- * SVG elements. Nothing here — or there — knows what a thermometer is; it knows
- * "path", "circle", "line", "cage" (an outline around a cell set), and so on.
+ * SVG elements. Nothing here or there knows what a thermometer is.
+ * It knows "path", "circle", "line", "cage" (an outline around a cell set), and so on.
  */
 
 import type { BoardLine, CellId, Geometry, Point } from "@/runtime/geometry.ts";
@@ -17,39 +17,41 @@ import { parsePointKey, parseSegmentKey, type PenState } from "@/runtime/pen.ts"
 export interface SceneInput {
     puzzle: CompiledPuzzle;
     /**
-     * Expected to already be fog-aware (see `PuzzleSession.displayState`):
-     * for a hidden given, this must be the player's own entry, if any — not
-     * the given's real value — since this module makes no further attempt
-     * to mask it.
+     * Expected to be fog-aware already (see `PuzzleSession.displayState`).
+     * For a hidden given, this must be the own entry of the player, if any, and not
+     * the real value of the given. This module does not mask it further.
      */
     valueOf: (cell: CellId) => number | null;
     notesOf: (cell: CellId) => readonly number[];
     centerNotesOf: (cell: CellId) => readonly number[];
     /** Cells flagged by PuzzleSession.checkNotesOnLeave/checkAgainstSolution (a bad note elimination). */
     flaggedCells: ReadonlySet<CellId>;
-    /** Cells flagged by PuzzleSession.checkAgainstSolution as holding a value that doesn't match the solution. */
+    /** Cells flagged by PuzzleSession.checkAgainstSolution as holding a value that does not match the solution. */
     incorrectCells: ReadonlySet<CellId>;
-    /** Structural given-ness, independent of fog — `buildScene` combines it with `hiddenCells` itself. */
+    /** Structural given-ness, independent of fog. `buildScene` combines it with `hiddenCells` itself. */
     isGiven: (cell: CellId) => boolean;
     selection: ReadonlySet<CellId>;
     cursor: CellId | null;
     evaluation: EvaluationResult;
-    /** Cells still hidden by fog — see `runtime/fog.ts`. */
+    /** Cells that fog still hides (see `runtime/fog.ts`). */
     hiddenCells: ReadonlySet<CellId>;
-    /** Cells not on the board yet (a dynamic rule's `appear`): left out of the scene along with the lines around them. */
+    /**
+     * Cells not on the board yet (an `appear` of a dynamic rule).
+     * They are left out of the scene, with the lines around them.
+     */
     absentCells?: ReadonlySet<CellId>;
     /** Compiled constraint ids (see `compile.ts`'s `solutionViolations`) to draw
-     *  in red instead of their normal style — e.g. the Author page's visual
-     *  builder, showing a constraint that conflicts with the puzzle's own
-     *  declared solution rather than hiding it entirely. */
+     *  in red instead of their normal style. Example: the visual builder on the Author page
+     *  shows a constraint that conflicts with the declared solution of the puzzle,
+     *  and does not hide it. */
     invalidConstraintIds?: ReadonlySet<string>;
-    /** Flag every other cell showing the same value as the cursor cell (#73) —
-     *  purely visual; doesn't touch the real selection or cursor. */
+    /** Flag every other cell that shows the same value as the cursor cell (#73).
+     *  This is only visual. It does not change the real selection or cursor. */
     highlightSameValue?: boolean;
-    /** Colour marks per cell, as palette indices (#35), resolved against `markPalette`. */
+    /** Colour marks for each cell, as palette indices (#35), resolved against `markPalette`. */
     colorsOf?: (cell: CellId) => readonly number[];
     markPalette?: readonly string[];
-    /** The player's pen layer (#45): freehand lines and X/O marks, drawn over the digits. */
+    /** The pen layer of the player (#45): freehand lines and X/O marks, drawn over the digits. */
     pen?: PenState;
 }
 
@@ -69,13 +71,13 @@ export interface CellShape {
     given: boolean;
     notes: readonly number[];
     centerNotes: readonly number[];
-    /** Flagged by checkNotesOnLeave/checkAgainstSolution — remaining notes no longer include the solution digit. */
+    /** Flagged by checkNotesOnLeave/checkAgainstSolution. The notes left do not include the solution digit. */
     flagged: boolean;
-    /** Flagged by checkAgainstSolution — the placed value doesn't match the solution. */
+    /** Flagged by checkAgainstSolution: the placed value does not match the solution. */
     incorrect: boolean;
-    /** Still hidden by fog — the renderer paints over it rather than leaking what's underneath. */
+    /** Still hidden by fog. The renderer paints over it, so the value under it does not leak. */
     hidden: boolean;
-    /** Shows the same value as the cursor cell (#73) — a passive highlight, separate from tone and ring. */
+    /** Shows the same value as the cursor cell (#73). It is a passive highlight, separate from tone and ring. */
     sameValue: boolean;
     /** Colour marks in palette order: the digit that picks each (1-9, 0 = background) and its resolved colour. */
     marks: readonly { position: number; color: string }[];
@@ -105,9 +107,9 @@ export interface ResolvedStyle {
     /** A repeating pattern or a picture in place of the plain colour (see `ShapeNode`). */
     pattern?: PatternName;
     image?: string;
-    /** Pixels per cell, so a pattern's tile scales with the board. Set when there is a pattern or image. */
+    /** Pixels per cell, so the tile of a pattern scales with the board. Set when there is a pattern or image. */
     unit?: number;
-    /** The box a picture is fitted to: the whole object's extent, not each of its cells. */
+    /** The box that a picture is fitted to: the extent of the whole object, not of each cell. */
     bounds?: { x: number; y: number; w: number; h: number };
 }
 
@@ -123,7 +125,7 @@ export interface Scene {
     shapes: Shape[];
     /** One combined outline around the multi-cell selection (#157), in board pixels. */
     selectionOutline: [Point, Point][];
-    /** Where the grid's top-left corner sits in the scene (the margin reserved for outside clues). */
+    /** Where the top-left corner of the grid is in the scene (the margin kept for outside clues). */
     origin: Point;
     /** The pen layer (#45) as shapes, drawn above everything else. */
     pen: Shape[];
@@ -142,8 +144,8 @@ export const buildScene = (input: SceneInput): Scene => {
     const violated = input.evaluation.violatedCells;
     const invalid = input.evaluation.invalidCells;
 
-    // The cursor cell's visible value (null while empty or fog-hidden, so a
-    // hidden cell can't be used to reveal where its digit appears).
+    // The visible value of the cursor cell (null while it is empty or hidden by fog).
+    // So a hidden cell cannot reveal where its digit appears.
     const sameAs = input.highlightSameValue && input.cursor ? input.valueOf(input.cursor) : null;
 
     const absent = input.absentCells;
@@ -158,14 +160,13 @@ export const buildScene = (input: SceneInput): Scene => {
             size: cellSize,
             tone: tone(cell, violated, invalid),
             ring: ring(cell, input.cursor, selected),
-            // `valueOf`/`notesOf`/etc. are expected to already be fog-aware
-            // (see PuzzleSession.displayState): a hidden given's *mystery*
-            // value isn't passed through at all, only the player's own entry
-            // underneath it, if any — so there's nothing left to mask here.
+            // `valueOf`/`notesOf`/etc. are expected to be fog-aware already
+            // (see PuzzleSession.displayState). The *mystery* value of a hidden given
+            // is not passed through at all. Only the own entry of the player under it is, if any.
+            // So there is nothing left to mask here.
             value: input.valueOf(cell),
-            // Only draw given-digit styling once the given is actually shown
-            // as one — while it's still hidden, any value here is the
-            // player's own (non-authoritative) guess, not the clue.
+            // Draw the given-digit style only when the given is shown as one.
+            // While it is hidden, any value here is the own guess of the player (not authoritative), not the clue.
             given: input.isGiven(cell) && !hidden,
             notes: input.notesOf(cell),
             centerNotes: input.centerNotesOf(cell),
@@ -190,10 +191,10 @@ export const buildScene = (input: SceneInput): Scene => {
         })
         .sort((a, b2) => a.style.z - b2.style.z);
 
-    // Content a definition places outside the grid (sandwich/X-sum/room clues, #130) gets a
-    // margin on whichever sides it overhangs, so it isn't clipped by the viewBox; everything
-    // is then shifted right/down by the left/top margin so the scene stays origin-anchored
-    // at 0,0 (which pan/zoom, culling and the thumbnail all rely on).
+    // Content that a definition places outside the grid (sandwich/X-sum/room clues, #130) gets a
+    // margin on each side where it overhangs. So the viewBox does not clip it.
+    // Then everything shifts right/down by the left/top margin, so the scene stays anchored
+    // at the origin 0,0. Pan/zoom, culling, and the thumbnail all depend on this.
     const margin = overhang(shapes, width, height);
     const scene: Scene = {
         width: width + margin.left + margin.right,
@@ -221,7 +222,7 @@ const PEN_STYLE: ResolvedStyle = {
     z: 0,
 };
 
-/** The pen layer as shapes: a line piece per segment, a crossed pair for X, a ring for O. */
+/** The pen layer as shapes: a line piece for each segment, a crossed pair for X, a ring for O. */
 const penShapes = (pen: PenState, origin: Point, cellSize: number): Shape[] => {
     const at = (p: { x: number; y: number }): Point => ({
         x: origin.x + (p.x * cellSize) / 2,
@@ -234,8 +235,8 @@ const penShapes = (pen: PenState, origin: Point, cellSize: number): Shape[] => {
     for (const [key, mark] of Object.entries(pen.marks)) {
         const point = parsePointKey(key);
         const c = at(point);
-        // On a cell's centre a mark is big enough to ring the digit yet stay inside the cell
-        // (the stroke's own width included); on an edge or corner it sits between cells, so smaller.
+        // On the centre of a cell, a mark is big enough to ring the digit and stay inside the cell
+        // (the width of the stroke included). On an edge or corner it sits between cells, so it is smaller.
         const centred = point.x % 2 !== 0 && point.y % 2 !== 0;
         const reach = cellSize * (centred ? 0.38 : 0.22);
         if (mark === "o") {
@@ -273,7 +274,7 @@ interface Margin {
     left: number;
 }
 
-/** Rough extent of a shape (text width is estimated from its length — good enough to size a margin). */
+/** Rough extent of a shape. The text width is estimated from its length. This is good enough to size a margin. */
 const extent = (shape: Shape): { minX: number; minY: number; maxX: number; maxY: number } => {
     const of = (points: readonly Point[]) => ({
         minX: Math.min(...points.map((p) => p.x)),
@@ -353,7 +354,7 @@ const translateScene = (scene: Scene, dx: number, dy: number): Scene => ({
     selectionOutline: scene.selectionOutline.map(([a, b]) => [translatePoint(a, dx, dy), translatePoint(b, dx, dy)]),
 });
 
-/** A lone cell is already marked by the cursor ring; only a larger selection gets the combined outline. */
+/** The cursor ring already marks a lone cell. Only a larger selection gets the combined outline. */
 const selectionOutline = (
     selected: ReadonlySet<CellId>,
     cursor: CellId | null,
@@ -373,8 +374,8 @@ const tone = (cell: CellId, violated: ReadonlySet<CellId>, invalid: ReadonlySet<
 
 /**
  * Selection/cursor is drawn as a ring layered on top of the tone fill (see
- * Board.tsx) rather than competing with it for the same fill color — so a
- * violated/invalid cell still visibly reacts to being selected or cursored.
+ * Board.tsx). It does not compete with the tone fill for the same fill color.
+ * So a violated/invalid cell still visibly reacts when it is selected or at the cursor.
  */
 const ring = (cell: CellId, cursor: CellId | null, selected: ReadonlySet<CellId>): SelectionRing => {
     if (cell === cursor) return "cursor";
@@ -383,8 +384,8 @@ const ring = (cell: CellId, cursor: CellId | null, selected: ReadonlySet<CellId>
 };
 
 /** Recolors a shape to the same red used elsewhere for "this breaks a rule"
- *  (--violated-line) — stroke always, fill too unless it was already "none"
- *  (a filled shape like a thermometer's bulb should still read as filled). */
+ *  (--violated-line). The stroke is always red. The fill is red too, unless it was already "none"
+ *  (a filled shape, like the bulb of a thermometer, must still read as filled). */
 const markInvalid = (shape: Shape): Shape => ({
     ...shape,
     style: {
@@ -448,7 +449,7 @@ const extentOf = (shapes: readonly Shape[]): { x: number; y: number; w: number; 
 /** Turn one generic visual object into 1..n absolute-pixel shapes. */
 export const describeObject = (obj: VisualObject, geometry: Geometry, cellSize: number): Shape[] => {
     const shapes = shapesOf(obj, geometry, cellSize);
-    // Every shape of one object shares one style record; a picture is fitted across all of them.
+    // Every shape of one object shares one style record. A picture is fitted across all of them.
     const style = shapes[0]?.style;
     if (style?.image) style.bounds = extentOf(shapes);
     return shapes;
@@ -526,7 +527,7 @@ const shapesOf = (obj: VisualObject, geometry: Geometry, cellSize: number): Shap
 };
 
 /** Cuts `start` off the front and `end` off the back of a polyline, measured along it.
- *  Left whole if there isn't enough line to cut (so a short line never vanishes). */
+ *  Leaves it whole if there is not enough line to cut (so a short line never vanishes). */
 const trimPolyline = (points: Point[], start: number, end: number): Point[] => {
     if (points.length < 2 || (start <= 0 && end <= 0)) return points;
     const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
@@ -555,15 +556,15 @@ const trimPolyline = (points: Point[], start: number, end: number): Point[] => {
 const INSET = 0.08;
 
 /**
- * The dashed outline of a set of cells: one inset segment per cell edge that faces a
- * cell *outside* the set, each running corner to corner so neighbouring segments meet
- * exactly (no overshoot past a corner, no gap). Generic to any geometry that reports
+ * The dashed outline of a set of cells: one inset segment for each cell edge that faces a
+ * cell *outside* the set. Each segment runs corner to corner, so neighbouring segments meet
+ * exactly (no overshoot past a corner, no gap). It is generic to any geometry that reports
  * cell corners.
  *
- * Every boundary edge is walked clockwise (interior on its right), so the edge that
- * continues it at a vertex is the one starting there. A corner point sits INSET along
- * the inward normals of both edges meeting at it — a mitre, which for the right angles
- * of a grid is the true inset corner whether the outline turns convex or concave.
+ * Every boundary edge is walked clockwise (interior on its right). So the edge that
+ * continues it at a vertex is the one that starts there. A corner point sits INSET along
+ * the inward normals of both edges that meet at it. This is a mitre. For the right angles
+ * of a grid, it is the true inset corner whether the outline turns convex or concave.
  */
 export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Point, Point][] => {
     const set = new Set(cells);
@@ -597,15 +598,15 @@ export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Poin
         const len = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) || 1;
         return { x: (e.b.x - e.a.x) / len, y: (e.b.y - e.a.y) / len };
     };
-    // Interior is on the right of travel; in screen coordinates (y down) that is (-dy, dx).
+    // The interior is on the right of travel. In screen coordinates (y down) that is (-dy, dx).
     const normal = (e: { a: Point; b: Point }): Point => {
         const d = direction(e);
         return { x: -d.y, y: d.x };
     };
 
     // The edge that continues `edge` at its end. Where two outlines pinch at one vertex
-    // (cells touching only diagonally) prefer turning toward the interior, which keeps
-    // each cell's corner separate.
+    // (cells that touch only diagonally), prefer to turn toward the interior.
+    // This keeps the corner of each cell separate.
     const nextOf = (edge: { a: Point; b: Point }): { a: Point; b: Point } | undefined => {
         const d = direction(edge);
         const turn = (e: { a: Point; b: Point }): number => {
@@ -646,7 +647,7 @@ const cageLabelAnchor = (cells: readonly CellId[], geometry: Geometry): Point | 
     return best ? { x: best.p.x + INSET + 0.02, y: best.p.y + INSET + 0.18 } : undefined;
 };
 
-/** Major (region boundary) lines draw heavier than plain cell dividers, and come last
+/** Major (region boundary) lines draw heavier than plain cell dividers. They come last,
  *  so a thin divider that meets one never paints over it (the array is draw order). */
 const gridLines = (
     geometry: Geometry,
@@ -661,9 +662,9 @@ const gridLines = (
         .sort((a, b) => a.weight - b.weight);
 
 /**
- * The board's lines with the absent cells taken out: an edge is drawn only if a present cell is on one
- * side of it, and it is a heavy outline wherever the board now ends. Works edge by edge (every
- * geometry's lines here are axis-aligned), then joins runs back into long lines.
+ * The board's lines with the absent cells taken out. An edge is drawn only if a present cell is on one
+ * side of it. The edge is a heavy outline wherever the board now ends. The code works edge by edge
+ * (every geometry's lines here are axis-aligned). Then it joins runs back into long lines.
  */
 const withoutAbsent = (geometry: Geometry, absent: ReadonlySet<CellId>): readonly BoardLine[] => {
     const cellAt = new Map<string, CellId>();
@@ -689,7 +690,7 @@ const withoutAbsent = (geometry: Geometry, absent: ReadonlySet<CellId>): readonl
             ? [Math.min(a.x, b.x), Math.max(a.x, b.x)]
             : [Math.min(a.y, b.y), Math.max(a.y, b.y)];
         for (let at = from; at < to; at++) {
-            // the two cells either side of this unit edge
+            // the two cells on each side of this unit edge
             const before = horizontal ? present(at, fixed - 1) : present(fixed - 1, at);
             const after = horizontal ? present(at, fixed) : present(fixed, at);
             if (!before && !after) continue;

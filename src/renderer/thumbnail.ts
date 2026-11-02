@@ -1,15 +1,14 @@
 /**
- * A small static picture of a puzzle — what a published puzzle stores at
- * creation so link previews (Open Graph cards) don't depend on running the
- * app. Pure SVG-string generation (testable anywhere) plus a browser-only PNG
- * rasteriser.
+ * A small static picture of a puzzle.
+ * A published puzzle stores it at creation, so link previews (Open Graph cards) do not need the app.
+ * The file has a pure SVG-string generator (testable anywhere) and a browser-only PNG rasteriser.
  *
- * Reuses the live board's own drawing (`ShapeNode`, `buildScene`) so the two
- * can't drift. What it can't reuse is the board's theme: an SVG rasterised on
- * its own has no page CSS, so every `var(--token)` is resolved against the
- * fixed light palette below — thumbnails look the same whatever theme the
- * creator happened to be using. Shows the starting position only (givens,
- * fog still covering), never the solution or anyone's entries.
+ * It reuses the drawing code of the live board (`ShapeNode`, `buildScene`), so the two cannot drift apart.
+ * It cannot reuse the theme of the board. An SVG that is rasterised alone has no page CSS.
+ * So the code resolves every `var(--token)` against the fixed light palette below.
+ * Thumbnails look the same in all themes.
+ * A thumbnail shows only the starting position (givens, fog still on).
+ * It never shows the solution or the entries of a player.
  */
 
 import { createElement } from "react";
@@ -20,7 +19,10 @@ import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import { buildScene } from "@/renderer/scene.ts";
 import ShapeNode from "@/renderer/ShapeNode.tsx";
 
-/** Mirrors the light theme in style.css. thumbnail.test.ts fails if a constraint graphic uses a token missing here. */
+/**
+ * Copies the light theme in style.css.
+ * thumbnail.test.ts fails if a constraint graphic uses a token that is not here.
+ */
 export const THUMBNAIL_PALETTE: Readonly<Record<string, string>> = {
     bg: "#f6efe0",
     surface: "#fbf6ea",
@@ -44,7 +46,7 @@ export const THUMBNAIL_PALETTE: Readonly<Record<string, string>> = {
     diagonal: "#d1b27a",
 };
 
-/** Replaces `var(--token)` with its palette value; an unknown token is left as-is (and caught by the test). */
+/** Replaces `var(--token)` with its palette value. An unknown token stays unchanged, and the test finds it. */
 const resolveTokens = (markup: string, palette: Readonly<Record<string, string>>): string =>
     markup.replace(/var\(--([a-z-]+)\)/g, (whole, name: string) => palette[name] ?? whole);
 
@@ -94,7 +96,7 @@ export const renderThumbnailSvg = (puzzle: CompiledPuzzle, palette = THUMBNAIL_P
         )
         .join("");
 
-    // Same layer order as Board: grid, constraint graphics, fog cover, digits.
+    // Use the same layer order as Board: grid, constraint graphics, fog cover, digits.
     const body =
         `<rect width="${scene.width}" height="${scene.height}" fill="var(--surface)"/>` + grid + shapes + fog + digits;
     return resolveTokens(
@@ -104,7 +106,7 @@ export const renderThumbnailSvg = (puzzle: CompiledPuzzle, palette = THUMBNAIL_P
     );
 };
 
-/** Browser-only: rasterises the thumbnail to a PNG whose longer side is `size` px (aspect ratio kept). */
+/** Browser-only. Rasterises the thumbnail to a PNG. The longer side is `size` px. The aspect ratio stays the same. */
 export const renderThumbnailPng = async (puzzle: CompiledPuzzle, size = 480): Promise<Blob> => {
     const url = URL.createObjectURL(new Blob([renderThumbnailSvg(puzzle)], { type: "image/svg+xml" }));
     try {

@@ -29,7 +29,7 @@ describe("cellInViewport", () => {
     });
 
     it("is true for a cell only partially overlapping the viewport", () => {
-        expect(cellInViewport({ x: 90, y: 90, size: 20 }, viewport)).toBe(true); // straddles the left/top edge
+        expect(cellInViewport({ x: 90, y: 90, size: 20 }, viewport)).toBe(true); // crosses the left and top edge
     });
 
     it("is false for a cell entirely outside the viewport", () => {
@@ -37,7 +37,7 @@ describe("cellInViewport", () => {
     });
 
     it("is false for a cell that only touches the edge with zero overlap", () => {
-        expect(cellInViewport({ x: 300, y: 150, size: 20 }, viewport)).toBe(false); // viewport ends at x=300
+        expect(cellInViewport({ x: 300, y: 150, size: 20 }, viewport)).toBe(false); // the viewport ends at x=300
     });
 });
 
@@ -109,8 +109,8 @@ describe("clamp", () => {
 
 describe("fitView", () => {
     it("centers a view rect matching the container's aspect ratio over the whole scene", () => {
-        // 1000x500 scene in a 500x500 container: width is the binding constraint (scale 0.5),
-        // so the view must be 1000x1000 board units, letterboxed (centered) over the scene's height.
+        // A 1000x500 scene in a 500x500 container: the width sets the scale (0.5).
+        // So the view must be 1000x1000 board units, letterboxed (centered) over the height of the scene.
         expect(fitView(1000, 500, 500, 500)).toEqual({ left: 0, top: -250, width: 1000, height: 1000 });
     });
 
@@ -157,8 +157,8 @@ describe("panView", () => {
 describe("zoomViewAt", () => {
     it("keeps the anchor point (board-unit) stationary on screen when zooming in", () => {
         const view: ViewportRect = { left: 0, top: 0, width: 400, height: 400 };
-        // Anchor at the exact center (fracX/Y = 0.5): board-unit (200,200) before and after.
-        const next = zoomViewAt(view, 1000, 1000, 100, 0.5, 0.5, 2); // zoom in 2x -> half the width/height
+        // The anchor is at the exact center (fracX/Y = 0.5). Board-unit (200,200) stays there before and after.
+        const next = zoomViewAt(view, 1000, 1000, 100, 0.5, 0.5, 2); // zoom in 2x gives half the width and height
         expect(next.width).toBe(200);
         expect(next.height).toBe(200);
         expect(next.left + 0.5 * next.width).toBeCloseTo(200);

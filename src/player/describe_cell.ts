@@ -2,10 +2,10 @@ import { parseGridCellId } from "@/runtime/geometry.ts";
 import type { CellShape } from "@/renderer/scene.ts";
 
 /**
- * Plain-language description of one cell, for the screen-reader live region —
- * the board itself is an SVG with no per-cell DOM, so this is how a non-sighted
- * player learns where the cursor is and what's in it. Position first (what
- * changes as arrows move), then content, then problems.
+ * Describes one cell in plain language for the screen-reader live region.
+ * The board is an SVG with no per-cell DOM.
+ * This text tells a non-sighted player where the cursor is and what is in the cell.
+ * It gives the position first (it changes when the arrows move), then the content, then the problems.
  */
 export const describeCell = (cell: CellShape): string => {
     const rc = parseGridCellId(cell.cell);
@@ -48,11 +48,11 @@ export type ReadKind = "row" | "col" | "box" | "givens";
 const REGION_NAME = { row: "Row", col: "Column", box: "Box" } as const;
 
 /**
- * Spoken overview of a region for the screen-reader live region, so a non-sighted player can
- * ask "what's in this row?" without stepping cell by cell. `region` is the geometry's
- * `row:N` / `col:N` / `box:N` selector that contains the cursor, or undefined when there is none
- * (no cursor, or a geometry without that kind of region). "givens" ignores the region and
- * lists every revealed given on the board.
+ * Describes a region for the screen-reader live region.
+ * A non-sighted player can ask "what's in this row?" without a step through each cell.
+ * `region` is the `row:N`, `col:N` or `box:N` selector of the geometry that contains the cursor.
+ * `region` is undefined when there is no cursor, or when the geometry has no region of that kind.
+ * "givens" ignores the region and lists each revealed given on the board.
  */
 export const describeRegion = (
     kind: ReadKind,

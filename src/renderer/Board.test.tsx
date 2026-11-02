@@ -13,7 +13,7 @@ afterEach(() => {
 
 const noop = () => undefined;
 
-/** A hand-built N x N scene — avoids needing a compiled puzzle just to get cell shapes. */
+/** A hand-built N x N scene. It avoids the need for a compiled puzzle just to get cell shapes. */
 const bigScene = (n: number, cellSize = 20): Scene => {
     const cells: CellShape[] = [];
     for (let row = 0; row < n; row++) {
@@ -70,7 +70,7 @@ describe("Board — small puzzles", () => {
         const wrap = container.querySelector(".board-wrap") as HTMLDivElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
         // The initial fit measurement never ran (zero-size rect), so no box size was
-        // ever computed — the box stays unsized, same as before any fit happens.
+        // ever computed. The box stays unsized, as before any fit happens.
         expect(wrap.style.width).toBe("");
         expect(viewport.style.height).toBe("");
     });
@@ -97,21 +97,21 @@ describe("Board — checkAgainstSolution's incorrect marker (#52 follow-up)", ()
     });
 });
 
-/** A mutable stand-in for the measured element's rect — tests mutate `current` and
- * call a ResizeObserver's `.trigger()` (or dispatch a window resize) to force
- * Board.tsx to re-measure, the same way a real layout change would. */
+/** A mutable stand-in for the rect of the measured element. Tests change `current` and
+ * call `.trigger()` of a ResizeObserver (or dispatch a window resize) to force
+ * Board.tsx to re-measure, as a real layout change would. */
 const mutableRect = { left: 0, top: 0, width: 1200, height: 900 };
 
-/** Board.tsx subtracts the footer row's own (board-size-independent) height from the fit's
- * height budget — a global getBoundingClientRect stub has to give `.board-footer` a
- * distinct, fixed rect, or it inherits whatever the "measured container" rect is in a
- * given test and the budget goes negative. 44px + Board.tsx's FOOTER_GAP (8px) is baked
- * into every expectation below that depends on the fit's height dimension. */
+/** Board.tsx subtracts the own height of the footer row (it does not depend on the board size) from the
+ * height budget of the fit. A global getBoundingClientRect stub must give `.board-footer` a
+ * distinct, fixed rect. Otherwise it gets the rect of the "measured container" in a
+ * given test, and the budget goes negative. 44px + FOOTER_GAP of Board.tsx (8px) is part of
+ * every expectation below that depends on the height dimension of the fit. */
 const FOOTER_RECT = { left: 0, top: 0, width: 300, height: 44 };
 
-/** Stubs getBoundingClientRect on every HTMLElement: `.board-footer` always gets
- * FOOTER_RECT, everything else (the measured `.board-measure` container, in practice)
- * gets whatever `rectFor` currently resolves to. */
+/** Stubs getBoundingClientRect on every HTMLElement. `.board-footer` always gets
+ * FOOTER_RECT. Everything else (in practice the measured `.board-measure` container)
+ * gets what `rectFor` resolves to at that time. */
 const stubRects = (rectFor: () => { left: number; top: number; width: number; height: number }) => {
     Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
         configurable: true,
@@ -122,10 +122,10 @@ const stubRects = (rectFor: () => { left: number; top: number; width: number; he
     });
 };
 
-/** A controllable ResizeObserver stand-in — jsdom has no real one — that lets a test
- * force a re-fit via `.trigger()`. Board.tsx's callback ignores the entry and
- * re-measures via getBoundingClientRect() itself, so the entry argument here is
- * just a placeholder to satisfy the callback's signature. */
+/** A controllable stand-in for ResizeObserver (jsdom has no real one). It lets a test
+ * force a re-fit through `.trigger()`. The callback of Board.tsx ignores the entry and
+ * re-measures through getBoundingClientRect() itself. So the entry argument here is
+ * only a placeholder for the signature of the callback. */
 class StubResizeObserver {
     static instances: StubResizeObserver[] = [];
     private readonly callback: ResizeObserverCallback;
@@ -141,11 +141,11 @@ class StubResizeObserver {
 }
 
 describe("Board — box sizing grows to fill available space (#77 follow-up)", () => {
-    // A roomy stand-in for "plenty of screen" — big enough that a small puzzle's
-    // fit scale lands comfortably under MAX_ZOOM, so the cap below reflects real
-    // growth rather than clamping. window.innerWidth/innerHeight are stubbed
-    // generously too, so the window-bounds safety clamp (#77 follow-up — see
-    // Board.tsx) never binds here; it has its own dedicated test below.
+    // A roomy stand-in for "plenty of screen". It is big enough that the fit scale of a small puzzle
+    // lands well under MAX_ZOOM, so the cap below reflects real growth and not clamping.
+    // window.innerWidth/innerHeight are stubbed large too, so the safety clamp
+    // to the window bounds (#77 follow-up, see Board.tsx) never binds here.
+    // It has its own test below.
     beforeAll(() => {
         mutableRect.left = 0;
         mutableRect.top = 0;
@@ -161,7 +161,7 @@ describe("Board — box sizing grows to fill available space (#77 follow-up)", (
     });
 
     it("sizes the wrap/viewport box at the achieved fit scale, not the raw native size", () => {
-        const scene = bigScene(9, 64); // 576x576 native; height is the binding constraint in a 1200x900 container
+        const scene = bigScene(9, 64); // 576x576 native. Height is the binding constraint in a 1200x900 container
         const { container } = render(
             <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
         );
@@ -205,7 +205,7 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
         );
         const wrap = container.querySelector(".board-wrap") as HTMLDivElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
-        expect(wrap.style.width).toBe("848px"); // first-mount fit, same as the test above
+        expect(wrap.style.width).toBe("848px"); // first-mount fit, as in the test above
 
         mutableRect.width = 600;
         mutableRect.height = 450;
@@ -220,8 +220,8 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
         const { container, getByLabelText } = render(
             <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
         );
-        // 100% always means "whole board visible" (#77 follow-up) — fit-on-mount is
-        // exactly that, regardless of the achieved physical box size (848px here).
+        // 100% always means "whole board visible" (#77 follow-up). Fit-on-mount is
+        // exactly that, whatever the achieved physical box size (848px here).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe("100%");
 
         act(() => getByLabelText("Zoom in").click());
@@ -231,18 +231,18 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
         mutableRect.width = 600;
         mutableRect.height = 450;
         act(() => StubResizeObserver.instances[0].trigger());
-        // The container shrank, but the player's chosen zoom level is untouched —
-        // only the canvas's own box size (asserted in the test above) changed.
+        // The container shrank, but the zoom level chosen by the player is unchanged.
+        // Only the box size of the canvas changed (asserted in the test above).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe(zoomedLevel);
     });
 });
 
 describe("Board — fit never exceeds the window's own bounds (#77 follow-up)", () => {
-    // Reproduces the actual bug found via a live-logged runaway: something in the
-    // real page's flex chain fed the measured container's own on-screen size back
-    // into itself, compounding on every resize tick. Simulate that directly — the
-    // "measured" rect claims to be bigger than the window — and assert the fit
-    // clamps to the window instead of trusting it.
+    // Reproduces the real bug found with a live-logged runaway. Something in the
+    // flex chain of the real page fed the on-screen size of the measured container back
+    // into itself. It compounded on every resize tick. Simulate that directly:
+    // the "measured" rect claims to be bigger than the window. Assert that the fit
+    // clamps to the window and does not trust the rect.
     beforeAll(() => {
         stubRects(() => ({ left: 0, top: 0, width: 5000, height: 5000 }));
         vi.stubGlobal("innerWidth", 1000);
@@ -296,10 +296,10 @@ describe("Board — zoom controls popover", () => {
 });
 
 describe("Board — large puzzles", () => {
-    // jsdom reports all-zero rects by default (no real layout); stub a fixed
-    // 100x100 container so the pan/zoom math has something realistic to work with.
-    // (Pan/zoom interactions re-measure .board-viewport directly at the time of the
-    // interaction, so they see 100x100.)
+    // jsdom reports all-zero rects by default (no real layout). Stub a fixed
+    // 100x100 container so the pan/zoom math has realistic input.
+    // (Pan/zoom interactions re-measure .board-viewport directly when they happen,
+    // so they see 100x100.)
     beforeAll(() => {
         stubRects(() => ({ left: 0, top: 0, width: 100, height: 100 }));
     });
@@ -315,8 +315,8 @@ describe("Board — large puzzles", () => {
 
         const viewport = container.querySelector(".board-viewport");
         expect(viewport).not.toBeNull();
-        // The default view is a full overview — "see the whole puzzle" is the point — so
-        // nothing is culled yet; every cell is still on-screen (if tiny).
+        // The default view is a full overview ("see the whole puzzle" is the point), so
+        // nothing is culled yet. Every cell is still on-screen (if tiny).
         expect(container.querySelectorAll(".cell-bg").length).toBe(625);
 
         act(() => {
@@ -324,7 +324,7 @@ describe("Board — large puzzles", () => {
         });
         const rendered = container.querySelectorAll(".cell-bg").length;
         expect(rendered).toBeGreaterThan(0);
-        expect(rendered).toBeLessThan(625); // zoomed in -> culled, not every cell made it into the DOM
+        expect(rendered).toBeLessThan(625); // zoomed in -> culled, so not every cell is in the DOM
     });
 
     it("starts showing the whole board (a 'full view', not a corner at 1:1)", () => {
@@ -336,8 +336,8 @@ describe("Board — large puzzles", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         expect(svg.getAttribute("width")).toBe("100%");
         expect(readViewBox(svg)).toEqual({ left: 0, top: 0, width: 500, height: 500 });
-        // 100% always means "whole board visible" (#77 follow-up), regardless of the
-        // achieved physical scale (which here works out to a tiny 12%-of-native size).
+        // 100% always means "whole board visible" (#77 follow-up), whatever the
+        // achieved physical scale (here it is a tiny 12% of native size).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe("100%");
     });
 
@@ -350,7 +350,7 @@ describe("Board — large puzzles", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
 
-        // Zoom in (negative deltaY) centered on the container's middle (50, 50 of a 100x100 rect).
+        // Zoom in (negative deltaY) centered on the middle of the container (50, 50 of a 100x100 rect).
         act(() => {
             viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, clientX: 50, clientY: 50, bubbles: true }));
         });
@@ -359,10 +359,10 @@ describe("Board — large puzzles", () => {
         // The board-unit point under the cursor (board center, 250/250) stays centered.
         expect(afterZoom.left + afterZoom.width / 2).toBeCloseTo(250);
 
-        // Pan via a middle-button drag. jsdom has no PointerEvent constructor, but React's
-        // onPointer* handlers just listen for the native event *type* ("pointerdown" etc.)
-        // and read standard MouseEvent fields (button/clientX/clientY) off it — so a plain
-        // MouseEvent dispatched under that type name is caught the same way.
+        // Pan with a middle-button drag. jsdom has no PointerEvent constructor, but the React
+        // onPointer* handlers only listen for the native event *type* ("pointerdown" etc.)
+        // and read standard MouseEvent fields (button/clientX/clientY) from it.
+        // So a plain MouseEvent sent under that type name is caught the same way.
         act(() => {
             viewport.dispatchEvent(new MouseEvent("pointerdown", { button: 1, clientX: 50, clientY: 50, bubbles: true }));
             viewport.dispatchEvent(new MouseEvent("pointermove", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
@@ -372,9 +372,9 @@ describe("Board — large puzzles", () => {
         expect(afterPan.left).toBeLessThan(afterZoom.left); // dragged right -> view shifts left
     });
 
-    // jsdom has no PointerEvent constructor (see the comment above), and unlike
-    // MouseEventInit's standard button/clientX/clientY, pointerId/pointerType aren't
-    // part of it — so they're attached after construction instead.
+    // jsdom has no PointerEvent constructor (see the comment above). Unlike the standard
+    // button/clientX/clientY of MouseEventInit, pointerId/pointerType are not
+    // part of it. So they are attached after construction instead.
     const touchPointer = (
         type: string,
         pointerId: number,
@@ -401,10 +401,10 @@ describe("Board — large puzzles", () => {
             // Two fingers come down 20px apart, centered on (50, 50)...
             viewport.dispatchEvent(touchPointer("pointerdown", 1, 40, 50));
             viewport.dispatchEvent(touchPointer("pointerdown", 2, 60, 50));
-            // ...first move just establishes the anchor (no jump on gesture start)...
+            // ...the first move only sets the anchor (no jump at gesture start)...
             viewport.dispatchEvent(touchPointer("pointermove", 1, 40, 50));
             viewport.dispatchEvent(touchPointer("pointermove", 2, 60, 50));
-            // ...then spread apart (pinch out -> zoom in) while also sliding right (pan).
+            // ...then spread apart (pinch out -> zoom in) and slide right (pan) at the same time.
             viewport.dispatchEvent(touchPointer("pointermove", 1, 55, 50));
             viewport.dispatchEvent(touchPointer("pointermove", 2, 95, 50));
             viewport.dispatchEvent(touchPointer("pointerup", 1, 55, 50));
@@ -437,19 +437,19 @@ describe("Board — large puzzles", () => {
 
         act(() => {
             // ...then a second finger comes down on another cell -> this is a
-            // pinch/pan gesture instead, not a second paint-start on that cell.
+            // pinch/pan gesture, not a second paint-start on that cell.
             secondCell.dispatchEvent(touchPointer("pointerdown", 2, 60, 50));
         });
         expect(onPaintStart).toHaveBeenCalledTimes(1);
 
         act(() => {
-            // The finger sliding into a third cell would normally extend the
-            // selection (handleCellEnter) — React's onPointerEnter is built on the
-            // native "pointerover" event, so that's what's dispatched here.
+            // The finger that slides into a third cell would normally extend the
+            // selection (handleCellEnter). The onPointerEnter of React is built on the
+            // native "pointerover" event, so that is what is dispatched here.
             thirdCell.dispatchEvent(touchPointer("pointerover", 1, 15, 10));
         });
-        // Selection painting was cancelled when the 2nd finger landed, so the 1st
-        // finger continuing to move doesn't extend the selection either.
+        // Selection painting was cancelled when the second finger landed. So the first
+        // finger does not extend the selection when it continues to move.
         expect(onPaintMove).not.toHaveBeenCalled();
     });
 
@@ -462,8 +462,8 @@ describe("Board — large puzzles", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         const level = () => container.querySelector(".board-zoom-level")?.textContent;
 
-        // 100% always means "whole board visible" (#77 follow-up) — fit-on-mount is
-        // exactly that, regardless of the achieved physical scale.
+        // 100% always means "whole board visible" (#77 follow-up). Fit-on-mount is
+        // exactly that, whatever the achieved physical scale.
         expect(level()).toBe("100%");
 
         act(() => getByLabelText("Zoom in").click());
@@ -471,15 +471,15 @@ describe("Board — large puzzles", () => {
         expect(level()).toBe("125%");
 
         act(() => getByLabelText("Reset to actual size (1 board unit per pixel)").click());
-        // "Actual size" sets view.width = the container's own pixel width (100) — a
-        // *different*, independently useful zoom level from "fit" (#77 follow-up), so
-        // it no longer displays as "100%" now that 100% is reserved for "whole board
+        // "Actual size" sets view.width = the own pixel width of the container (100). This is a
+        // *different* zoom level from "fit", and it is useful by itself (#77 follow-up).
+        // So it no longer displays as "100%", because 100% is now reserved for "whole board
         // visible": % = scene.width/view.width*100 = 500/100*100 = 500%.
         expect(level()).toBe("500%");
         expect(readViewBox(svg).width).toBeCloseTo(100); // 1 board unit per pixel, in a 100px container
 
         act(() => getByLabelText("Fit whole board to screen").click());
-        expect(level()).toBe("100%"); // fit is always 100%, same as fit-on-mount
+        expect(level()).toBe("100%"); // fit is always 100%, as with fit-on-mount
         expect(readViewBox(svg)).toEqual({ left: 0, top: 0, width: 500, height: 500 });
 
         act(() => getByLabelText("Zoom out").click());
@@ -507,7 +507,7 @@ describe("Board — large puzzles", () => {
         // scene.width*100/150 = 333.33 board units visible.
         expect(readViewBox(svg).width).toBeCloseTo(500 / 1.5);
 
-        // Zooming via the slider stays centered on the current view, same as the +/- buttons.
+        // The slider zoom stays centered on the current view, as the +/- buttons do.
         expect(readViewBox(svg).left + readViewBox(svg).width / 2).toBeCloseTo(250);
     });
 
@@ -520,8 +520,8 @@ describe("Board — large puzzles", () => {
         const viewport = container.querySelector(".board-viewport") as HTMLDivElement;
         const level = () => container.querySelector(".board-zoom-level")?.textContent;
 
-        // Zoom in first, so there's room to pan once locked (at the full-scene "fit"
-        // view, left/top are already clamped to 0 — there'd be nothing to pan into).
+        // Zoom in first, so there is room to pan once locked. In the full-scene "fit"
+        // view, left/top are already clamped to 0, so there is nothing to pan into.
         act(() => getByLabelText("Zoom in").click());
         const zoomedLevel = level();
         const zoomedView = readViewBox(svg);
@@ -535,7 +535,7 @@ describe("Board — large puzzles", () => {
         expect((getByLabelText("Reset to actual size (1 board unit per pixel)") as HTMLButtonElement).disabled).toBe(true);
 
         act(() => getByLabelText("Zoom in").click());
-        expect(level()).toBe(zoomedLevel); // disabled buttons don't fire, but double-check the handler itself no-ops too
+        expect(level()).toBe(zoomedLevel); // disabled buttons do not fire; check that the handler does nothing too
         act(() => {
             viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -300, clientX: 50, clientY: 50, bubbles: true }));
         });
@@ -549,7 +549,7 @@ describe("Board — large puzzles", () => {
             viewport.dispatchEvent(new MouseEvent("pointerup", { button: 1, clientX: 60, clientY: 50, bubbles: true }));
         });
         expect(readViewBox(svg).left).toBeLessThan(zoomedView.left); // dragged right -> view shifts left
-        expect(level()).toBe(zoomedLevel); // panning doesn't touch the zoom level
+        expect(level()).toBe(zoomedLevel); // panning does not change the zoom level
 
         // Unlocking restores normal zoom behavior.
         act(() => getByLabelText("Unlock zoom (currently locked)").click());
@@ -582,7 +582,7 @@ describe("Board — pen input (#45)", () => {
             />,
         );
         const svg = container.querySelector("svg.board") as SVGSVGElement;
-        // jsdom lays nothing out: pretend the 80x80 board fills an 80x80 box at the origin.
+        // jsdom does no layout. Pretend that the 80x80 board fills an 80x80 box at the origin.
         svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 80, height: 80 }) as DOMRect;
         const surface = container.querySelector(".pen-surface") as SVGRectElement;
         return { surface, onStroke, onMark, container };
@@ -605,7 +605,7 @@ describe("Board — pen input (#45)", () => {
         fireEvent.pointerMove(surface, { clientX: 30, clientY: 10 });
         expect(container.querySelectorAll(".pen-erasing").length).toBe(2);
         expect(container.querySelector(".pen-draft")).toBeNull();
-        // dragging on past the end of the existing line makes it a normal stroke again
+        // a drag past the end of the existing line makes it a normal stroke again
         fireEvent.pointerMove(surface, { clientX: 50, clientY: 10 });
         expect(container.querySelector(".pen-erasing")).toBeNull();
         expect(container.querySelector(".pen-draft")).not.toBeNull();
