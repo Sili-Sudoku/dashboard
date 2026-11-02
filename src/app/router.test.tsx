@@ -96,6 +96,11 @@ describe("AppRouter — document title", () => {
         expect(screen.getByRole("link", { name: "Settings" })).toBeTruthy();
     });
 
+    it("shows a loader while a lazy page loads", () => {
+        at("/settings");
+        expect(screen.getByRole("status").textContent).toContain("Loading");
+    });
+
     it("names the not-found page", () => {
         at("/nope");
         expect(document.title).toBe("Page not found · Constraint Puzzle Runtime");

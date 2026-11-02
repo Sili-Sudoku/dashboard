@@ -213,6 +213,7 @@ code, pre {
 }
 
 .app-header .logo {
+    white-space: nowrap;
     font-weight: 700;
     letter-spacing: -0.02em;
     text-decoration: none;
@@ -220,6 +221,11 @@ code, pre {
 }
 
 .app-header .tagline {
+    /* One line, cut with an ellipsis: wrapping would make the header taller on a narrow window. */
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--chrome-ink-soft);
     font-size: 0.8rem;
     font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;

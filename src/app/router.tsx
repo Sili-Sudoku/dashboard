@@ -3,6 +3,7 @@ import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import Landing from "@/features/landing";
+import { PageLoader } from "@/app/page_loader.tsx";
 import { ErrorBoundary } from "@/app/error_boundary.tsx";
 import NotFound from "@/app/not_found.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
@@ -131,7 +132,7 @@ export default function AppRouter() {
                         }`}
                     >
                         <ErrorBoundary key={pathname}>
-                            <Suspense fallback={null}>
+                            <Suspense fallback={<PageLoader />}>
                                 <Routes>
                                     <Route path="/" element={<Landing />} />
                                     <Route path="/puzzles" element={<PuzzleList />} />
