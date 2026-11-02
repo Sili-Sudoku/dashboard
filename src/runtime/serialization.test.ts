@@ -106,3 +106,39 @@ describe("limits on outside data", () => {
         expect((decodePuzzle("1" + "A".repeat(LIMITS.encodedChars)) as Error).message).toMatch(/too long/);
     });
 });
+
+describe("free-text fields of the metadata", () => {
+    const withMeta = (extra: Record<string, unknown>) => ({
+        version: 1,
+        metadata: { id: "x", title: "x", ...extra },
+        geometry: { type: "grid", width: 3, height: 3 },
+        domain: { values: [1, 2, 3] },
+        constraints: [],
+    });
+
+    it("accepts normal text, including markup (the app shows it as text)", () => {
+        const result = parsePuzzle(withMeta({ description: "<img src=x onerror=alert(1)> & more", tags: ["a", "b"] }));
+        expect(result).not.toBeInstanceOf(Error);
+    });
+
+    it("rejects text that is too long", () => {
+        const limits = [
+            ["title", LIMITS.title],
+            ["author", LIMITS.author],
+            ["description", LIMITS.description],
+        ] as const;
+        for (const [field, limit] of limits) {
+            const result = parsePuzzle(withMeta({ [field]: "a".repeat(limit + 1) }));
+            expect((result as Error).message).toMatch(new RegExp(`metadata.${field} is too long`));
+            expect(parsePuzzle(withMeta({ [field]: "a".repeat(limit) }))).not.toBeInstanceOf(Error);
+        }
+        expect(parsePuzzle(withMeta({ tags: Array(LIMITS.tags + 1).fill("a") }))).toBeInstanceOf(Error);
+        expect(parsePuzzle(withMeta({ tags: ["a".repeat(LIMITS.tag + 1)] }))).toBeInstanceOf(Error);
+    });
+
+    it("rejects a field that is not a string, which would break the page that shows it", () => {
+        expect(parsePuzzle(withMeta({ description: { a: 1 } }))).toBeInstanceOf(Error);
+        expect(parsePuzzle(withMeta({ author: 5 }))).toBeInstanceOf(Error);
+        expect(parsePuzzle(withMeta({ tags: "sudoku" }))).toBeInstanceOf(Error);
+    });
+});

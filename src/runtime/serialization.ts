@@ -31,6 +31,14 @@ export const LIMITS = {
     lzInputChars: 20_000,
     /** The cells of all the grids of a puzzle. */
     cells: 10_000,
+    /** The free-text fields of `metadata`, in characters. The app shows them as plain text, never as HTML. */
+    id: 100,
+    title: 200,
+    author: 100,
+    description: 10_000,
+    difficulty: 50,
+    tag: 50,
+    tags: 30,
 } as const;
 
 // --- validation -----------------------------------------------------------
@@ -60,6 +68,8 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     const meta = metadata as Record<string, unknown>;
     if (typeof meta.id !== "string" || meta.id.length === 0) return new Error("metadata.id is required");
     if (typeof meta.title !== "string" || meta.title.length === 0) return new Error("metadata.title is required");
+    const metadataError = checkMetadataText(meta);
+    if (metadataError) return metadataError;
 
     const geometry = obj.geometry as Record<string, unknown> | undefined;
     if (!geometry || (geometry.type !== "grid" && geometry.type !== "composite")) {
@@ -136,6 +146,29 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
 };
 
 const isNonNegativeInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
+/** The free-text fields must be strings (the page shows them as text) and must not be longer than the limit. */
+const checkMetadataText = (meta: Record<string, unknown>): Error | undefined => {
+    const fields = ["id", "title", "author", "description", "difficulty"] as const;
+    for (const field of fields) {
+        const value = meta[field];
+        if (value === undefined) continue;
+        if (typeof value !== "string") return new Error(`metadata.${field} must be a string`);
+        if (value.length > LIMITS[field]) {
+            return new Error(`metadata.${field} is too long (${value.length} characters, the limit is ${LIMITS[field]})`);
+        }
+    }
+    const tags = meta.tags;
+    if (tags === undefined) return undefined;
+    if (!Array.isArray(tags) || tags.some((t) => typeof t !== "string")) {
+        return new Error("metadata.tags must be an array of strings");
+    }
+    if (tags.length > LIMITS.tags) return new Error(`metadata.tags has too many tags (the limit is ${LIMITS.tags})`);
+    if (tags.some((t: string) => t.length > LIMITS.tag)) {
+        return new Error(`a tag in metadata.tags is too long (the limit is ${LIMITS.tag} characters)`);
+    }
+    return undefined;
+};
+
 const isPositiveInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v > 0;
 
 const isConstraintSpecShape = (spec: unknown): spec is ConstraintSpec => {
