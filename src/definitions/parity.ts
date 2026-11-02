@@ -69,3 +69,6 @@ even.schema = {
         { kind: "cells", key: "cells", label: "Cells", min: 1 },
     ],
 };
+
+odd.rule = "A cell with a grey circle must contain an odd digit.";
+even.rule = "A cell with a grey square must contain an even digit.";

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleAlert, CircleDashed, ListChecks } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronRight, CircleAlert, CircleDashed } from "lucide-react";
 
 import { useSettings } from "@/app/use_settings.ts";
+import { definitions } from "@/definitions/index.ts";
 import type { CellId } from "@/runtime/geometry.ts";
 import type { ConstraintEvaluation, EvaluationResult } from "@/runtime/evaluate.ts";
 
@@ -9,6 +10,8 @@ import "./style.css";
 
 interface Props {
     evaluation: EvaluationResult;
+    /** The description of the puzzle, shown above the rules. */
+    description?: string;
     /** The board's selected cells: constraints covering all of them are highlighted below. */
     selection?: ReadonlySet<CellId>;
 }
@@ -21,10 +24,11 @@ interface SourceGroup {
     items: ConstraintEvaluation[];
 }
 
-export default function ConstraintPanel({ evaluation, selection }: Props) {
+export default function ConstraintPanel({ evaluation, description, selection }: Props) {
     const groups = useMemo(() => groupBySource(evaluation.constraints), [evaluation]);
-    // The panel is collapsed by default: only its toggle button shows.
-    // This button is the "Show/Hide constraints" control.
+    // This panel is the rules of the puzzle: the description, then each kind of constraint as one plain sentence.
+    // The raw constraints of a kind are behind a button in its group, as a fallback and for the status of each.
+    // The toggle button here is the "Show/Hide rules" control.
     // It is not a separate button above a second collapsible section.
     const [settings, setSetting] = useSettings();
     const open = settings.constraintPanelOpen;
@@ -60,7 +64,7 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
             : evaluation.status === "invalid"
               ? "Some constraints are broken"
               : `In progress: ${evaluation.filledCount}/${evaluation.cellCount} cells`
-        : "Show constraints";
+        : "Show rules";
 
     return (
         <section className={`constraint-panel ${open ? "cp-open" : ""}`}>
@@ -70,28 +74,22 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
                 aria-expanded={open}
                 onClick={() => setOpen(!open)}
             >
-                <ListChecks size={15} /> {label}
+                <BookOpen size={15} /> {label}
             </button>
 
             {open && (
                 <>
+                    {description && <p className="cp-description">{description}</p>}
                     <ul className="cp-groups">
                         {groups.map((g) => {
                             const hasMatch = g.items.some((item) => matched.has(item.id));
                             // A group with a highlighted constraint opens by itself, so the match is visible.
+                            const rule = definitions[g.source]?.rule;
                             const isCollapsed = !expandedGroups.has(g.source) && !hasMatch;
                             return (
                                 <li key={g.source} className="cp-group">
-                                    <button
-                                        type="button"
-                                        className={`cp-group-head${hasMatch ? " cp-has-match" : ""}`}
-                                        aria-expanded={!isCollapsed}
-                                        onClick={() => toggleGroup(g.source)}
-                                    >
-                                        <span className="cp-group-label">
-                                            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                                            <span className="cp-source">{g.source}</span>
-                                        </span>
+                                    <div className={`cp-group-head${hasMatch ? " cp-has-match" : ""}`}>
+                                        <span className="cp-source">{g.source}</span>
                                         <span className="cp-counts">
                                             {g.violated > 0 && <em className="bad">{g.violated} broken</em>}
                                             {g.incomplete > 0 && <em className="pending">{g.incomplete} pending</em>}
@@ -99,6 +97,16 @@ export default function ConstraintPanel({ evaluation, selection }: Props) {
                                                 <em className="ok">all satisfied</em>
                                             )}
                                         </span>
+                                    </div>
+                                    {rule && <p className="cp-rule">{rule}</p>}
+                                    <button
+                                        type="button"
+                                        className="cp-raw-toggle"
+                                        aria-expanded={!isCollapsed}
+                                        onClick={() => toggleGroup(g.source)}
+                                    >
+                                        {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                        {isCollapsed ? "Show" : "Hide"} constraints ({g.items.length})
                                     </button>
                                     {!isCollapsed && (
                                         <ul className="cp-items">

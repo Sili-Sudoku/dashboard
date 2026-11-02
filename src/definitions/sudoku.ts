@@ -52,3 +52,5 @@ sudoku.schema = {
         { kind: "boolean", key: "boxes", label: "Include boxes", default: true },
     ],
 };
+
+sudoku.rule = "Each row, column, and box must contain each digit one time.";

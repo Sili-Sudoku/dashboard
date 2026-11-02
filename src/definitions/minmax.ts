@@ -82,3 +82,6 @@ maximum.schema = {
         { kind: "cell", key: "cell", label: "Cell" },
     ],
 };
+
+minimum.rule = "A cell with a minimum marker must contain a digit that is smaller than the digits in all adjacent cells.";
+maximum.rule = "A cell with a maximum marker must contain a digit that is larger than the digits in all adjacent cells.";

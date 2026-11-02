@@ -77,3 +77,5 @@ arrow.schema = {
         { kind: "cells", key: "cells", label: "Shaft path", min: 1 },
     ],
 };
+
+arrow.rule = "The digits on an arrow must add up to the digit in its circle. If the circle has more than one cell, read the digits as one number.";

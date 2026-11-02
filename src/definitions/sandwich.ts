@@ -58,3 +58,5 @@ sandwich.schema = {
         { kind: "number", key: "sum", label: "Sum", required: true },
     ],
 };
+
+sandwich.rule = "The digits between the lowest digit and the highest digit in a row or column must add up to the number outside the grid.";

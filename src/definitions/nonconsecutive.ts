@@ -32,3 +32,5 @@ nonconsecutive.schema = {
     label: "Nonconsecutive (global)",
     fields: [],
 };
+
+nonconsecutive.rule = "Two cells that share an edge cannot contain digits that follow each other, for example 4 and 5.";

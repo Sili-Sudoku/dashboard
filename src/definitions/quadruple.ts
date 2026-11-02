@@ -51,3 +51,5 @@ quadruple.schema = {
         { kind: "numberList", key: "values", label: "Required values" },
     ],
 };
+
+quadruple.rule = "The four cells around a circle must contain all the digits in the circle. If a digit shows two times, it must occur two times.";

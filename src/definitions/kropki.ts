@@ -81,3 +81,6 @@ kropkiRatio.schema = {
         { kind: "number", key: "value", label: "Ratio (default 2)", required: false },
     ],
 };
+
+kropkiDifference.rule = "Two cells with a white dot between them must have digits that differ by the number on the dot. If the dot has no number, the difference is 1.";
+kropkiRatio.rule = "Two cells with a black dot between them must have digits where the larger digit is the smaller digit times the number on the dot. If the dot has no number, use 2.";

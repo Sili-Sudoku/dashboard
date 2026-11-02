@@ -64,3 +64,7 @@ export const negativeXV = adjacentPairDefinition("negative xv", (a, b) => [
     ["!=", ["+", ["value", a], ["value", b]], 5],
     ["!=", ["+", ["value", a], ["value", b]], 10],
 ]);
+
+negativeRatio.rule = "Two adjacent cells with no black dot between them cannot have a ratio of 2.";
+negativeDifference.rule = "Two adjacent cells with no white dot between them cannot contain digits that follow each other.";
+negativeXV.rule = "Two adjacent cells with no X or V between them cannot add up to 5 or 10.";

@@ -39,3 +39,5 @@ antiknight.schema = {
     label: "Antiknight (global)",
     fields: [],
 };
+
+antiknight.rule = "Two cells that are a knight's move apart cannot contain the same digit. A knight's move is two cells in one direction and one cell to the side.";

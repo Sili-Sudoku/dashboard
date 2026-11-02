@@ -48,3 +48,5 @@ thermometer.schema = {
         { kind: "boolean", key: "strict", label: "Digits always increase", default: true },
     ],
 };
+
+thermometer.rule = "The digits on a thermometer must increase from the round end (bulb) to the other end.";

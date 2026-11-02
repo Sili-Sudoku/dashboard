@@ -43,3 +43,5 @@ betweenline.schema = {
         { kind: "cells", key: "cells", label: "Path (endpoints first and last)", min: 3 },
     ],
 };
+
+betweenline.rule = "The digits on a between line must be between the two digits in the circles at its ends.";

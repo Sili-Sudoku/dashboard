@@ -47,3 +47,5 @@ xv.schema = {
         { kind: "number", key: "target", label: "Target sum (X=10, V=5)", required: true },
     ],
 };
+
+xv.rule = "Two cells with a V between them must add up to 5. Two cells with an X between them must add up to 10.";

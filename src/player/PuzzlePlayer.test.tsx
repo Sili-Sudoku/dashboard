@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { definitions } from "@/definitions/index.ts";
+import { demoMixed } from "@/puzzles/demo_mixed.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 import { statsStorageKey, type PuzzleStats } from "@/runtime/session.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
@@ -104,21 +105,34 @@ describe("<PuzzlePlayer />", () => {
         expect(entered[0].textContent).toBe("3");
     });
 
-    it("hides the constraint panel by default, revealed via a toggle", () => {
+    it("shows the rules panel by default, collapsed via its toggle", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
-        expect(container.querySelector(".cp-groups")).toBeNull();
+        expect(container.querySelector(".cp-groups")).not.toBeNull();
 
         // The toggle button is also the status line when open, so its accessible name changes
-        // (for example to "In progress — n/m cells").
+        // (for example to "In progress: n/m cells").
         // Hold the node. Do not query again by the "show/hide" label.
-        const toggle = screen.getByRole("button", { name: /show constraints/i });
-        fireEvent.click(toggle);
-        expect(container.querySelector(".cp-groups")).not.toBeNull();
+        const toggle = screen.getByRole("button", { name: /in progress/i });
         expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
         fireEvent.click(toggle);
         expect(container.querySelector(".cp-groups")).toBeNull();
         expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        expect(toggle.textContent).toMatch(/show rules/i);
+    });
+
+    it("shows each kind of constraint as a plain rule, with its raw constraints behind a button", () => {
+        const mixed = compilePuzzle(demoMixed, definitions);
+        if (mixed instanceof Error) throw mixed;
+        const { container } = render(<PuzzlePlayer puzzle={mixed} />);
+        expect(screen.getByText(demoMixed.metadata.description!)).toBeTruthy();
+        expect(screen.getByText(definitions.thermometer.rule!)).toBeTruthy();
+        expect(container.querySelector(".cp-items")).toBeNull();
+
+        fireEvent.click(screen.getAllByRole("button", { name: /show constraints/i })[0]);
+        expect(container.querySelectorAll(".cp-items")).toHaveLength(1);
+        fireEvent.click(screen.getByRole("button", { name: /hide constraints/i }));
+        expect(container.querySelector(".cp-items")).toBeNull();
     });
 
     it("reflects a broken constraint in the panel", () => {
@@ -128,7 +142,6 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: "1" }));
 
-        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
         const panel = container.querySelector(".constraint-panel") as HTMLElement;
         expect(within(panel).getByText("Some constraints are broken")).toBeTruthy();
         // row:0, the top-left box, and col:1 each break on a duplicate '1'.
@@ -285,7 +298,6 @@ describe("<PuzzlePlayer />", () => {
 
     it("highlights the constraints covering the selected cell in the constraints panel, opening their group (#161)", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
-        fireEvent.click(screen.getByRole("button", { name: /show constraints/i }));
         const current = () => container.querySelectorAll(".cp-item[aria-current]");
         expect(current()).toHaveLength(0);
 

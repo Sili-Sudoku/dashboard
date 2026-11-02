@@ -13,7 +13,7 @@ export const miniSudoku: PuzzleDefinition = {
     metadata: {
         id: "mini-sudoku",
         title: "Mini Sudoku (primitive-only)",
-        description: "A 4x4 puzzle. It uses raw allDifferent constraints and no variant definitions.",
+        description: "A 4x4 puzzle. It uses only raw allDifferent constraints. It does not use variant definitions.",
         difficulty: "trivial",
         tags: ["sudoku", "primitive"],
     },

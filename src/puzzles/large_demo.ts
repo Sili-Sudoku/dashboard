@@ -30,7 +30,7 @@ export const largeDemo: PuzzleDefinition = {
         id: "large-demo",
         title: "Large Demo (25x25)",
         author: "runtime demo",
-        description: "625 cells to test viewport virtualization (#48). Scroll to move around the board.",
+        description: "A board with 625 cells to test the viewport. Scroll to move around the board.",
         difficulty: "medium",
         tags: ["demo", "large"],
     },

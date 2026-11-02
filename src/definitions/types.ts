@@ -54,6 +54,8 @@ export type ConstraintDefinition = ((
 ) => DefinitionOutput | Error) & {
     /** Visual-builder metadata for this definition (see `DefinitionSchema`). */
     schema?: DefinitionSchema;
+    /** The rule of this kind of constraint in one plain sentence, for the player's Rules panel. */
+    rule?: string;
 };
 
 export type DefinitionRegistry = Readonly<Record<string, ConstraintDefinition>>;

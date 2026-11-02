@@ -36,3 +36,5 @@ antiking.schema = {
     label: "Antiking (global)",
     fields: [],
 };
+
+antiking.rule = "Two cells that touch each other, also at a corner, cannot contain the same digit.";

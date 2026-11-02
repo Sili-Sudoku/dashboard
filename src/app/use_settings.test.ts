@@ -16,7 +16,7 @@ describe("useSettings", () => {
             highlightSameValue: true,
             markColors: DEFAULT_MARK_COLORS,
             zoomLocked: false,
-            constraintPanelOpen: false,
+            constraintPanelOpen: true,
             hotkeyLegendOpen: false,
             authorEditorMode: "json",
             builderTools: [],
@@ -35,13 +35,13 @@ describe("useSettings", () => {
     it("remembers panel and editor-mode state across a remount (#125)", () => {
         const first = renderHook(() => useSettings());
         act(() => {
-            first.result.current[1]("constraintPanelOpen", true);
+            first.result.current[1]("constraintPanelOpen", false);
             first.result.current[1]("authorEditorMode", "visual");
         });
         first.unmount();
 
         const second = renderHook(() => useSettings());
-        expect(second.result.current[0].constraintPanelOpen).toBe(true);
+        expect(second.result.current[0].constraintPanelOpen).toBe(false);
         expect(second.result.current[0].authorEditorMode).toBe("visual");
         expect(second.result.current[0].hotkeyLegendOpen).toBe(false);
     });

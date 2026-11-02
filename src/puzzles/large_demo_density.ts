@@ -30,7 +30,7 @@ const variant = (cluePercent: number, id: string, title: string): PuzzleDefiniti
         ...largeDemo.metadata,
         id,
         title,
-        description: `${largeDemo.metadata.description} ${Math.round(cluePercent * 100)}% of cells are givens.`,
+        description: `${largeDemo.metadata.description} ${Math.round(cluePercent * 100)}% of the cells are givens.`,
         tags: [...(largeDemo.metadata.tags ?? []), "benchmark"],
     },
     givens: seededGivens(cluePercent),

@@ -28,3 +28,5 @@ clone.schema = {
         { kind: "cells", key: "cloneCells", label: "Region B (same size and order)", min: 1 },
     ],
 };
+
+clone.rule = "Cells with the same shading must contain the same digits in the same positions.";

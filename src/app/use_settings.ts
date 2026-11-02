@@ -40,7 +40,7 @@ const DEFAULT_SETTINGS: Settings = {
     highlightSameValue: true,
     markColors: DEFAULT_MARK_COLORS,
     zoomLocked: false,
-    constraintPanelOpen: false,
+    constraintPanelOpen: true,
     hotkeyLegendOpen: false,
     authorEditorMode: "json",
     builderTools: [],

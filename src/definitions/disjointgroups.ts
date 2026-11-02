@@ -38,3 +38,5 @@ disjointgroups.schema = {
     label: "Disjoint groups (global)",
     fields: [],
 };
+
+disjointgroups.rule = "Cells that have the same position in their boxes cannot contain the same digit. For example, the top-left cells of all the boxes must be different.";
