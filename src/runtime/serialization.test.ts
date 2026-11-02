@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePuzzle, encodePuzzle, decodePuzzle } from "@/runtime/serialization.ts";
+import { LIMITS, parsePuzzle, encodePuzzle, decodePuzzle } from "@/runtime/serialization.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -80,5 +80,29 @@ describe("named rules in a puzzle file", () => {
         expect(parsePuzzle(withConstraints([{ rule: ["==", 1, 1], name: "Twos" }, { rule: ["==", 1, 1] }]))).not.toBeInstanceOf(Error);
         expect(parsePuzzle(withConstraints([{ rule: "nope" }]))).toBeInstanceOf(Error);
         expect(parsePuzzle(withConstraints([{ rule: ["==", 1, 1], name: 3 }]))).toBeInstanceOf(Error);
+    });
+});
+
+describe("limits on outside data", () => {
+    const base = {
+        version: 1,
+        metadata: { id: "x", title: "x" },
+        geometry: { type: "grid", width: 3, height: 3 },
+        domain: { values: [1, 2, 3] },
+        constraints: [],
+    };
+
+    it("rejects a puzzle with too many cells, in a grid or a composite", () => {
+        const huge = parsePuzzle({ ...base, geometry: { type: "grid", width: 1000, height: 1000 } });
+        expect(huge).toBeInstanceOf(Error);
+        expect((huge as Error).message).toMatch(/too many cells/);
+        const grids = Array.from({ length: 200 }, (_, i) => ({ width: 9, height: 9, row: i * 9, col: 0 }));
+        expect(parsePuzzle({ ...base, geometry: { type: "composite", grids } })).toBeInstanceOf(Error);
+        expect(parsePuzzle(base)).not.toBeInstanceOf(Error);
+    });
+
+    it("rejects text and encoded strings that are too long, before parsing them", () => {
+        expect((parsePuzzle(" ".repeat(LIMITS.jsonChars + 1)) as Error).message).toMatch(/too long/);
+        expect((decodePuzzle("1" + "A".repeat(LIMITS.encodedChars)) as Error).message).toMatch(/too long/);
     });
 });

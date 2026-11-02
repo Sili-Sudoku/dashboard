@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { deflateRaw } from "pako";
 import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker, type SudokuMakerExport } from "@/interop/sudokumaker.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
@@ -232,5 +233,23 @@ describe("a real solvable 4x4 jigsaw round-trips end to end", () => {
         const outcome = evaluate(compiled, lookupFromRecord(solutionRecord));
         expect(outcome.status).toBe("valid");
         expect(outcome.complete).toBe(true);
+    });
+});
+
+describe("limits on outside data", () => {
+    const toBase64Url = (bytes: Uint8Array) =>
+        btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+    it("stops a deflate bomb at the output limit", () => {
+        // 50 MB of one character is about 50 KB when compressed.
+        const bomb = toBase64Url(deflateRaw(new Uint8Array(50_000_000).fill(97)));
+        const result = importSudokuMaker("D" + bomb);
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).message).toMatch(/too large when unpacked/);
+    });
+
+    it("refuses a long lz-string payload without unpacking it", () => {
+        const result = importSudokuMaker("N" + "A".repeat(30_000));
+        expect((result as Error).message).toMatch(/too long/);
     });
 });

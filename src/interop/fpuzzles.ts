@@ -28,6 +28,7 @@
 
 import { compressToBase64, decompressFromBase64 } from "lz-string";
 
+import { LIMITS } from "@/runtime/serialization.ts";
 import { GridGeometry, parseGridCellId, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
 import { findRectangularBoxes, slugify } from "@/interop/shared.ts";
 import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
@@ -290,15 +291,21 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     let data: unknown = input;
     if (typeof input === "string") {
         const trimmed = input.trim();
+        if (trimmed.length > LIMITS.jsonChars) return new Error("the input is too long");
         let jsonText = trimmed;
         if (!trimmed.startsWith("{")) {
+            const payload = extractShareLinkPayload(trimmed);
+            if (payload.length > LIMITS.lzInputChars) return new Error("the f-puzzles share link is too long");
             // The input is not raw JSON. Treat it as a share link (a full URL, or only the "load"
             // payload copied alone) and try to decompress it first.
-            const decompressed = decompressFromBase64(extractShareLinkPayload(trimmed));
+            const decompressed = decompressFromBase64(payload);
             if (!decompressed) {
                 return new Error(
                     "input is not f-puzzles JSON and not an f-puzzles share link that the importer can decode",
                 );
+            }
+            if (decompressed.length > LIMITS.jsonChars) {
+                return new Error("the f-puzzles data is too large when unpacked");
             }
             jsonText = decompressed;
         }
@@ -314,6 +321,9 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     const size = src.size;
     if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
         return new Error('"size" must be a positive integer. The importer supports only square grids');
+    }
+    if (size * size > LIMITS.cells) {
+        return new Error(`the grid is too large (${size}x${size}, the limit is ${LIMITS.cells} cells)`);
     }
 
     const grid = src.grid;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { compressToBase64 } from "lz-string";
 import {
     encodeFPuzzlesShareLink,
     encodeSudokuPadShareLink,
@@ -569,5 +570,23 @@ describe("a real solvable 4x4 jigsaw round-trips end to end", () => {
         const outcome = evaluate(compiled, lookupFromRecord(flatSolution));
         expect(outcome.status).toBe("valid");
         expect(outcome.complete).toBe(true);
+    });
+});
+
+describe("limits on outside data", () => {
+    it("refuses a long compressed payload without unpacking it", () => {
+        const result = importFPuzzles("A".repeat(30_000));
+        expect((result as Error).message).toMatch(/too long/);
+    });
+
+    it("refuses a grid with too many cells", () => {
+        const result = importFPuzzles(JSON.stringify({ size: 1000, grid: [] }));
+        expect((result as Error).message).toMatch(/too large/);
+    });
+
+    it("still imports a normal compressed link", () => {
+        const grid = Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => ({})));
+        const result = importFPuzzles(compressToBase64(JSON.stringify({ size: 4, grid })));
+        expect(result).not.toBeInstanceOf(Error);
     });
 });

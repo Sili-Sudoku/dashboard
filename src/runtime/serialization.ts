@@ -15,11 +15,32 @@ import {
     type PuzzleDefinition,
 } from "@/runtime/puzzle.ts";
 
+// --- limits ---------------------------------------------------------------
+
+/** Size limits for data that comes from outside: a shared link, a pasted puzzle, an import.
+ *  Without them, a small crafted payload can freeze the tab. A real puzzle is far below every limit. */
+export const LIMITS = {
+    /** The text of a puzzle as JSON. The large demo (25x25) is about 100 KB. */
+    jsonChars: 2_000_000,
+    /** An encoded share link (`/p/<encoded>`) or a raw-deflate payload. */
+    encodedChars: 400_000,
+    /** The output of an inflate. Checked while it runs, so a decompression bomb stops early. */
+    inflatedBytes: 4_000_000,
+    /** An lz-string payload. lz-string cannot stop early, and its output can grow with the square of its input.
+     *  So the input limit is small. A real f-puzzles link has a few thousand characters. */
+    lzInputChars: 20_000,
+    /** The cells of all the grids of a puzzle. */
+    cells: 10_000,
+} as const;
+
 // --- validation -----------------------------------------------------------
 
 export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     let data: unknown = input;
     if (typeof input === "string") {
+        if (input.length > LIMITS.jsonChars) {
+            return new Error(`the puzzle text is too long (more than ${LIMITS.jsonChars} characters)`);
+        }
         try {
             data = JSON.parse(input);
         } catch (err) {
@@ -59,6 +80,14 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
                 return new Error("each geometry grid needs a row and col offset (integers from 0)");
             }
         }
+    }
+
+    const cellCount =
+        geometry.type === "grid"
+            ? (geometry.width as number) * (geometry.height as number)
+            : (geometry.grids as { width: number; height: number }[]).reduce((n, g) => n + g.width * g.height, 0);
+    if (cellCount > LIMITS.cells) {
+        return new Error(`the puzzle has too many cells (${cellCount}, the limit is ${LIMITS.cells})`);
     }
 
     const domain = obj.domain as Record<string, unknown> | undefined;
@@ -139,6 +168,7 @@ export const encodePuzzle = (def: PuzzleDefinition): string => {
 
 export const decodePuzzle = (encoded: string): PuzzleDefinition | Error => {
     if (encoded.length < 2) return new Error("encoded puzzle is too short");
+    if (encoded.length > LIMITS.encodedChars) return new Error("encoded puzzle is too long");
     const codec = encoded[0];
     const payload = encoded.slice(1);
     if (codec !== CODEC_BASE64_JSON) return new Error(`unknown puzzle codec "${codec}"`);

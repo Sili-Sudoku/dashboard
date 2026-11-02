@@ -19,8 +19,10 @@
  * It never drops data silently.
  */
 
-import { deflateRaw, inflateRaw } from "pako";
+import { Inflate, deflateRaw } from "pako";
 import { decompressFromEncodedURIComponent } from "lz-string";
+
+import { LIMITS } from "@/runtime/serialization.ts";
 
 import { GridGeometry, type CellId, type GridGeometrySpec } from "@/runtime/geometry.ts";
 import { findRectangularBoxes, slugify } from "@/interop/shared.ts";
@@ -92,16 +94,39 @@ const extractSharePayload = (text: string): string => {
     return m ? m[1] : text;
 };
 
+/** Raw-inflate with a limit on the output. The inflater gives the output in chunks, so a bomb stops at the limit. */
+const inflateLimited = (bytes: Uint8Array): Uint8Array => {
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    const inflater = new Inflate({ raw: true });
+    inflater.onData = (chunk: Uint8Array) => {
+        total += chunk.length;
+        if (total > LIMITS.inflatedBytes) throw new Error("the data is too large when unpacked");
+        chunks.push(chunk);
+    };
+    inflater.push(bytes, true);
+    if (inflater.err) throw new Error(inflater.msg || "invalid compressed data");
+    const out = new Uint8Array(total);
+    let at = 0;
+    for (const chunk of chunks) {
+        out.set(chunk, at);
+        at += chunk.length;
+    }
+    return out;
+};
+
 const decodePayload = (payload: string): string | Error => {
     if (payload.startsWith("D")) {
+        if (payload.length > LIMITS.encodedChars) return new Error("the SudokuMaker data is too long");
         try {
             const bytes = fromBase64Url(payload.slice(1));
-            return new TextDecoder().decode(inflateRaw(bytes));
+            return new TextDecoder().decode(inflateLimited(bytes));
         } catch (err) {
             return new Error(`cannot inflate the SudokuMaker data:  ${err instanceof Error ? err.message : String(err)}`);
         }
     }
     if (payload.startsWith("N")) {
+        if (payload.length > LIMITS.lzInputChars) return new Error("the old (lz-string) SudokuMaker data is too long");
         const decompressed = decompressFromEncodedURIComponent(payload.slice(1));
         if (!decompressed) return new Error("cannot decode the old (lz-string) SudokuMaker data");
         return decompressed;
@@ -164,6 +189,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
     let data: unknown = input;
     if (typeof input === "string") {
         const trimmed = input.trim();
+        if (trimmed.length > LIMITS.jsonChars) return new Error("the input is too long");
         if (trimmed.startsWith("{")) {
             try {
                 data = JSON.parse(trimmed);
