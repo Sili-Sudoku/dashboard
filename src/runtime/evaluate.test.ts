@@ -47,7 +47,7 @@ describe("evaluate", () => {
     });
 
     it("narrows an allDifferent violation to the duplicate cells, not the whole group", () => {
-        // r1c1/r1c3 share 3; r1c2/r1c4 are each unique and shouldn't be flagged.
+        // r1c1/r1c3 share 3. r1c2/r1c4 are each unique, so the result must not flag them.
         const result = evaluate(puzzle, lookupFromRecord({ r1c1: 3, r1c2: 1, r1c3: 3, r1c4: 2 }));
         expect(result.constraints[0].status).toBe("violated");
         expect([...result.violatedCells].sort()).toEqual(["r1c1", "r1c3"]);
@@ -81,9 +81,9 @@ describe("evaluate", () => {
 
 describe("evaluate — early infeasibility detection", () => {
     it("flags a thermometer-style run as violated once the head leaves no room for the rest", () => {
-        // 3-cell strictly increasing run, domain 1-4: a '4' in the head leaves no
-        // room for two more strictly-larger values, even though no descending
-        // pair exists yet (the other two cells are still empty).
+        // A strictly increasing run of 3 cells, domain 1-4: a '4' in the head leaves no
+        // room for two more strictly larger values.
+        // This holds even though no descending pair exists yet (the other two cells are empty).
         const puzzle = compilePuzzle({
             version: 1,
             metadata: { id: "therm", title: "therm" },
@@ -99,8 +99,8 @@ describe("evaluate — early infeasibility detection", () => {
     });
 
     it("flags an allDifferent group as violated by pigeonhole, before any cell is even filled", () => {
-        // 3 cells, only 2 domain values to go around: no assignment can make
-        // them all different, true from the very first evaluation.
+        // 3 cells, but only 2 domain values: no assignment can make
+        // them all different. This is true from the first evaluation.
         const puzzle = compilePuzzle({
             version: 1,
             metadata: { id: "pigeon", title: "pigeon" },
@@ -116,8 +116,8 @@ describe("evaluate — early infeasibility detection", () => {
     });
 
     it("flags an unreachable cage sum", () => {
-        // 2 empty cells, domain 1-4: the minimum possible sum is 1+1=2, so a
-        // target of 1 can never be reached.
+        // 2 empty cells, domain 1-4: the minimum possible sum is 1+1=2,
+        // so a target of 1 can never be reached.
         const puzzle = compilePuzzle({
             version: 1,
             metadata: { id: "cage", title: "cage" },
@@ -132,10 +132,10 @@ describe("evaluate — early infeasibility detection", () => {
     });
 
     it("stays incomplete, making no claim, once the search space exceeds the cap", () => {
-        // 5 empty cells over a 9-value domain (9^5 = 59049) is obviously
-        // unreachable by a sum of 1000 to a human, but it's over the exhaustive
-        // search cap — so this must NOT be reported as violated, matching the
-        // "never guess a violation we can't prove" rule.
+        // 5 empty cells over a 9-value domain (9^5 = 59049): a human sees at once
+        // that a sum of 1000 is unreachable. But the count is over the exhaustive search cap.
+        // So the result must NOT be "violated".
+        // This matches the rule "never report a violation that we cannot prove".
         const puzzle = compilePuzzle({
             version: 1,
             metadata: { id: "toobig", title: "toobig" },
@@ -165,16 +165,16 @@ describe("evaluate — early infeasibility detection", () => {
 });
 
 describe("evaluateIncremental", () => {
-    // row:0 and row:1 are disjoint cell sets, so an edit to row 0 should never
-    // need to re-run row 1's constraint.
+    // row:0 and row:1 are disjoint cell sets, so an edit to row 0 must never
+    // re-run the constraint of row 1.
     const puzzle = compile();
 
     it("reuses the untouched constraint's exact result object, not just an equal one", () => {
         const before = evaluate(puzzle, lookupFromRecord({}));
         const after = evaluateIncremental(puzzle, lookupFromRecord({ r1c1: 1 }), before, ["r1c1"]);
 
-        expect(after.constraints[1]).toBe(before.constraints[1]); // row:1 sum — untouched, same reference
-        expect(after.constraints[0]).not.toBe(before.constraints[0]); // row:0 allDifferent — recomputed
+        expect(after.constraints[1]).toBe(before.constraints[1]); // row:1 sum: not touched, same reference
+        expect(after.constraints[0]).not.toBe(before.constraints[0]); // row:0 allDifferent: recomputed
     });
 
     it("produces the exact same result as a full evaluate() from scratch", () => {
@@ -193,13 +193,13 @@ describe("evaluateIncremental", () => {
     });
 
     it("still updates filledCount/invalidCells for a change that touches no constraint at all", () => {
-        // r4c4 isn't covered by either of this fixture's two constraints (row:0, row:1).
+        // r4c4 is not in either of the two constraints of this fixture (row:0, row:1).
         const before = evaluate(puzzle, lookupFromRecord({}));
         expect(before.filledCount).toBe(0);
 
         const after = evaluateIncremental(puzzle, lookupFromRecord({ r4c4: 1 }), before, ["r4c4"]);
         expect(after.filledCount).toBe(1);
-        // and the untouched constraints are reused, since nothing affected them
+        // The untouched constraints are reused, because nothing affected them.
         expect(after.constraints[0]).toBe(before.constraints[0]);
         expect(after.constraints[1]).toBe(before.constraints[1]);
     });

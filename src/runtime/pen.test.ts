@@ -13,9 +13,9 @@ import {
 describe("pen layer (#45)", () => {
     it("snaps a pixel position to the nearest half-cell point, relative to the grid origin", () => {
         const origin = { x: 10, y: 20 };
-        // cell size 64: the first cell's centre is half a cell in = lattice (1,1)
+        // Cell size is 64. The centre of the first cell is half a cell in = lattice (1,1).
         expect(snapToLattice(10 + 32, 20 + 32, origin, 64)).toEqual({ x: 1, y: 1 });
-        // near the corner shared with the next cell -> (2,2)
+        // This point is near the corner that the next cell shares -> (2,2).
         expect(snapToLattice(10 + 60, 20 + 66, origin, 64)).toEqual({ x: 2, y: 2 });
         expect(snapToLattice(10, 20, origin, 64)).toEqual({ x: 0, y: 0 });
     });

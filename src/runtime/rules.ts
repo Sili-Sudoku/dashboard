@@ -1,10 +1,12 @@
 /**
- * What the puzzle's dynamic rules (#72) do right now. A rule's `when` is evaluated on the current
- * board with the same three-valued logic as a constraint, and counts only when it is *definitely*
- * true: while it is undecided (cells still empty) it hasn't happened yet. Pure functions of the
- * board, like `hiddenCells` — nothing to keep in sync, nothing extra to undo or save.
+ * What the dynamic rules (#72) of the puzzle do now.
+ * The `when` of a rule is evaluated on the current board with the same three-valued logic as a constraint.
+ * It counts only when it is *definitely* true.
+ * While it is undecided (cells are still empty), the rule has not happened.
+ * These are pure functions of the board, like `hiddenCells`.
+ * So there is no state to keep in sync, and nothing extra to undo or save.
  *
- * (`enable`/`disable` don't appear here: the compiler folds them into the constraints themselves.)
+ * `enable` and `disable` do not appear here. The compiler folds them into the constraints.
  */
 
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";
@@ -12,7 +14,7 @@ import { evalExpr } from "@/runtime/operators.ts";
 import type { ValueLookup } from "@/runtime/evaluate.ts";
 import { objectIds, type CompiledPuzzle, type CompiledRule, type VisualObject } from "@/runtime/puzzle.ts";
 
-/** The rules whose condition is definitely true on this board. */
+/** The rules with a condition that is definitely true on this board. */
 export const holdingRules = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CompiledRule> => {
     if (puzzle.rules.length === 0) return new Set();
     const ctx = {
@@ -27,25 +29,25 @@ export const holdingRules = (puzzle: CompiledPuzzle, lookup: ValueLookup): Reado
             const value = evalExpr(rule.when, ctx);
             if (value.t === "bool" && value.v) holding.add(rule);
         } catch {
-            // a malformed condition is reported at compile time; here it just never holds
+            // The compiler reports a malformed condition. Here, it never holds.
         }
     }
     return holding;
 };
 
-/** Cells that some rule keeps hidden until it holds. */
+/** Cells that a rule keeps hidden until the rule holds. */
 export const ruleHiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
     const hidden = new Set<CellId>();
     if (!puzzle.rules.some((r) => r.reveal.length > 0)) return hidden;
     const holding = holdingRules(puzzle, lookup);
-    // A cell several rules would reveal shows as soon as any one of them holds.
+    // If several rules reveal a cell, the cell shows when any one of them holds.
     const revealed = new Set<CellId>();
     for (const rule of puzzle.rules) if (holding.has(rule)) for (const c of rule.reveal) revealed.add(c);
     for (const rule of puzzle.rules) for (const c of rule.reveal) if (!revealed.has(c)) hidden.add(c);
     return hidden;
 };
 
-/** Cells that are not on the board yet: some rule makes them `appear` and none of those holds. */
+/** Cells that are not on the board yet: a rule makes them `appear` and none of those rules holds. */
 export const ruleAbsentCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
     const absent = new Set<CellId>();
     if (!puzzle.rules.some((r) => r.appear.length > 0)) return absent;
@@ -56,7 +58,7 @@ export const ruleAbsentCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): Re
     return absent;
 };
 
-/** The puzzle's visual objects as they should be drawn right now. */
+/** The visual objects of the puzzle as the renderer must draw them now. */
 export const visibleObjects = (puzzle: CompiledPuzzle, lookup: ValueLookup): readonly VisualObject[] => {
     if (!puzzle.rules.some((r) => r.show.length > 0 || r.hide.length > 0)) return puzzle.objects;
     const holding = holdingRules(puzzle, lookup);

@@ -1,6 +1,6 @@
 /**
- * Shared helpers for runtime tests: build an EvalContext over a grid with a
- * simple in-memory board.
+ * Shared helpers for runtime tests.
+ * They build an EvalContext over a grid with a simple in-memory board.
  */
 
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";

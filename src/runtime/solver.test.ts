@@ -14,8 +14,8 @@ const compile = (puzzle: unknown): CompiledPuzzle => {
 
 describe("solve", () => {
     it("finds the unique solution of a 2x2 Latin square with one given", async () => {
-        // Order-2 Latin squares: only [[1,2],[2,1]] and [[2,1],[1,2]] exist;
-        // fixing r1c1=1 picks exactly one of them.
+        // Order-2 Latin squares: only [[1,2],[2,1]] and [[2,1],[1,2]] exist.
+        // Fixing r1c1=1 selects exactly one of them.
         const puzzle = compile({
             version: 1,
             metadata: { id: "latin2", title: "latin2" },
@@ -36,8 +36,8 @@ describe("solve", () => {
     });
 
     it("reports multiple when most of the board is unconstrained", async () => {
-        // Only row:0 is constrained; row:1 has no constraints at all, so every
-        // row:0 arrangement combines with 4 free row:1 assignments.
+        // Only row:0 has constraints. Row:1 has none.
+        // So each row:0 arrangement combines with 4 free row:1 assignments.
         const puzzle = compile({
             version: 1,
             metadata: { id: "under", title: "under" },
@@ -67,9 +67,10 @@ describe("solve", () => {
     });
 
     it("reports no solution when infeasibility only emerges from combining separate constraints", async () => {
-        // Three cells, pairwise all-different, domain of only 2 values: by
-        // pigeonhole impossible, but no single pairwise constraint is
-        // infeasible on its own — only backtracking across all three proves it.
+        // Three cells are pairwise all-different, and the domain has only 2 values.
+        // By the pigeonhole principle this is impossible.
+        // No single pairwise constraint is infeasible on its own.
+        // Only backtracking across all three cells proves it.
         const puzzle = compile({
             version: 1,
             metadata: { id: "triangle", title: "triangle" },
@@ -84,9 +85,9 @@ describe("solve", () => {
 
         const result = await solve(puzzle);
         expect(result.status).toBe("none");
-        // No probes needed: plain allDifferent constraints are resolved
-        // entirely by the cheap direct-membership path, never touching the
-        // generic oracle.
+        // No probes are necessary.
+        // The cheap direct-membership path resolves plain allDifferent constraints entirely.
+        // It never uses the generic oracle.
         expect(result.probes).toBe(0);
     });
 
@@ -100,9 +101,9 @@ describe("solve", () => {
     });
 
     it("gives up with 'unknown' instead of guessing once the probe budget is exhausted", async () => {
-        // A sum constraint isn't a plain allDifferent, so it's classified
-        // "complex" and genuinely needs the oracle (unlike the fixtures
-        // above, which the cheap path resolves without ever calling it).
+        // A sum constraint is not a plain allDifferent, so the solver classifies it as "complex".
+        // It needs the oracle.
+        // The fixtures above do not need it, because the cheap path resolves them.
         const puzzle = compile({
             version: 1,
             metadata: { id: "sum", title: "sum" },

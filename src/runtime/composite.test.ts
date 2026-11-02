@@ -24,7 +24,7 @@ describe("composite geometry end to end (#34)", () => {
     it("a clash in a shared box is caught from either grid, and a row never reaches across the gap", () => {
         const c = compiled({ ...samuraiSudoku, givens: { r7c7: 5, r7c1: 5, r2c2: 5, r2c13: 5 } });
         const violated = evaluate(c, lookupFromRecord(c.givens)).constraints.filter((k) => k.status === "violated");
-        // r7c7 and r7c1 are in nw's row 7; r2c2 and r2c13 are in different grids' rows, so don't clash
+        // r7c7 and r7c1 are in row 7 of nw. r2c2 and r2c13 are in rows of different grids, so they do not clash.
         expect(violated.map((k) => k.label)).toEqual(["nw/row:6 all different"]);
     });
 

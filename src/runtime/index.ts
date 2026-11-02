@@ -1,9 +1,10 @@
 /**
  * The generic constraint puzzle runtime.
  *
- * Nothing here knows what a thermometer, cage, or arrow is. It provides
- * capabilities — geometry, a constraint language, evaluation, interactive state,
- * serialization — that puzzle definitions compose into semantics.
+ * Nothing here knows what a thermometer, cage, or arrow is.
+ * It gives these capabilities: geometry, a constraint language, evaluation,
+ * interactive state, and serialization.
+ * Puzzle definitions combine them to make meaning.
  */
 
 export * from "@/runtime/geometry.ts";

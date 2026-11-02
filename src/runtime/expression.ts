@@ -1,30 +1,30 @@
 /**
  * The constraint language.
  *
- * A constraint is a small S-expression encoded as JSON. The first element of an
- * array is an operator name; the rest are arguments (themselves expressions, or
- * bare strings used as cell ids / region selectors):
+ * A constraint is a small S-expression encoded as JSON.
+ * The first element of an array is an operator name.
+ * The other elements are arguments: expressions, or bare strings used as cell ids / region selectors.
  *
  *   ["allDifferent", ["cells", "row:0"]]
  *   ["==", ["sum", ["cells", "cage:A"]], 15]
  *   ["<", ["value", "r1c1"], ["value", "r1c2"]]
  *   ["strictIncreasing", ["cells", ["r1c8", "r2c8", "r3c8"]]]
  *
- * The runtime evaluates any expression built from the operators in
- * `operators.ts`. It has no notion of "thermometer" or "killer" — those are
- * compositions produced by definitions (see `src/definitions`).
+ * The runtime evaluates any expression built from the operators in `operators.ts`.
+ * It has no notion of "thermometer" or "killer".
+ * Definitions make those as compositions (see `src/definitions`).
  *
- * Bare JSON scalars are literals: `5` is a number, `true` a boolean. A bare
- * string is only meaningful where an operator expects a cell id or selector
- * (the arguments of `value`, `cells`, `region`, `adjacent`), plus the special
- * token `"$"` which binds to the current value inside a `count` predicate.
+ * Bare JSON scalars are literals: `5` is a number and `true` is a boolean.
+ * A bare string has a meaning only where an operator expects a cell id or selector
+ * (the arguments of `value`, `cells`, `region`, `adjacent`).
+ * The one exception is the special token `"$"`, which binds to the current value inside a `count` predicate.
  */
 
 import type { CellId, Geometry } from "@/runtime/geometry.ts";
 
 export type Expr = number | boolean | string | readonly Expr[];
 
-/** A resolved value flowing through evaluation. */
+/** A resolved value in the evaluation. */
 export type Val =
     | { t: "num"; v: number }
     | { t: "bool"; v: boolean }
@@ -40,17 +40,17 @@ export const cellsVal = (v: readonly CellId[]): Val => ({ t: "cells", v });
 
 export interface EvalContext {
     geometry: Geometry;
-    /** Puzzle-defined named regions, e.g. { "cage:A": ["r1c1", "r1c2"] }. */
+    /** Puzzle-defined named regions, for example { "cage:A": ["r1c1", "r1c2"] }. */
     regions: Readonly<Record<string, readonly CellId[]>>;
-    /** Allowed values for a cell (the puzzle's digit domain). */
+    /** Allowed values for a cell (the digit domain of the puzzle). */
     domain: readonly number[];
     /** Current board state: the entered value of a cell, or null if empty. */
     valueOf: (cell: CellId) => number | null;
-    /** Lexical bindings, currently only "$" inside `count` predicates. */
+    /** Lexical bindings. Currently only "$" inside `count` predicates. */
     bindings?: Readonly<Record<string, number>>;
 }
 
-/** Kleene three-valued truth: true / false / unknown. */
+/** Kleene three-valued truth: true, false, or unknown. */
 export type Ternary = true | false | "unknown";
 
 export class ExpressionError extends Error {
@@ -66,9 +66,9 @@ export class ExpressionError extends Error {
 export const isCall = (expr: Expr): expr is readonly Expr[] => Array.isArray(expr);
 
 /**
- * Every cell id an expression can touch, resolved against the geometry and named
- * regions. Used for error highlighting and for deciding which constraints to
- * re-check after a cell changes.
+ * Each cell id that an expression can touch, resolved against the geometry and the named regions.
+ * The code uses it for error highlighting.
+ * It also uses it to decide which constraints to check again after a cell changes.
  */
 export const collectCells = (expr: Expr, ctx: EvalContext): CellId[] => {
     const out = new Set<CellId>();
@@ -108,8 +108,8 @@ const walk = (expr: Expr, ctx: EvalContext, out: Set<CellId>): void => {
         default: {
             for (const a of args) {
                 if (typeof a === "string") {
-                    // A bare string outside a cell position: only "$" is legal,
-                    // and it references no cell.
+                    // A bare string outside a cell position: only "$" is legal.
+                    // It references no cell.
                     continue;
                 }
                 walk(a, ctx, out);
@@ -119,11 +119,11 @@ const walk = (expr: Expr, ctx: EvalContext, out: Set<CellId>): void => {
 };
 
 /**
- * Resolve the argument list of a cell-shaped operator (`value`, `cells`, ...)
- * into concrete cell ids. Accepts:
- *   - a single bare string: a cell id ("r1c1") or selector ("row:0", "cage:A")
+ * Resolve the argument list of a cell-shaped operator (`value`, `cells`, ...) into concrete cell ids.
+ * It accepts:
+ *   - a single bare string: a cell id ("r1c1") or a selector ("row:0", "cage:A")
  *   - a bare array of strings: an explicit cell list
- *   - a nested expression evaluating to cells
+ *   - a nested expression that evaluates to cells
  */
 export const resolveCellArgs = (args: readonly Expr[], ctx: EvalContext): readonly CellId[] => {
     if (args.length === 1) {

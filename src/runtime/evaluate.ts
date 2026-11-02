@@ -1,13 +1,13 @@
 /**
  * Evaluate a compiled puzzle against a board state.
  *
- * Each constraint resolves to one of three statuses via Kleene logic:
+ * Kleene logic gives each constraint one of three statuses:
  *   - satisfied   the expression is definitely true
  *   - violated    the expression is definitely false
- *   - incomplete  not enough cells are filled to decide
+ *   - incomplete  too few cells are filled to decide
  *
- * The puzzle is `valid` when nothing is violated, and `complete` when every cell
- * is filled and every constraint is satisfied.
+ * The puzzle is `valid` when no constraint is violated.
+ * The puzzle is `complete` when every cell is filled and every constraint is satisfied.
  */
 
 import type { CellId, Geometry } from "@/runtime/geometry.ts";
@@ -17,20 +17,21 @@ import { evalExpr } from "@/runtime/operators.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 
 /**
- * A constraint is "incomplete" rather than "violated" while any cell in its
- * footprint is still empty. But some incomplete constraints are already dead:
- * no assignment of the remaining empty cells can ever satisfy them (e.g. a
- * thermometer head too high to leave room for the rest of the climb, or a
- * cage target unreachable given the domain). Catching that early — before a
- * literal rule break exists — generalizes to every operator for free: this
- * just re-runs the existing evaluator over every possible completion of the
- * constraint's own empty cells and asks whether any of them avoid `false`.
- * No per-operator bounds logic; it falls out of the operators already being
- * pure functions over `valueOf`.
+ * A constraint is "incomplete", not "violated", while any cell in its footprint is empty.
+ * But some incomplete constraints are already dead.
+ * No assignment of the remaining empty cells can satisfy them.
+ * Examples: a thermometer head too high to leave room for the rest of the climb,
+ * or a cage target that the domain cannot reach.
+ * This function finds such constraints early, before a literal rule break exists.
+ * It works for every operator without extra code.
+ * It runs the existing evaluator on every possible completion of the empty cells of the constraint.
+ * Then it checks if any completion avoids `false`.
+ * It has no bounds logic for each operator.
+ * This works because the operators are pure functions over `valueOf`.
  *
- * Exhaustive, so it's capped — above the cap we make no claim (stay
- * "incomplete") rather than guess, consistent with never reporting a
- * violation we can't prove.
+ * The search is exhaustive, so it has a cap.
+ * Above the cap, the function makes no claim and the status stays "incomplete".
+ * It does not guess, because it must never report a violation that it cannot prove.
  */
 const INFEASIBILITY_SEARCH_CAP = 20_000;
 
@@ -57,7 +58,7 @@ const isProvablyInfeasible = (
                 const value = evalExpr(expr, trialCtx);
                 return value.t !== "bool" || value.v !== false;
             } catch {
-                return true; // malformed expressions are reported elsewhere, not here
+                return true; // Other code reports malformed expressions, not this code.
             }
         }
         const cell = emptyCells[index];
@@ -89,13 +90,13 @@ export interface EvaluationResult {
     filledCount: number;
     cellCount: number;
     constraints: readonly ConstraintEvaluation[];
-    /** Cells belonging to at least one violated constraint. */
+    /** Cells that belong to at least one violated constraint. */
     violatedCells: ReadonlySet<CellId>;
-    /** Cells whose entered value is outside the puzzle domain. */
+    /** Cells with an entered value that is outside the puzzle domain. */
     invalidCells: ReadonlySet<CellId>;
 }
 
-/** How the evaluator reads the board: entered value of a cell, or null. */
+/** How the evaluator reads the board: the entered value of a cell, or null. */
 export type ValueLookup = (cell: CellId) => number | null;
 
 export const lookupFromRecord = (
@@ -107,7 +108,7 @@ export const lookupFromRecord = (
     };
 };
 
-/** The expensive part: run one constraint's expression (plus the infeasibility search) against the board. */
+/** The expensive part: runs the expression of one constraint (and the infeasibility search) against the board. */
 const evaluateOneConstraint = (
     constraint: CompiledPuzzle["constraints"][number],
     ctx: EvalContext,
@@ -148,7 +149,7 @@ const evaluateOneConstraint = (
     };
 };
 
-/** The cheap part: board-wide bookkeeping (fill/domain/violated-cell sets) given already-decided per-constraint statuses. */
+/** The cheap part: board-wide bookkeeping (fill, domain, and violated-cell sets) from the decided statuses. */
 const finalize = (
     puzzle: CompiledPuzzle,
     geometry: Geometry,
@@ -198,14 +199,13 @@ const finalize = (
 
 export interface EvaluateOptions {
     /**
-     * Skip the per-constraint infeasibility search (see `isProvablyInfeasible`
-     * above). That search exists to give the live player instant "this is
-     * already dead" feedback on variant rules without per-operator code — but
-     * it's a real brute-force search, and a caller that's already doing its
-     * own search (e.g. a solver's backtracking, which will discover the same
-     * infeasibility itself a few levels deeper in the tree) doesn't need
-     * evaluate's copy of it too. Off by default so every existing caller
-     * (the live player, authoring validation) keeps today's behavior.
+     * Skip the infeasibility search of each constraint (see `isProvablyInfeasible` above).
+     * This search gives the live player instant "this is already dead" feedback on variant rules,
+     * with no code for each operator.
+     * But it is a real brute-force search.
+     * A caller that does its own search does not need this copy.
+     * An example is the backtracking of a solver, which finds the same infeasibility a few levels deeper.
+     * The default is off, so each existing caller (the live player, authoring validation) keeps its behavior.
      */
     skipInfeasibilitySearch?: boolean;
 }
@@ -224,13 +224,14 @@ export const evaluate = (
 };
 
 /**
- * Re-evaluates only the constraints touching `changedCells`, reusing every other
- * constraint's status from `previous` — the fix for the per-keystroke cost of
- * re-running every constraint's expression (and infeasibility search) on every
- * edit, which `evaluate()` alone pays regardless of how localized the edit was.
- * Board-wide bookkeeping (fill/invalid/violated-cell sets) is still recomputed —
- * that part is a cheap linear pass, not the bottleneck — only the per-constraint
- * expression evaluation is skipped for unaffected constraints.
+ * Re-evaluates only the constraints that touch `changedCells`.
+ * It reuses the status of each other constraint from `previous`.
+ * This fixes the cost of each keystroke.
+ * `evaluate()` alone re-runs the expression (and infeasibility search) of every constraint on every edit,
+ * even when the edit is local.
+ * The board-wide bookkeeping (fill, invalid, and violated-cell sets) is still recomputed.
+ * That part is a cheap linear pass and is not the bottleneck.
+ * Only the expression evaluation of each unaffected constraint is skipped.
  */
 export const evaluateIncremental = (
     puzzle: CompiledPuzzle,
@@ -243,8 +244,9 @@ export const evaluateIncremental = (
     const affected = new Set(affectedConstraints(puzzle, changedCells));
 
     // Board-wide bookkeeping (filledCount/invalidCells) can change even for a cell
-    // that belongs to no constraint at all, so it's always recomputed below; only
-    // the expensive per-constraint expression evaluation is conditionally skipped.
+    // that belongs to no constraint.
+    // So the code always recomputes it below.
+    // Only the expensive expression evaluation of each constraint is skipped, if possible.
     if (affected.size === 0) return finalize(puzzle, geometry, lookup, previous.constraints);
 
     const ctx: EvalContext = { geometry, regions: puzzle.regions, domain: puzzle.domain, valueOf: lookup };
@@ -257,9 +259,9 @@ export const evaluateIncremental = (
 };
 
 /**
- * Narrows an `allDifferent`/`distinct` violation down to the cells actually
- * sharing a duplicate value, instead of every cell the group spans — a 9-cell
- * row with one repeated digit should highlight the 2 offending cells, not all 9.
+ * Narrows an `allDifferent`/`distinct` violation to the cells that share a duplicate value.
+ * It does not use every cell that the group spans.
+ * Example: a 9-cell row with one repeated digit highlights the 2 offending cells, not all 9.
  */
 const duplicateValueCells = (cells: readonly CellId[], lookup: ValueLookup): readonly CellId[] => {
     const byValue = new Map<number, CellId[]>();
@@ -274,8 +276,8 @@ const duplicateValueCells = (cells: readonly CellId[], lookup: ValueLookup): rea
 };
 
 /**
- * Constraints whose footprint includes any of the changed cells — the set that
- * needs re-checking after an edit, for callers that want incremental updates.
+ * The constraints with a footprint that includes any of the changed cells.
+ * These constraints need a new check after an edit, for callers that want incremental updates.
  */
 export const affectedConstraints = (
     puzzle: CompiledPuzzle,

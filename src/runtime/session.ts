@@ -1,13 +1,14 @@
 /**
  * PuzzleSession: interactive state on top of a compiled puzzle.
  *
- * This is deliberately generic — it deals in cell ids and a value domain, never
- * in "9x9" or "digits 1-9". It follows the reference project's pattern of a
- * plain class that owns mutable state and notifies subscribers, so a React hook
- * can bridge it with `useSyncExternalStore`.
+ * This class is generic on purpose. It uses cell ids and a value domain.
+ * It never uses "9x9" or "digits 1-9".
+ * It follows the pattern of the reference project: a plain class that owns mutable state
+ * and tells subscribers about changes.
+ * Thus a React hook can connect to it with `useSyncExternalStore`.
  *
- * Responsibilities: selection + keyboard cursor, value/pencil-mark entry,
- * undo/redo, memoised constraint evaluation, and progress snapshots for storage.
+ * Responsibilities: selection and keyboard cursor, value and pencil-mark entry,
+ * undo and redo, memoised constraint evaluation, and progress snapshots for storage.
  */
 
 import type { CellId, Direction, Geometry } from "@/runtime/geometry.ts";
@@ -29,26 +30,27 @@ import {
 
 export interface CellState {
     value: number | null;
-    /** Corner notes: rendered as a fixed per-digit grid. */
+    /** Corner notes: shown as a fixed grid with one position for each digit. */
     notes: readonly number[];
-    /** Centre (candidate) notes: rendered as a compact growing list. */
+    /** Centre (candidate) notes: shown as a compact list that grows. */
     centerNotes: readonly number[];
-    /** Colour marks (#35): palette indices, ascending. An independent layer — digits and notes never touch it. */
+    /** Colour marks (#35): palette indices, ascending. This layer is independent. Digits and notes never change it. */
     colors: readonly number[];
 }
 
 const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [], colors: [] };
 
 /**
- * One undo/redo step. Per-cell edits (typing, notes, erase) are the hot
- * path — one per keystroke — so they're recorded as a `patch`: just the
- * touched cells' prior state, not the whole board. `undefined` means the
- * cell had no entry at all (restoring it means deleting it, not setting it
- * to an empty `CellState`, matching how `erase()` itself cleans up).
- * `reset`/`loadProgress` replace the board wholesale and are rare, one-shot
- * actions, so a `full` snapshot stays simplest there — diffing "every cell
- * that could differ" wouldn't save anything on an operation that's already
- * O(board size) by nature.
+ * One undo/redo step. Edits to single cells (typing, notes, erase) happen often:
+ * one for each keystroke.
+ * So the code records them as a `patch`. A `patch` holds only the prior state of the changed cells.
+ * It does not hold the whole board.
+ * `undefined` means that the cell had no entry.
+ * To restore it, delete the entry. Do not set an empty `CellState`.
+ * This is the same as the cleanup in `erase()`.
+ * `reset` and `loadProgress` replace the whole board. They are rare and happen once per action.
+ * So a `full` snapshot is simplest there.
+ * A diff would not save work, because these operations are already O(board size).
  */
 type HistoryEntry =
     | { kind: "patch"; patch: ReadonlyMap<CellId, CellState | undefined> }
@@ -75,32 +77,32 @@ export type SelectMode = "replace" | "add" | "toggle";
 export interface SessionOptions {
     onChange?: () => void;
     initialProgress?: ProgressSnapshot;
-    /** Seeds `checkNotesOnLeave` (default false) — the player-wide default lives in Settings (#69). */
+    /** Sets the start value of `checkNotesOnLeave` (default false). The default for the player is in Settings (#69). */
     checkNotesOnLeave?: boolean;
-    /** The saved pen layer (#45) — kept apart from `initialProgress`, whose keys are cells. */
+    /** The saved pen layer (#45). It is separate from `initialProgress`, whose keys are cells. */
     initialPen?: PenState;
 }
 
 /**
- * What a plain digit press (number pad click or keyboard digit) does. In
- * "color" mode the digit picks a palette colour (1-based) instead of a value.
+ * The effect of a plain digit press (number pad click or keyboard digit).
+ * In "color" mode, the digit selects a palette colour (1-based). It does not set a value.
  */
 export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
 
 /**
- * Outcome of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
- * - "clean" — no mistakes found.
- * - "mistake-value" — a placed value doesn't match the solution. Reported
- *   without saying where yet (first press since the board last changed —
- *   "are you on the right track" rather than "here's exactly what's
- *   wrong"). Takes precedence over "mistake-notes" when both are present:
- *   a wrong digit is the more actionable problem.
- * - "mistake-notes" — no wrong placed value, but a centre note has
- *   eliminated the correct digit somewhere. Same first-press, not-yet-
- *   located reporting as "mistake-value".
- * - "revealed" — a second consecutive press (no edit in between) found the
- *   same mistake(s) again, so this time they're actually highlighted via
- *   `incorrectCells`/`flaggedCells`.
+ * Result of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
+ * - "clean": the check found no mistakes.
+ * - "mistake-value": a placed value does not match the solution.
+ *   This is the first press since the board last changed.
+ *   It does not say where the mistake is.
+ *   It tells the player if they are on the right track. It does not show exactly what is wrong.
+ *   It has priority over "mistake-notes" when both are present.
+ *   A wrong digit is the more useful problem to show.
+ * - "mistake-notes": no placed value is wrong, but a centre note has
+ *   removed the correct digit somewhere.
+ *   Like "mistake-value", it is the first press and does not say where.
+ * - "revealed": a second press in a row (no edit between) found the
+ *   same mistakes again. Now `incorrectCells` and `flaggedCells` highlight them.
  */
 export type CheckOutcome = "clean" | "mistake-value" | "mistake-notes" | "revealed";
 
@@ -108,24 +110,24 @@ export class PuzzleSession {
     readonly puzzle: CompiledPuzzle;
     readonly geometry: Geometry;
     inputMode: InputMode = "digit";
-    /** Opt-in: when leaving a cell, flag it if its remaining centre notes no longer include the solution digit. */
+    /** Opt-in: when the cursor leaves a cell, flag the cell if its centre notes do not include the solution digit. */
     checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
-    /** The pen layer (#45): the player's lines and X/O marks, outside the puzzle and its evaluation. */
+    /** The pen layer (#45): the lines and X/O marks of the player. It is outside the puzzle and its evaluation. */
     private pen: PenState = EMPTY_PEN;
     private past: HistoryEntry[] = [];
     private futureStack: HistoryEntry[] = [];
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
     private flaggedCells = new Set<CellId>();
-    /** Cells flagged by `checkAgainstSolution` as holding a placed value that doesn't match the solution. */
+    /** Cells flagged by `checkAgainstSolution` as holding a placed value that does not match the solution. */
     private incorrectCells = new Set<CellId>();
-    /** True once `checkAgainstSolution` has found a mistake but not yet revealed it — disarmed by any board edit. */
+    /** True when `checkAgainstSolution` found a mistake but did not reveal it yet. Any board edit disarms it. */
     private checkArmed = false;
     private readonly listeners = new Set<() => void>();
     private cachedEvaluation: EvaluationResult | null = null;
-    /** Cells whose value changed since `cachedEvaluation` was last computed. */
+    /** Cells whose value changed since the last computation of `cachedEvaluation`. */
     private dirtyCells = new Set<CellId>();
     private revisionCount = 0;
 
@@ -151,18 +153,18 @@ export class PuzzleSession {
         for (const listener of this.listeners) listener();
     }
 
-    /** Marks cells as needing re-evaluation; evaluated lazily, incrementally, next read. */
+    /** Marks cells as needing re-evaluation. The next read evaluates them, lazily and incrementally. */
     private markDirty(cells: Iterable<CellId>): void {
         for (const cell of cells) this.dirtyCells.add(cell);
     }
 
-    /** Forces a full re-evaluation on the next read — for edits too wholesale to diff cheaply. */
+    /** Forces a full re-evaluation on the next read. Use it for edits that are too large to diff cheaply. */
     private invalidateEvaluation(): void {
         this.cachedEvaluation = null;
         this.dirtyCells.clear();
     }
 
-    /** Monotonic change counter — a stable snapshot for `useSyncExternalStore`. */
+    /** Change counter that only increases. It gives a stable snapshot for `useSyncExternalStore`. */
     get revision(): number {
         return this.revisionCount;
     }
@@ -182,13 +184,13 @@ export class PuzzleSession {
     }
 
     /**
-     * What to actually show the player for `cell` — as opposed to
-     * `cellState`/`valueOf`, which always give a given priority since that's
-     * what a given *is* for evaluation/fog-reveal purposes. While a given is
-     * still hidden by fog, though, the player can't tell it apart from a
-     * hidden empty cell, so it must behave like one on screen: show (and
-     * accept) their own guess instead, deferring to the real given only once
-     * it's revealed.
+     * What to show the player for `cell`.
+     * `cellState` and `valueOf` are different: they always give priority to a given,
+     * because that is what a given *is* for evaluation and fog reveal.
+     * While fog hides a given, the player cannot tell it from a hidden empty cell.
+     * So it must behave like an empty cell on screen.
+     * Show (and accept) the guess of the player.
+     * Use the real given only after it is revealed.
      */
     displayState(cell: CellId): CellState {
         if (this.isGiven(cell) && this.getHiddenCells().has(cell)) {
@@ -204,10 +206,10 @@ export class PuzzleSession {
     };
 
     getSelection(): ReadonlySet<CellId> {
-        // A copy, not the live Set: `select(cell, "add")` mutates `this.selection`
-        // in place, so handing out the same reference on every call would make a
-        // consumer's React state setter (Object.is-equal to its previous value)
-        // silently skip re-rendering mid-drag even though membership changed.
+        // Return a copy, not the live Set. `select(cell, "add")` changes `this.selection` in place.
+        // If every call returned the same reference, the React state setter of a consumer
+        // would see an Object.is-equal value. It would skip the render during a drag,
+        // although the members changed.
         return new Set(this.selection);
     }
 
@@ -215,27 +217,27 @@ export class PuzzleSession {
         return this.cursor;
     }
 
-    /** Cells whose remaining centre notes exclude the solution digit — set by `checkNotesOnLeave` and/or `checkAgainstSolution`. */
+    /** Cells whose centre notes exclude the solution digit. `checkNotesOnLeave` or `checkAgainstSolution` sets them. */
     getFlaggedCells(): ReadonlySet<CellId> {
         return this.flaggedCells;
     }
 
-    /** Cells flagged by `checkAgainstSolution` as holding a value that doesn't match the solution. */
+    /** Cells flagged by `checkAgainstSolution` as holding a value that does not match the solution. */
     getIncorrectCells(): ReadonlySet<CellId> {
         return this.incorrectCells;
     }
 
-    /** Cells still hidden by fog (see `runtime/fog.ts`) — empty for puzzles without `fog`. */
+    /** Cells that fog still hides (see `runtime/fog.ts`). Empty for puzzles without `fog`. */
     getHiddenCells(): ReadonlySet<CellId> {
         return hiddenCells(this.puzzle, this.valueOf);
     }
 
-    /** Cells a dynamic rule (#72) hasn't made `appear` yet: not drawn, not selectable. */
+    /** Cells that no dynamic rule (#72) has made `appear` yet. They are not drawn and not selectable. */
     getAbsentCells(): ReadonlySet<CellId> {
         return ruleAbsentCells(this.puzzle, this.valueOf);
     }
 
-    /** The visual objects to draw right now: dynamic rules (#72) can show or hide some. */
+    /** The visual objects to draw now. Dynamic rules (#72) can show or hide some of them. */
     getVisibleObjects(): readonly VisualObject[] {
         return visibleObjects(this.puzzle, this.valueOf);
     }
@@ -280,7 +282,7 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Clears the selection *and* the cursor ring — nothing stays highlighted. */
+    /** Clears the selection *and* the cursor ring. Nothing stays highlighted. */
     selectNone(): void {
         this.leaveCursorCell(null);
         this.selection.clear();
@@ -290,8 +292,8 @@ export class PuzzleSession {
 
     moveCursor(dir: Direction, extend = false): void {
         if (!this.cursor) {
-            // No cursor (e.g. right after selectNone()) — an arrow key just
-            // re-anchors on the first cell rather than stepping from nowhere.
+            // There is no cursor (for example, right after selectNone()).
+            // An arrow key puts the cursor on the first cell. It does not step from nowhere.
             const first = this.geometry.cells[0];
             if (!first) return;
             this.cursor = first;
@@ -299,7 +301,7 @@ export class PuzzleSession {
             this.emit();
             return;
         }
-        // Cells that aren't on the board yet are stepped over, like a gap between grids.
+        // The cursor steps over cells that are not on the board yet, like a gap between grids.
         const absent = this.getAbsentCells();
         let next = this.geometry.step(this.cursor, dir);
         while (next && absent.has(next)) next = this.geometry.step(next, dir);
@@ -311,7 +313,7 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Selects every cell sharing the cursor cell's value. No-op on an empty cell. */
+    /** Selects all cells that have the same value as the cursor cell. It does nothing on an empty cell. */
     selectSameValue(): void {
         if (!this.cursor) return;
         const value = this.valueOf(this.cursor);
@@ -322,8 +324,9 @@ export class PuzzleSession {
     }
 
     /**
-     * Moves the cursor to the next (or, with `direction` -1, previous) empty cell. Wraps around
-     * unless `wrap` is false, in which case it stops at the ends. Returns whether it moved.
+     * Moves the cursor to the next empty cell (with `direction` -1, the previous empty cell).
+     * It wraps around, unless `wrap` is false. Then it stops at the ends.
+     * Returns whether it moved.
      */
     jumpToEmptyCell(direction: 1 | -1, wrap = true): boolean {
         const cells = this.geometry.cells;
@@ -347,24 +350,25 @@ export class PuzzleSession {
     }
 
     /**
-     * True if `state`'s remaining centre notes used to include `answer` but
-     * no longer do — a bad elimination. Corner notes aren't checked: as
-     * conventionally used, a centre note asserts "this cell *is* one of
-     * these digits" (so excluding the answer is a genuine mistake), while a
-     * corner note is more like "this digit goes in here-or-here" scratch
-     * work across several cells — it isn't a per-cell candidate list, so
-     * judging it against this cell's solution digit doesn't mean anything.
+     * True if the centre notes of `state` included `answer` before, but do not include it now.
+     * This is a bad elimination.
+     * The function does not check corner notes.
+     * By convention, a centre note says that this cell *is* one of these digits.
+     * So a centre note that excludes the answer is a real mistake.
+     * A corner note is more like scratch work: "this digit goes in here or here" across several cells.
+     * It is not a candidate list for one cell.
+     * So a check of it against the solution digit of this cell has no meaning.
      */
     private notesExcludeAnswer(state: CellState, answer: number): boolean {
         return state.centerNotes.length > 0 && !state.centerNotes.includes(answer);
     }
 
     /**
-     * Re-checks `cell` (the cell the cursor is about to leave, if any) against
-     * `checkNotesOnLeave`, flagging it if its remaining notes no longer include
-     * the declared solution digit — i.e. the player eliminated the right answer.
-     * A no-op if the cell is a given/filled, has no solution on record, or has
-     * no notes at all (nothing was eliminated).
+     * Checks `cell` again against `checkNotesOnLeave`. `cell` is the cell that the cursor is about to leave, if any.
+     * It flags the cell if its notes do not include the declared solution digit.
+     * This means that the player removed the right answer.
+     * It does nothing if the cell is a given or has a value, has no solution on record,
+     * or has no notes (nothing was removed).
      */
     private leaveCursorCell(nextCursor: CellId | null): void {
         if (!this.checkNotesOnLeave || !this.cursor || this.cursor === nextCursor) return;
@@ -382,21 +386,20 @@ export class PuzzleSession {
     }
 
     /**
-     * Manual "check" (SudokuPad's 'V'): a one-shot, on-demand sweep of the
-     * whole board against the known solution — deliberately not live/
-     * continuous, so the puzzle doesn't turn into trial-and-error (#52). A
-     * no-op if the puzzle has no declared solution.
+     * Manual "check" (the 'V' key of SudokuPad). It checks the whole board against the known solution,
+     * once, on request.
+     * It is not live or continuous on purpose. A live check would turn the puzzle into trial and error (#52).
+     * It does nothing if the puzzle has no declared solution.
      *
-     * Two-stage on purpose: usually the player just wants to know if they're
-     * on the right track, not have every mistake immediately pointed out
-     * (that tips into trial-and-error territory just as much as a live
-     * checker would). So the first press only reports "mistake" — nothing
-     * is highlighted. Only a second, consecutive press (no edit in between)
-     * actually reveals which cells via `incorrectCells` (a placed value that
-     * doesn't match the solution — "legal so far, but wrong") and
-     * `flaggedCells` (remaining notes that have eliminated the correct
-     * digit — reusing the exact same check `checkNotesOnLeave` does
-     * per-cell, just run across every cell at once).
+     * It has two stages on purpose.
+     * Usually the player only wants to know if they are on the right track.
+     * They do not want to see every mistake at once.
+     * That would also turn the puzzle into trial and error, as a live check does.
+     * So the first press only reports "mistake". It highlights nothing.
+     * Only a second press in a row (no edit between) shows which cells are wrong.
+     * It uses `incorrectCells` for a placed value that does not match the solution ("legal so far, but wrong").
+     * It uses `flaggedCells` for notes that removed the correct digit.
+     * This is the same check that `checkNotesOnLeave` does for one cell, run on all cells at once.
      */
     checkAgainstSolution(): CheckOutcome {
         const solution = this.puzzle.solution;
@@ -427,8 +430,8 @@ export class PuzzleSession {
             outcome = "revealed";
             this.checkArmed = false;
         } else {
-            // A wrong placed value is the more actionable problem, so it wins
-            // over a note-elimination mistake when both are present.
+            // A wrong placed value is the more useful problem to show.
+            // It has priority over a note-elimination mistake when both are present.
             outcome = incorrect.size > 0 ? "mistake-value" : "mistake-notes";
             this.checkArmed = true;
         }
@@ -455,12 +458,12 @@ export class PuzzleSession {
         return this.pen;
     }
 
-    /** Draws one pen stroke along the given lattice points (#45); one undo step. */
+    /** Draws one pen stroke along the given lattice points (#45). It is one undo step. */
     penStroke(points: readonly PenPoint[]): void {
         this.setPen(applyStroke(this.pen, points));
     }
 
-    /** A click at a lattice point (#45): cycles nothing -> X -> O -> nothing there; one undo step. */
+    /** A click at a lattice point (#45). The mark there cycles nothing -> X -> O -> nothing. It is one undo step. */
     penMark(point: PenPoint): void {
         this.setPen(cycleMark(this.pen, point));
     }
@@ -469,7 +472,7 @@ export class PuzzleSession {
         this.setPen(EMPTY_PEN);
     }
 
-    /** The pen layer as plain data, for storage. */
+    /** The pen layer as plain data for storage. */
     toPen(): PenState {
         return this.pen;
     }
@@ -492,16 +495,16 @@ export class PuzzleSession {
         const cells = (this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : []).filter(
             (c) => !absent.has(c),
         );
-        // A given is normally immutable, but while it's still hidden by fog
-        // the player has no way to tell it apart from a hidden empty cell —
-        // so it stays editable, same as one, until it's revealed.
+        // A given is normally immutable.
+        // But while fog hides it, the player cannot tell it from a hidden empty cell.
+        // So it stays editable, like an empty cell, until it is revealed.
         const hidden = this.getHiddenCells();
         return cells.filter((c) => !this.isGiven(c) || hidden.has(c));
     }
 
-    /** Applies a plain digit press according to the active `inputMode`. */
+    /** Applies a plain digit press as the active `inputMode` requires. */
     input(digit: number): void {
-        if (this.inputMode === "pen") return; // the pen draws on the board; digits do nothing
+        if (this.inputMode === "pen") return; // the pen draws on the board. Digits do nothing.
         if (this.inputMode === "corner") return this.toggleCornerNote(digit);
         if (this.inputMode === "center") return this.toggleCenterNote(digit);
         if (this.inputMode === "color") {
@@ -525,13 +528,12 @@ export class PuzzleSession {
     }
 
     /**
-     * Corrects a value that's still being typed, without pushing a new undo
-     * step — for multi-digit domains (#large-domain follow-up), where the
-     * first keystroke of a number is entered live via `input()` (so there's
-     * instant feedback instead of a wait for the whole number to resolve) and
-     * a second keystroke then needs to fix it up to the full value. One
-     * logical "type a value" action should be one undo step, not one per
-     * keystroke.
+     * Corrects a value that the player is still typing. It does not push a new undo step.
+     * It is for multi-digit domains (#large-domain follow-up).
+     * There, `input()` enters the first keystroke of a number at once, so the player gets instant feedback.
+     * The player does not wait for the whole number.
+     * A second keystroke then changes it to the full value.
+     * One logical "type a value" action must be one undo step, not one for each keystroke.
      */
     replaceValue(digit: number): void {
         if (this.inputMode !== "digit") return;
@@ -548,22 +550,23 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Toggles a corner note directly, independent of `inputMode`. */
+    /** Toggles a corner note directly. `inputMode` has no effect. */
     toggleCornerNote(digit: number): void {
         this.toggleNote(digit, "notes");
     }
 
-    /** Toggles a centre (candidate) note directly, independent of `inputMode`. */
+    /** Toggles a centre (candidate) note directly. `inputMode` has no effect. */
     toggleCenterNote(digit: number): void {
         this.toggleNote(digit, "centerNotes");
     }
 
     /**
-     * Toggles palette colour `index` on the selection (#35). Unlike digits and
-     * notes it applies to givens too — marking a clue is half the point — and
-     * leaves the cell's value and notes alone. If every target already has the
-     * colour it's removed from all of them; otherwise it's added to the rest, so
-     * one press on a mixed selection paints the whole selection.
+     * Toggles palette colour `index` on the selection (#35).
+     * Unlike digits and notes, it applies to givens too. To mark a clue is a main use of colours.
+     * It does not change the value and notes of the cell.
+     * If all targets have the colour, it removes the colour from all of them.
+     * Otherwise, it adds the colour to the other targets.
+     * Thus one press on a mixed selection paints the whole selection.
      */
     toggleColor(index: number): void {
         if (!Number.isInteger(index) || index < 0 || index >= MARK_COLOR_COUNT) return;
@@ -584,7 +587,7 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Stores `state`, or drops the cell's entry entirely once nothing is left on it. */
+    /** Stores `state`. If the cell has nothing left, it deletes the entry of the cell. */
     private setOrDrop(cell: CellId, state: CellState): void {
         if (
             state.value === null &&
@@ -613,7 +616,7 @@ export class PuzzleSession {
         this.emit();
     }
 
-    /** Clears only the layer matching the active `inputMode` (value / corner / center / colour). */
+    /** Clears only the layer that matches the active `inputMode` (value / corner / center / colour). */
     erase(): void {
         if (this.inputMode === "pen") return this.clearPen();
         if (this.inputMode === "color") return this.eraseColors();
@@ -737,14 +740,14 @@ export class PuzzleSession {
         const entries = Object.entries(snapshot).filter(([cell]) => this.geometry.has(cell));
         for (const [cell, entry] of entries) {
             if (!this.isGiven(cell)) setEntry(cell, entry);
-            // A visible given keeps only its colour marks (its value is the clue itself).
+            // A visible given keeps only its colour marks. Its value is the clue itself.
             else setEntry(cell, { colors: entry.colors });
         }
-        // A given's own saved guess only matters if it was still hidden by
-        // fog when saved — restore it the same way `targets()` lets it be
-        // entered in the first place. Computed after the pass above since
-        // the reveal rule only looks at the real board/given values, never
-        // at a given cell's own (not-yet-restored) entry anyway.
+        // The saved guess of a given matters only if fog still hid the given when the code saved it.
+        // Restore it in the same way that `targets()` allows its entry.
+        // Do this after the pass above.
+        // The reveal rule uses only the real board and given values.
+        // It never uses the entry of a given cell, which is not restored yet.
         const hidden = hiddenCells(this.puzzle, this.valueOf);
         for (const [cell, entry] of entries) {
             if (this.isGiven(cell) && hidden.has(cell)) setEntry(cell, entry);
@@ -753,7 +756,7 @@ export class PuzzleSession {
 
     // --- history internals -------------------------------------------
 
-    /** Records just the given cells' *current* (pre-edit) state as the undo step. */
+    /** Records only the *current* (pre-edit) state of the given cells as the undo step. */
     private pushPatch(cells: readonly CellId[]): void {
         const patch = new Map<CellId, CellState | undefined>();
         for (const cell of cells) patch.set(cell, this.board.get(cell));
@@ -771,12 +774,13 @@ export class PuzzleSession {
     }
 
     /**
-     * Applies a history entry (either direction — undo and redo are the same
-     * operation on opposite stacks) and returns its inverse, to push onto the
-     * other stack. A `patch` only dirties the cells it actually touched, so
-     * undo/redo gets the same cheap incremental re-evaluation as a normal
-     * edit; a `full` snapshot can't know what changed without a full board
-     * diff, so it falls back to invalidating everything, same as before.
+     * Applies a history entry (in either direction).
+     * Undo and redo are the same operation on opposite stacks.
+     * It returns the inverse entry, to push onto the other stack.
+     * A `patch` marks only the cells that it changed as dirty.
+     * So undo and redo get the same cheap incremental re-evaluation as a normal edit.
+     * A `full` snapshot cannot know what changed without a full board diff.
+     * So it invalidates everything.
      */
     private applyEntry(entry: HistoryEntry): HistoryEntry {
         if (entry.kind === "pen") {
@@ -816,14 +820,14 @@ export const penStorageKey = (puzzleId: string): string => `cpr:pen:${puzzleId}`
 
 export const progressStorageKey = (puzzleId: string): string => `cpr:progress:${puzzleId}`;
 
-/** Local, per-puzzle solve-timer stats (#68) — distinct from community
- *  leaderboards (#58, needs accounts+backend). Just "how long did that take,
- *  on this device". */
+/** Local solve-timer stats for each puzzle (#68). They are not community
+ *  leaderboards (#58, which need accounts and a backend).
+ *  They only show how long a solve took on this device. */
 export interface PuzzleStats {
-    /** The current attempt's accumulated active solving time, ms. */
+    /** The total active solve time of the current attempt, in ms. */
     elapsedMs: number;
-    /** The fastest *completed* solve recorded for this puzzle, ms — kept
-     *  across resets/retries, only ever lowered. */
+    /** The fastest *completed* solve recorded for this puzzle, in ms.
+     *  It stays across resets and retries. It can only become lower. */
     bestElapsedMs?: number;
 }
 

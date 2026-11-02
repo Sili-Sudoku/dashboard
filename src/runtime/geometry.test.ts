@@ -59,8 +59,8 @@ describe("GridGeometry", () => {
         expect(nonSquare.regionSelectors.some((s) => s.startsWith("box:"))).toBe(false);
         expect(nonSquare.resolveRegion("box:0")).toBeUndefined();
 
-        // Defaulting only one axis onto a non-square size is just as degenerate,
-        // even if the other axis was given explicitly.
+        // A default on only one axis of a non-square size is also degenerate.
+        // This is true even if the spec gives the other axis.
         const partial = createGeometry({ type: "grid", width: 6, height: 6, boxWidth: 3 });
         expect(partial.regionSelectors.some((s) => s.startsWith("box:"))).toBe(false);
     });
@@ -121,7 +121,7 @@ describe("CompositeGeometry", () => {
         expect(samurai.cells).toHaveLength(5 * 81 - 4 * 9);
         expect(new Set(samurai.cells).size).toBe(samurai.cells.length);
         expect(samurai.has("r1c10")).toBe(false); // between nw and ne
-        expect(samurai.has("r7c7")).toBe(true); // nw's corner box is mid's too
+        expect(samurai.has("r7c7")).toBe(true); // the corner box of nw is also a box of mid
         expect(samurai.cells[0]).toBe("r1c1");
         expect(samurai.bounds()).toEqual({ minX: 0, minY: 0, maxX: 21, maxY: 21 });
     });
@@ -145,7 +145,7 @@ describe("CompositeGeometry", () => {
 
     it("draws shared edges once and heavy where either grid says so", () => {
         const lines = samurai.boardLines();
-        // the nw/mid shared box is a box edge of both: its top edge (y=6, x 6..9) lies inside a longer heavy line
+        // The shared box of nw and mid is a box edge of both. Its top edge (y=6, x 6..9) is inside a longer heavy line.
         const covers = (horizontal: boolean, fixed: number, from: number, to: number, major: boolean) =>
             lines.some(
                 (l) =>
@@ -155,8 +155,8 @@ describe("CompositeGeometry", () => {
                         : l.points[0]!.x === fixed && l.points[1]!.x === fixed && l.points[0]!.y <= from && l.points[1]!.y >= to),
             );
         expect(covers(true, 6, 6, 9, true)).toBe(true);
-        expect(covers(false, 4, 0, 6, false)).toBe(true); // a plain divider inside nw alone
-        // no edge is emitted twice
+        expect(covers(false, 4, 0, 6, false)).toBe(true); // a plain divider in nw only
+        // no edge appears twice
         const keys = lines.flatMap((l) => {
             const [a, b] = l.points as [{ x: number; y: number }, { x: number; y: number }];
             return a.y === b.y

@@ -1,24 +1,24 @@
 /**
- * Geometry describes the spatial structure a puzzle lives in: which cells exist,
- * where they sit in 2D space, how they are grouped into named regions, and which
- * cells are adjacent.
+ * Geometry describes the spatial structure of a puzzle.
+ * It defines which cells exist, where they are in 2D space, which named regions group them,
+ * and which cells are adjacent.
  *
- * The runtime only ever talks to this interface. A 9x9 Sudoku board is one
- * `GridGeometry` instance; nothing in the engine assumes 9, or a square, or even
- * a grid. A different geometry (hex, overlapping boards, a giant world) would
- * implement the same surface without touching the constraint evaluator, the
- * session, or the renderer.
+ * The runtime uses only this interface.
+ * A 9x9 Sudoku board is one `GridGeometry` instance.
+ * The engine does not assume 9, a square, or even a grid.
+ * A different geometry (hex, overlapping boards, a giant world) can implement the same surface.
+ * It does not change the constraint evaluator, the session, or the renderer.
  */
 
 export type CellId = string;
 
-/** A point in geometry units (1 unit == 1 cell). The renderer scales this. */
+/** A point in geometry units (1 unit = 1 cell). The renderer scales it. */
 export interface Point {
     x: number;
     y: number;
 }
 
-/** Axis-aligned bounds in geometry units, used to size a viewport. */
+/** Axis-aligned bounds in geometry units. The renderer uses them to size a viewport. */
 export interface Bounds {
     minX: number;
     minY: number;
@@ -26,59 +26,59 @@ export interface Bounds {
     maxY: number;
 }
 
-/** One line of the board's visible structure, in geometry units. */
+/** One visible line of the board structure, in geometry units. */
 export interface BoardLine {
     points: readonly Point[];
-    /** True for region boundaries (a sudoku's box edges and outer border); false for plain cell dividers. */
+    /** True for region boundaries (box edges and outer border of a sudoku). False for plain cell dividers. */
     major: boolean;
 }
 
 export interface Geometry {
-    /** Every cell that can hold a value, in a stable order. */
+    /** All cells that can hold a value, in a stable order. */
     readonly cells: readonly CellId[];
 
     has(cell: CellId): boolean;
 
-    /** Centre of a cell in geometry units. */
+    /** The centre of a cell in geometry units. */
     center(cell: CellId): Point;
 
     /**
-     * A named corner/anchor of a cell, e.g. "tl" | "tr" | "bl" | "br" | "c".
-     * Used by visual objects that need to trace cell outlines.
+     * A named corner or anchor of a cell, for example "tl" | "tr" | "bl" | "br" | "c".
+     * Visual objects use it to trace cell outlines.
      */
     anchor(cell: CellId, corner: CellCorner): Point;
 
-    /** Orthogonally-adjacent (edge-sharing) neighbours of a cell. */
+    /** The orthogonal neighbours of a cell (cells that share an edge with it). */
     neighbors(cell: CellId): readonly CellId[];
 
     /** True if two cells share an edge. */
     adjacent(a: CellId, b: CellId): boolean;
 
     /**
-     * Resolve a region selector to a concrete cell list. Selectors are how
-     * constraints refer to groups without the engine knowing what a "box" is:
-     *   "row:0" "col:8" "box:4"  -> geometry-defined groups
+     * Resolve a region selector to a list of cells.
+     * Constraints use selectors to refer to groups. The engine does not need to know what a "box" is:
+     *   "row:0" "col:8" "box:4"  -> groups that the geometry defines
      *   "all"                    -> every cell
-     * Unknown selectors return `undefined` so callers can fall back to
-     * puzzle-defined named regions.
+     * An unknown selector returns `undefined`.
+     * Then the caller can use the named regions of the puzzle.
      */
     resolveRegion(selector: string): readonly CellId[] | undefined;
 
-    /** Names of the geometry-defined regions (for tooling / debugging). */
+    /** Names of the regions that the geometry defines (for tooling and debugging). */
     readonly regionSelectors: readonly string[];
 
-    /** Overall bounds in geometry units. */
+    /** The total bounds in geometry units. */
     bounds(): Bounds;
 
     /**
-     * The lines that give the board its structure: cell dividers plus the
-     * heavier region boundaries. Owned by the geometry because only it knows
-     * what its regions look like (boxes on a grid, hexes on a hex board) — the
-     * renderer just styles `major` vs not and scales to pixels.
+     * The lines that give the board its structure: cell dividers and the heavier region boundaries.
+     * The geometry owns them because only the geometry knows what its regions look like
+     * (boxes on a grid, hexes on a hex board).
+     * The renderer styles `major` lines and other lines differently and scales them to pixels.
      */
     boardLines(): readonly BoardLine[];
 
-    /** Direction stepping for keyboard navigation. Returns undefined at edges. */
+    /** One step in a direction, for keyboard navigation. Returns undefined at an edge. */
     step(cell: CellId, dir: Direction): CellId | undefined;
 }
 
@@ -89,7 +89,7 @@ export interface GridGeometrySpec {
     type: "grid";
     width: number;
     height: number;
-    /** Box (region) size. Defaults to sqrt(width) x sqrt(height) when omitted. */
+    /** Box (region) size. If omitted, the default is sqrt(width) x sqrt(height). */
     boxWidth?: number;
     boxHeight?: number;
 }
@@ -125,11 +125,11 @@ export class GridGeometry implements Geometry {
     readonly regionSelectors: readonly string[];
 
     /**
-     * False when a box size had to be defaulted (not given in the spec) on a
-     * dimension that isn't a perfect square: there is no natural box subdivision
-     * then, and defaulting to the whole dimension would make "box:0" the entire
-     * grid, turning its allDifferent into a pigeonhole-guaranteed violation. In
-     * that case no "box:" selectors are emitted at all, rather than one bad one.
+     * False when the box size is a default (the spec does not give it) on a dimension that is not a perfect square.
+     * Then there is no natural box subdivision.
+     * If the default were the whole dimension, "box:0" would be the entire grid.
+     * Its allDifferent would then be a guaranteed pigeonhole violation.
+     * In that case the geometry emits no "box:" selectors, not one bad selector.
      */
     private readonly boxesEnabled: boolean;
 
@@ -299,20 +299,22 @@ export class GridGeometry implements Geometry {
 }
 
 /**
- * Several independently-tiled grids placed in one shared coordinate space (linked and Samurai
- * sudokus, a pair of boards with a gap between them...). Cells keep the plain `rNcM` names, but N
- * and M now count across the whole space, so a cell in any grid is addressable by constraints
- * with no notion of which grid it belongs to. Grids may overlap (their shared cells exist once)
- * and may leave gaps (no cells there).
+ * Several independent grids in one shared coordinate space (linked and Samurai sudokus,
+ * a pair of boards with a gap between them, and so on).
+ * Cells keep the plain `rNcM` names, but N and M now count across the whole space.
+ * So a constraint can address a cell in any grid and does not need to know which grid it is in.
+ * Grids can overlap (a shared cell exists once).
+ * Grids can leave gaps (no cells there).
  *
- * Each grid brings its own rows, columns and boxes, named `<grid id>/row:0`, `<grid id>/box:4`...
- * (`all` is every cell); a definition such as `sudoku` just walks the selectors, so it constrains
- * each grid on its own. A plain `row:0` doesn't exist here — it would be ambiguous.
+ * Each grid has its own rows, columns and boxes, named `<grid id>/row:0`, `<grid id>/box:4`, and so on.
+ * (`all` is every cell.)
+ * A definition such as `sudoku` walks the selectors, so it constrains each grid on its own.
+ * A plain `row:0` does not exist here because it is ambiguous.
  */
 export interface CompositeGridSpec {
-    /** Prefix of this grid's region selectors; defaults to `g1`, `g2`... by position. */
+    /** Prefix of the region selectors of this grid. The default is `g1`, `g2`, and so on, by position. */
     id?: string;
-    /** Where the grid's top-left cell sits in the shared space (0-based). */
+    /** The position of the top-left cell of the grid in the shared space (0-based). */
     row: number;
     col: number;
     width: number;
@@ -365,7 +367,7 @@ export class CompositeGeometry implements Geometry {
             if (!Number.isInteger(g.row) || g.row < 0 || !Number.isInteger(g.col) || g.col < 0) {
                 throw new Error(`grid "${id}": row and col must be non-negative integers`);
             }
-            // The grid's own tiling (boxes, defaults, validation) is a plain GridGeometry's; this just moves it.
+            // A plain GridGeometry does the tiling of the grid (boxes, defaults, validation). This code only moves it.
             const local = new GridGeometry({ type: "grid", ...g });
             const move = (cell: CellId): CellId => {
                 const rc = parseGridCellId(cell) as { row: number; col: number };
@@ -391,7 +393,7 @@ export class CompositeGeometry implements Geometry {
             }
         });
 
-        // Row-major over the whole space, so the order is stable whatever order the grids are listed in.
+        // Row-major over the whole space. So the order is stable in any order of the grid list.
         this.cells = [...present].sort((a, b) => {
             const pa = parseGridCellId(a) as { row: number; col: number };
             const pb = parseGridCellId(b) as { row: number; col: number };
@@ -455,7 +457,8 @@ export class CompositeGeometry implements Geometry {
         return this.extent;
     }
 
-    /** Every grid's lines in the shared space: shared edges once (heavy if any grid says so), runs joined. */
+    /** The lines of every grid in the shared space. A shared edge appears once (heavy if any grid says so).
+     *  Collinear runs are joined. */
     boardLines(): readonly BoardLine[] {
         const runs = new Map<string, { horizontal: boolean; fixed: number; major: boolean; at: number[] }>();
         for (const [key, major] of this.majorEdges) {
@@ -488,7 +491,7 @@ export class CompositeGeometry implements Geometry {
         return lines;
     }
 
-    /** Steps across any gap between grids, so the keyboard can travel from one board to the next. */
+    /** Steps across a gap between grids. So the keyboard can go from one board to the next. */
     step(cell: CellId, dir: Direction): CellId | undefined {
         const { row, col } = this.require(cell);
         const { dr, dc } = DIR_DELTA[dir];

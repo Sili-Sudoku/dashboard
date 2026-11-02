@@ -1,25 +1,28 @@
 /**
- * The pen layer (#45): the player's own freehand annotations — lines drawn across the grid and
- * X / O marks — separate from digits, notes and colours (as in SudokuPad's pen tool). Nothing
- * here touches the puzzle or its evaluation.
+ * The pen layer (#45). It holds the freehand annotations of the player: lines drawn across the grid
+ * and X / O marks. It is separate from digits, notes and colours (as in the pen tool of SudokuPad).
+ * Nothing here changes the puzzle or its evaluation.
  *
- * Everything sits on a half-cell lattice measured from the grid's top-left corner, so a point
- * can be a cell's centre, the middle of an edge between two cells, or a corner where four
- * meet: (1,1) is the centre of the top-left cell, (2,1) the midpoint of its right edge, (2,2)
- * the corner it shares with three neighbours. Points are integers, so equal points compare
- * equal and the whole layer is plain, serialisable data.
+ * All points are on a half-cell lattice. It is measured from the top-left corner of the grid.
+ * A point can be the centre of a cell, the middle of an edge between two cells,
+ * or a corner where four cells meet.
+ * (1,1) is the centre of the top-left cell.
+ * (2,1) is the midpoint of its right edge.
+ * (2,2) is the corner that it shares with three neighbours.
+ * Points are integers, so equal points compare as equal.
+ * The whole layer is plain data that can be serialised.
  */
 
 export type PenMarkKind = "x" | "o";
 
-/** A lattice point, in half-cells from the grid's top-left corner. */
+/** A lattice point, in half-cells from the top-left corner of the grid. */
 export interface PenPoint {
     x: number;
     y: number;
 }
 
 export interface PenState {
-    /** Line pieces between neighbouring lattice points, each as a normalised `"x,y|x,y"` key. */
+    /** Line pieces between neighbouring lattice points. Each piece is a normalised `"x,y|x,y"` key. */
     readonly segments: readonly string[];
     /** X / O marks by lattice point (`"x,y"`). */
     readonly marks: Readonly<Record<string, PenMarkKind>>;
@@ -36,7 +39,7 @@ export const parsePointKey = (key: string): PenPoint => {
     return { x: x ?? 0, y: y ?? 0 };
 };
 
-/** One piece of line between two neighbouring points; the same piece however it was drawn. */
+/** One piece of line between two neighbouring points. The key is the same for any draw direction. */
 export const segmentKey = (a: PenPoint, b: PenPoint): string => {
     const [first, second] = a.x < b.x || (a.x === b.x && a.y <= b.y) ? [a, b] : [b, a];
     return `${pointKey(first)}|${pointKey(second)}`;
@@ -47,15 +50,16 @@ export const parseSegmentKey = (key: string): [PenPoint, PenPoint] => {
     return [parsePointKey(a ?? ""), parsePointKey(b ?? "")];
 };
 
-/** The lattice point nearest a position in board pixels (`origin` is where the grid's top-left sits). */
+/** The lattice point nearest to a position in board pixels (`origin` is the top-left of the grid). */
 export const snapToLattice = (px: number, py: number, origin: PenPoint, cellSize: number): PenPoint => ({
     x: Math.round(((px - origin.x) / cellSize) * 2),
     y: Math.round(((py - origin.y) / cellSize) * 2),
 });
 
 /**
- * The pieces a stroke covers. A fast drag skips lattice points, so consecutive points further
- * apart than one step are walked in single steps (diagonal first) — nothing is left out.
+ * The pieces that a stroke covers. A fast drag skips lattice points.
+ * So the code walks consecutive points that are more than one step apart in single steps (diagonal first).
+ * No piece is left out.
  */
 export const strokeSegments = (points: readonly PenPoint[]): string[] => {
     const out: string[] = [];
@@ -72,8 +76,9 @@ export const strokeSegments = (points: readonly PenPoint[]): string[] => {
 };
 
 /**
- * Draws a stroke. Like SudokuPad, drawing over a line that's already there rubs it out: if
- * every piece of the stroke exists it removes them, otherwise it adds whichever are missing.
+ * Draws a stroke. As in SudokuPad, a stroke over an existing line erases it.
+ * If all pieces of the stroke exist, the function removes them.
+ * Otherwise, it adds the pieces that are missing.
  */
 export const applyStroke = (pen: PenState, points: readonly PenPoint[]): PenState => {
     const pieces = strokeSegments(points);
@@ -87,7 +92,7 @@ export const applyStroke = (pen: PenState, points: readonly PenPoint[]): PenStat
     return { ...pen, segments: [...have].sort() };
 };
 
-/** What a click does to the mark at a point: nothing -> X -> O -> nothing. */
+/** The effect of a click on the mark at a point: nothing -> X -> O -> nothing. */
 export const cycleMark = (pen: PenState, point: PenPoint): PenState => {
     const key = pointKey(point);
     const marks = { ...pen.marks };
@@ -101,7 +106,7 @@ const MAX_COORD = 10_000;
 const validPoint = (p: PenPoint): boolean =>
     Number.isInteger(p.x) && Number.isInteger(p.y) && Math.abs(p.x) <= MAX_COORD && Math.abs(p.y) <= MAX_COORD;
 
-/** Reads a stored pen layer defensively — whatever isn't well-formed is dropped, never thrown on. */
+/** Reads a stored pen layer with care. Data that is not well-formed is dropped. It never throws. */
 export const sanitizePen = (raw: unknown): PenState => {
     if (!raw || typeof raw !== "object") return EMPTY_PEN;
     const { segments, marks } = raw as { segments?: unknown; marks?: unknown };

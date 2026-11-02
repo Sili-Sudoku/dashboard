@@ -1,12 +1,12 @@
 /**
  * Puzzle artifact <-> transport.
  *
- * `parsePuzzle` does shallow structural validation of untrusted JSON (deep
- * checks happen in `compilePuzzle`). `encodePuzzle` / `decodePuzzle` produce a
- * URL-safe string so a puzzle can travel in `/p/<encoded>` with no server.
+ * `parsePuzzle` does a shallow structural validation of untrusted JSON.
+ * `compilePuzzle` does the deep checks.
+ * `encodePuzzle` / `decodePuzzle` make a URL-safe string, so a puzzle can travel in `/p/<encoded>` with no server.
  *
- * The encoded form is `<codec><payload>`. Codec "1" is base64url(JSON). Adding a
- * compressed codec later is a new leading character, not a breaking change.
+ * The encoded form is `<codec><payload>`. Codec "1" is base64url(JSON).
+ * A compressed codec added later is a new leading character. It is not a breaking change.
  */
 
 import {

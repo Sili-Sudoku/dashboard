@@ -1,15 +1,16 @@
 /**
- * The colour-marking palette (#35): what the "color" input mode paints cells
- * with. Cells store a *palette index*, not a colour, so a player's customised
- * palette (kept in Settings, shared by every puzzle) recolours existing marks
- * instead of orphaning them.
+ * The colour-marking palette (#35). The "color" input mode paints cells with it.
+ * Cells store a *palette index*, not a colour.
+ * Thus a changed palette (kept in Settings, shared by all puzzles) recolours existing marks.
+ * The marks do not become orphaned.
  *
- * Chosen by search, not by eye: nine light colours that keep dark digits
- * readable (>= 7:1 against the ink colour) and stay mutually distinguishable
- * under normal vision and protan/deutan/tritan simulation (Machado 2009) — the
- * smallest pairwise CIELAB difference across all four is ~15, versus ~2.5 for
- * a typical hand-picked pastel set. Order is hue order, so key 1..9 maps along
- * the spectrum.
+ * A search chose the colors, not the eye. There are nine light colours.
+ * Dark digits stay readable on them (>= 7:1 against the ink colour).
+ * The colours stay different from each other under normal vision
+ * and under protan/deutan/tritan simulation (Machado 2009).
+ * The smallest pairwise CIELAB difference across all four is about 15.
+ * A typical hand-picked pastel set gives about 2.5.
+ * The order is hue order, so keys 1 to 9 follow the spectrum.
  */
 export const DEFAULT_MARK_COLORS: readonly string[] = [
     "#f4c7c2",
@@ -23,31 +24,32 @@ export const DEFAULT_MARK_COLORS: readonly string[] = [
     "#f881b1",
 ];
 
-/** Customisable slots (keys 1-9). */
+/** Slots that the player can change (keys 1-9). */
 export const CUSTOM_COLOR_COUNT = DEFAULT_MARK_COLORS.length;
 
 /**
- * A tenth, fixed mark: the board's own background (key 0). It's a real mark, not
- * "no colour" — paired with another colour it splits the cell (colour + background),
- * the usual way to show "this cell is one of two candidates, the other unknown" on
- * a pair of cells. Resolved through the theme, so it's always exactly the paper
- * colour in light and dark, and isn't part of the editable palette.
+ * A tenth, fixed mark: the background of the board (key 0).
+ * It is a real mark, not "no colour".
+ * With another colour, it splits the cell (colour + background).
+ * This is the usual way to show that a cell is one of two candidates and the other is unknown.
+ * The theme resolves it, so it is always the paper colour in light and dark.
+ * It is not part of the editable palette.
  */
 export const BACKGROUND_MARK_INDEX = CUSTOM_COLOR_COUNT;
 export const BACKGROUND_MARK_COLOR = "var(--surface)";
 export const MARK_COLOR_COUNT = CUSTOM_COLOR_COUNT + 1;
 
-/** Palette index for a pad/keyboard digit in colour mode (1-9 -> 0-8, 0 -> background); undefined for anything else. */
+/** Palette index for a pad or keyboard digit in colour mode (1-9 -> 0-8, 0 -> background). Else undefined. */
 export const markIndexForDigit = (digit: number): number | undefined =>
     digit === 0 ? BACKGROUND_MARK_INDEX : Number.isInteger(digit) && digit >= 1 && digit <= CUSTOM_COLOR_COUNT ? digit - 1 : undefined;
 
-/** The colour to paint mark `index` with, or undefined for an index outside the palette. */
+/** The colour for mark `index`. An index outside the palette gives undefined. */
 export const resolveMarkColor = (palette: readonly string[], index: number): string | undefined =>
     index === BACKGROUND_MARK_INDEX ? BACKGROUND_MARK_COLOR : palette[index];
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-/** A saved palette is trusted only if it's exactly one valid #rrggbb per slot; anything else falls back to the default. */
+/** A saved palette is valid only if it has exactly one valid #rrggbb per slot. Else the default is used. */
 export const sanitizePalette = (value: unknown): readonly string[] =>
     Array.isArray(value) && value.length === CUSTOM_COLOR_COUNT && value.every((c) => typeof c === "string" && HEX.test(c))
         ? (value as string[])

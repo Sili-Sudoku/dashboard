@@ -66,7 +66,7 @@ describe("dynamic rules (#72)", () => {
         });
         const none = lookupFromRecord({});
         expect([...ruleAbsentCells(c, none)].sort()).toEqual(["r4c1", "r4c2", "r4c3", "r4c4"]);
-        expect(hiddenCells(c, none).has("r4c4")).toBe(true); // so a given there can't leak
+        expect(hiddenCells(c, none).has("r4c4")).toBe(true); // so a given there cannot leak
         expect(ruleAbsentCells(c, lookupFromRecord({ r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 })).size).toBe(0);
     });
 
@@ -77,7 +77,7 @@ describe("dynamic rules (#72)", () => {
         expect([...session.getSelection()]).not.toContain("r2c2");
         session.select("r2c1");
         session.moveCursor("right");
-        expect(session.getCursor()).toBe("r2c3"); // stepped over r2c2
+        expect(session.getCursor()).toBe("r2c3"); // the cursor skips r2c2
         session.select("r1c1", "replace");
         session.select("r2c2", "add");
         session.input(3);
@@ -94,8 +94,8 @@ describe("dynamic rules (#72)", () => {
         const violated = (values: Record<string, number>) =>
             evaluate(gated, lookupFromRecord(values)).constraints[0]!.status;
         expect(violated({ r2c1: 3, r2c2: 2 })).toBe("incomplete"); // condition undecided
-        expect(violated({ r1c1: 2, r2c1: 3, r2c2: 2 })).toBe("satisfied"); // condition false: not enforced
-        expect(violated({ r1c1: 1, r2c1: 3, r2c2: 2 })).toBe("violated"); // enforced and broken
+        expect(violated({ r1c1: 2, r2c1: 3, r2c2: 2 })).toBe("satisfied"); // condition false: rule not enforced
+        expect(violated({ r1c1: 1, r2c1: 3, r2c2: 2 })).toBe("violated"); // rule enforced and broken
         expect(gated.constraints[0]!.cells).toEqual(expect.arrayContaining(["r1c1", "r2c1", "r2c2"]));
 
         const off = compile({
@@ -106,7 +106,7 @@ describe("dynamic rules (#72)", () => {
         expect(evaluate(off, lookupFromRecord({ r1c1: 1, r2c1: 3, r2c2: 2 })).constraints[0]!.status).toBe("satisfied");
         expect(evaluate(off, lookupFromRecord({ r1c1: 2, r2c1: 3, r2c2: 2 })).constraints[0]!.status).toBe("violated");
 
-        // the solver honours it with no extra support: forcing r1c1=1 makes "ordered" binding
+        // the solver obeys it with no extra support: if r1c1=1, "ordered" is binding
         const found = await solve(
             compile({
                 ...base,

@@ -1,15 +1,15 @@
 /**
  * Compile a `PuzzleDefinition` into a `CompiledPuzzle`.
  *
- * Responsibilities:
+ * Tasks:
  *   - build the geometry
- *   - validate givens / regions / objects against it
+ *   - validate givens, regions and objects against it
  *   - expand definition references (`{ use: "thermometer", ... }`) to primitives
- *     using the injected registry
- *   - statically check every primitive expression
+ *     with the injected registry
+ *   - check every primitive expression statically
  *   - resolve the cell footprint of each constraint
  *
- * Returns an `Error` (never throws) so callers can surface problems in the UI.
+ * It returns an `Error` and never throws. So callers can show problems in the UI.
  */
 
 import { createGeometry, type CellId, type Geometry } from "@/runtime/geometry.ts";
@@ -110,10 +110,9 @@ export const compilePuzzle = (
         const expanded = expandSpec(spec, registry, compileCtx);
         if (expanded instanceof Error) return expanded;
 
-        // Collected so this spec's own objects (below) can be tagged with the
-        // constraint id(s) they belong to — lets a caller that tolerates a
-        // solution/constraint mismatch (see validateSolution below) still
-        // point at exactly which shape on the board is the violator.
+        // Collected so the objects of this spec (below) get the ids of their constraints.
+        // A caller can tolerate a solution/constraint mismatch (see validateSolution below).
+        // Then the caller can still show which shape on the board is the violator.
         const specConstraintIds: string[] = [];
         for (const emitted of expanded.constraints) {
             try {
@@ -183,13 +182,12 @@ export const compilePuzzle = (
     return compiled;
 };
 
-/** Which compiled constraint ids the puzzle's own declared solution fails,
- *  if any — the same check `compilePuzzle` normally rejects on (see
- *  `validateSolution` above). Exposed separately so a tolerant caller (e.g.
- *  the Author page's visual builder, mid-placement) can still get a
- *  renderable puzzle and highlight just the offending constraint(s) instead
- *  of losing the whole preview to one bad placement. Empty if the puzzle has
- *  no declared solution. */
+/** The ids of the compiled constraints that the declared solution of the puzzle fails, if any.
+ *  This is the same check that `compilePuzzle` normally rejects on (see `validateSolution` above).
+ *  It is a separate export for a tolerant caller (for example the visual builder on the Author page,
+ *  during placement). The caller can then get a puzzle to render and highlight only the failing
+ *  constraints. The whole preview does not fail because of one bad placement.
+ *  The result is empty if the puzzle has no declared solution. */
 export const solutionViolations = (compiled: CompiledPuzzle): ReadonlySet<string> => {
     if (!compiled.solution) return new Set();
     const result = evaluate(compiled, lookupFromRecord(compiled.solution));
@@ -197,9 +195,11 @@ export const solutionViolations = (compiled: CompiledPuzzle): ReadonlySet<string
 };
 
 /**
- * Resolves the rules (#72). `enable`/`disable` are folded straight into the constraints they name —
- * "enforce C only while W" is just `implies(W, C)`, "...except while W" is `or(W, C)` — so the
- * evaluator and the solver need to know nothing about rules. Mutates `constraints` in place.
+ * Resolves the rules (#72).
+ * `enable` and `disable` go directly into the constraints they name.
+ * "Enforce C only while W" is `implies(W, C)`. "Enforce C except while W" is `or(W, C)`.
+ * So the evaluator and the solver do not need to know about rules.
+ * This function changes `constraints` in place.
  */
 const compileRules = (
     def: PuzzleDefinition,
@@ -254,7 +254,7 @@ const compileRules = (
                     constraints[index] = {
                         ...c,
                         expr: [effect === "enable" ? "implies" : "or", rule.when, c.expr],
-                        // The footprint drives incremental re-evaluation, so it has to include what `when` reads too.
+                        // The footprint controls incremental re-evaluation. It must include what `when` reads.
                         cells: [...new Set([...c.cells, ...cells])],
                     };
                 }
@@ -286,7 +286,7 @@ const expandSpec = (
     ctx: CompileContext,
 ): ExpandedSpec | Error => {
     if (isNamedRule(spec)) {
-        // Commas are the separator in object ids, so a name can't carry one.
+        // A comma separates object ids, so a name cannot contain one.
         const name = (spec.name ?? "").trim().replace(/,/g, " ");
         return { source: name || "primitive", constraints: [{ expr: spec.rule }] };
     }
@@ -319,11 +319,12 @@ const STYLE_KEYS: Record<keyof VisualStyle, "string" | "number" | "boolean"> = {
 };
 
 /**
- * A constraint's own look, per instance (#132): `color` recolours everything the definition drew
- * (strokes, and fills that aren't empty), and `style` sets any individual style property on top.
- * Done here, once, so every definition gets it without knowing about it — the definition keeps
- * its default look; a puzzle that wants another (a whisper line in green, a renban in pastel)
- * just says so on the constraint.
+ * The look of one constraint instance (#132).
+ * `color` changes the color of everything the definition drew (strokes, and fills that are not empty).
+ * `style` sets single style properties on top of that.
+ * This code does it once, so every definition gets it and does not need to know about it.
+ * The definition keeps its default look.
+ * A puzzle that needs another look (a whisper line in green, a renban in pastel) sets it on the constraint.
  */
 const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readonly VisualObject[] | Error => {
     if (!isDefinitionRef(spec)) return objects;
@@ -364,7 +365,7 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
     });
 };
 
-/** Pictures come from the web, an inline data: URL, or the site itself, never from a script or a file: URL. */
+/** A picture comes from the web, an inline data: URL, or the site. It never comes from a script or a file: URL. */
 export const isSafeImageUrl = (url: string): boolean =>
     /^(https:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]|\/(?!\/))/i.test(url.trim());
 

@@ -1,9 +1,9 @@
 /**
- * The operator registry: the complete vocabulary the runtime understands.
+ * The operator registry. It holds the complete vocabulary that the runtime understands.
  *
- * These are generic primitives (arithmetic, ordering, counting, grouping,
- * logic, adjacency). Puzzle variants are built by composing them; adding a
- * variant does not add an operator here.
+ * These are generic primitives: arithmetic, ordering, counting, grouping, logic, and adjacency.
+ * Puzzle variants are built when you compose them.
+ * A new variant does not add an operator here.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";
@@ -48,7 +48,7 @@ export const evalExpr = (expr: Expr, ctx: EvalContext): Val => {
     return op(args, ctx);
 };
 
-/** Evaluate an expression expected to be a predicate (bool / unknown). */
+/** Evaluate an expression that must be a predicate (bool / unknown). */
 export const evalPredicate = (expr: Expr, ctx: EvalContext): Ternary => {
     const v = evalExpr(expr, ctx);
     if (v.t === "bool") return v.v;
@@ -72,7 +72,7 @@ const asCells = (arg: Expr, ctx: EvalContext): readonly CellId[] => {
     throw new ExpressionError(`expected cells, got ${v.t}`, arg);
 };
 
-/** Coerce an argument to a list of (number | null): from cells, or a num list. */
+/** Convert an argument to a list of (number | null), from cells or from a num list. */
 const asNums = (arg: Expr, ctx: EvalContext): readonly (number | null)[] => {
     if (typeof arg === "string") {
         return resolveSelector(arg, ctx).map((c) => ctx.valueOf(c));
@@ -296,8 +296,9 @@ const compare = (
 export const operatorNames = (): readonly string[] => Object.keys(OPERATORS);
 
 /**
- * Structural validation without a board state: every call head must be a known
- * operator. Throws `ExpressionError` on the first problem.
+ * Structural validation without a board state.
+ * Each call head must be a known operator.
+ * Throws `ExpressionError` on the first problem.
  */
 export const staticCheckExpr = (expr: Expr): void => {
     if (typeof expr === "number" || typeof expr === "boolean" || typeof expr === "string") return;
@@ -311,7 +312,7 @@ export const staticCheckExpr = (expr: Expr): void => {
     if (!OPERATORS[head]) throw new ExpressionError(`unknown operator: "${head}"`, expr);
     for (const arg of args) {
         if (Array.isArray(arg)) {
-            // A bare cell list like ["r1c1","r1c2"] is data, not a call.
+            // A bare cell list such as ["r1c1","r1c2"] is data. It is not a call.
             if (arg.every((e) => typeof e === "string")) continue;
             staticCheckExpr(arg);
         }

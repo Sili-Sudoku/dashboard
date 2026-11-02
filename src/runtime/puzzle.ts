@@ -1,10 +1,10 @@
 /**
  * The serializable puzzle artifact and its compiled form.
  *
- * `PuzzleDefinition` is what an author writes, stores in a database, embeds in a
- * URL, or ships as a file. It is pure data, independent of React and of the
- * renderer. `CompiledPuzzle` is what the runtime works with after selectors are
- * resolved and variant definitions are expanded to primitive constraints.
+ * `PuzzleDefinition` is what an author writes, stores in a database, embeds in a URL, or ships as a file.
+ * It is pure data. It does not depend on React or on the renderer.
+ * `CompiledPuzzle` is what the runtime uses after it resolves the selectors
+ * and expands the variant definitions to primitive constraints.
  */
 
 import type { CellId, GeometrySpec } from "@/runtime/geometry.ts";
@@ -24,31 +24,32 @@ export interface PuzzleMetadata {
 export const PATTERNS = ["stripes", "dots", "checks", "crosshatch"] as const;
 export type PatternName = (typeof PATTERNS)[number];
 
-/** Style hints for visual objects. All optional; the renderer supplies defaults. */
+/** Style hints for visual objects. All are optional. The renderer supplies defaults. */
 export interface VisualStyle {
     stroke?: string;
     fill?: string;
     strokeWidth?: number;
     dashed?: boolean;
     opacity?: number;
-    /** Draw order within its layer; higher is on top. */
+    /** Draw order within its layer. A higher value is on top. */
     z?: number;
-    /** Fill closed shapes (and paint lines) with a repeating pattern in the shape's own colour. */
+    /** Fill closed shapes (and paint lines) with a repeating pattern in the color of the shape. */
     pattern?: PatternName;
-    /** Fill with a picture instead (an https:, data:image/ or site-relative URL), cropped to cover the shape. */
+    /** Fill with a picture (an https:, data:image/ or site-relative URL), cropped to cover the shape. */
     image?: string;
 }
 
-/** A point referenced by a visual object: a cell centre, a cell corner, or raw grid coords. */
+/** A point that a visual object references: a cell center, a cell corner, or raw grid coordinates. */
 export type PointRef =
     | CellId
     | { cell: CellId; corner: "tl" | "tr" | "bl" | "br" | "c" }
     | { x: number; y: number };
 
 /**
- * Generic visual primitives. The renderer knows how to draw each `kind`; it does
- * not know what a thermometer or a cage is. A definition attaches whichever of
- * these it needs to express its own semantics visually.
+ * Generic visual primitives.
+ * The renderer knows how to draw each `kind`.
+ * It does not know what a thermometer or a cage is.
+ * A definition attaches the primitives that it needs to show its own semantics.
  */
 export type VisualObject =
     | {
@@ -56,8 +57,8 @@ export type VisualObject =
           kind: "line";
           points: readonly PointRef[];
           arrow?: boolean;
-          /** Cell units to cut off each end of the line, measured along it — e.g. so an arrow's
-           *  shaft starts at its bulb's rim and its head stops short of the last digit. */
+          /** Cell units to cut off each end of the line, measured along it.
+           *  Example: an arrow shaft starts at the rim of its bulb, and its head stops before the last digit. */
           trim?: { start?: number; end?: number };
           style?: VisualStyle;
       }
@@ -76,19 +77,20 @@ export type VisualObject =
       };
 
 /**
- * A constraint the author wrote. Either a raw primitive expression, or a
- * reference to a definition (`use`) with parameters that compile to primitives.
+ * A constraint that the author wrote.
+ * It is a raw primitive expression, or a reference to a definition (`use`)
+ * with parameters that compile to primitives.
  */
 export type ConstraintSpec =
     | Expr
     | NamedRule
     | {
           use: string;
-          /** Free-form parameters passed to the definition. */
+          /** Free-form parameters for the definition. */
           [param: string]: unknown;
       };
 
-/** A primitive expression with a name of the author's choosing: `{ "rule": [...], "name": "German whispers" }`. */
+/** A primitive expression with a name that the author chooses: `{ "rule": [...], "name": "German whispers" }`. */
 export interface NamedRule {
     rule: Expr;
     name?: string;
@@ -97,17 +99,22 @@ export interface NamedRule {
 export const isNamedRule = (spec: ConstraintSpec): spec is NamedRule =>
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && !isDefinitionRef(spec) && "rule" in spec;
 
-/** The object ids a visual object answers to (a definition's objects carry the ids of their constraints, comma-joined). */
+/**
+ * The object ids that a visual object answers to.
+ * The objects of a definition carry the ids of their constraints, joined by commas.
+ */
 export const objectIds = (o: VisualObject): readonly string[] => (o.id ? o.id.split(",") : []);
 
 export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k: string]: unknown } =>
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && typeof (spec as { use?: unknown }).use === "string";
 
 /**
- * A dynamic rule (#72): `when` is an ordinary expression over the current board (the same language
- * as constraints), and `then` says what holds while it is definitely true. Nothing is stored: every
- * effect is a function of the board right now, so undo, reload and share links need no extra state,
- * and a rule switches back off if the board stops satisfying it.
+ * A dynamic rule (#72).
+ * `when` is an ordinary expression over the current board (the same language as constraints).
+ * `then` says what holds while `when` is definitely true.
+ * The rule stores nothing. Each effect is a function of the board at that time.
+ * So undo, reload, and share links need no extra state.
+ * A rule switches off again if the board stops satisfying it.
  */
 export interface PuzzleRule {
     /** Optional name, for error messages. */
@@ -117,22 +124,23 @@ export interface PuzzleRule {
         /** Cells (ids or region selectors) that stay hidden, as under fog, until this rule holds. */
         reveal?: readonly string[];
         /**
-         * Cells (ids or region selectors) that are not on the board at all until this rule holds: not
-         * drawn, not selectable, no grid lines around them. A 4x3 board that grows a fourth row.
+         * Cells (ids or region selectors) that are not on the board until this rule holds.
+         * The renderer does not draw them, the player cannot select them, and no grid lines surround them.
+         * Example: a 4x3 board that grows a fourth row.
          */
         appear?: readonly string[];
         /** Visual objects (by `id`) drawn only while the rule holds. */
         show?: readonly string[];
         /** Visual objects drawn except while the rule holds. */
         hide?: readonly string[];
-        /** Constraints (by compiled id such as `killer#2`, or by source/name) enforced only while the rule holds. */
+        /** Constraints enforced only while the rule holds. Use the compiled id (`killer#2`) or name. */
         enable?: readonly string[];
-        /** Constraints enforced except while the rule holds. */
+        /** Constraints that the puzzle enforces except while the rule holds. */
         disable?: readonly string[];
     };
 }
 
-/** A rule after compilation: `enable`/`disable` are already folded into the constraints themselves. */
+/** A rule after compilation. `enable`/`disable` are already part of the constraints. */
 export interface CompiledRule {
     id: string;
     when: Expr;
@@ -149,26 +157,26 @@ export interface PuzzleDefinition {
     geometry: GeometrySpec;
     /** Allowed cell values. For classic Sudoku: [1..9]. */
     domain: { values: readonly number[] };
-    /** Named cell groups referenced by selectors, e.g. "cage:A". */
+    /** Named cell groups that selectors reference, for example "cage:A". */
     regions?: Readonly<Record<string, readonly CellId[]>>;
     /** Fixed clues: cell id -> value. */
     givens?: Readonly<Record<CellId, number>>;
     /**
-     * Cells hidden at the start, revealed as the player (or an adjacent cell)
-     * solves them correctly — see `src/runtime/fog.ts`. Requires `solution`,
-     * since "correctly" is defined against it.
+     * Cells hidden at the start.
+     * They are revealed when the player (or an adjacent cell) solves them correctly. See `src/runtime/fog.ts`.
+     * Requires `solution`, because "correctly" is defined against it.
      */
     fog?: { hidden: readonly CellId[] };
-    /** Dynamic rules: effects that depend on the board's current state — see `PuzzleRule`. */
+    /** Dynamic rules: effects that depend on the current state of the board. See `PuzzleRule`. */
     rules?: readonly PuzzleRule[];
-    /** Author-declared visual objects (definitions may add more). */
+    /** Visual objects that the author declares (definitions can add more). */
     objects?: readonly VisualObject[];
     /** Constraints: primitive expressions and/or definition references. */
     constraints: readonly ConstraintSpec[];
     /** Optional full solution, for authoring tools and hints. */
     solution?: Readonly<Record<CellId, number>>;
     presentation?: {
-        /** Pixels per geometry unit hint for the renderer. */
+        /** Hint for the renderer: pixels per geometry unit. */
         cellSize?: number;
         theme?: string;
     };
@@ -178,9 +186,9 @@ export interface PuzzleDefinition {
 export interface CompiledConstraint {
     id: string;
     expr: Expr;
-    /** Cells this constraint reads, for highlighting and incremental evaluation. */
+    /** Cells that this constraint reads, for highlighting and incremental evaluation. */
     cells: readonly CellId[];
-    /** Which definition produced it (or "primitive" for hand-written exprs). */
+    /** The definition that produced it (or "primitive" for hand-written exprs). */
     source: string;
     label?: string;
 }

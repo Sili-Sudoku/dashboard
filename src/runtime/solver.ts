@@ -1,49 +1,44 @@
 /**
- * Generic existence/uniqueness solver: backtracking search over any compiled
- * puzzle, using `evaluate.ts` as the oracle for constraint legality — except
- * for one deliberate, narrow exception described below.
+ * Generic existence and uniqueness solver. It does a backtracking search over any compiled puzzle.
+ * It uses `evaluate.ts` as the oracle for constraint legality, with one narrow exception (see below).
  *
- * Three prior designs were tried and measured before this one:
- *   - Forward-checking through the generic oracle only: for every
- *     assignment, proactively re-check every candidate of every
- *     constraint-neighbor via `evaluateIncremental`. Correct, but on a large
- *     board a single assignment fans out into thousands of oracle calls —
- *     the lookahead cost dwarfed what it saved.
- *   - Plain backtracking through the generic oracle (one call per
- *     assignment, no lookahead): cheap per node, but search-tree size
- *     exploded — the textbook failure mode of backtracking without any
- *     propagation on Sudoku-shaped problems (confirmed empirically: a plain
- *     row-major fill on an empty 25x25 filled 45 of 625 cells in 3 seconds).
- *   - Plain backtracking with the oracle replaced by a cheap direct check
- *     (see below) but still no lookahead: each node got far cheaper, but
- *     search-tree size alone can still explode on a large, lightly
- *     constrained board even when every node is nearly free — a 25x25 with
- *     under ~70% of cells given still thrashed for seconds.
+ * The team tried three designs before this one and measured each:
+ *   - Forward checking through the generic oracle only. For each assignment, the solver re-checks
+ *     every candidate of every constraint neighbor with `evaluateIncremental`. This is correct.
+ *     On a large board, one assignment causes thousands of oracle calls.
+ *     The lookahead cost more than it saved.
+ *   - Plain backtracking through the generic oracle. It makes one call per assignment and has no lookahead.
+ *     Each node is cheap, but the search tree grows too large.
+ *     This is the known failure of backtracking without propagation on Sudoku-shaped problems.
+ *     A test confirmed it: a plain row-major fill on an empty 25x25 filled 45 of 625 cells in 3 seconds.
+ *   - Plain backtracking with a cheap direct check in place of the oracle (see below), but no lookahead.
+ *     Each node is much cheaper, but the search tree can still grow too large.
+ *     This happens on a large board with few constraints, even when every node is nearly free.
+ *     A 25x25 board with fewer than about 70% of cells given still ran for seconds.
  *
- * All three share one lesson: a large Sudoku-shaped board needs *both*
- * lookahead (to avoid thrashing into dead ends) *and* for that lookahead to
- * be cheap (so it doesn't cost more than it saves). Hence forward-checking
- * is back, but the thing it probes is no longer always the generic oracle:
+ * All three designs show the same lesson.
+ * A large Sudoku-shaped board needs lookahead, to avoid dead ends.
+ * The lookahead must also be cheap, so that it costs less than it saves.
+ * Therefore forward checking is back, but it does not always probe the generic oracle:
  *
- * For a plain `allDifferent` over a region — the overwhelming majority of
- * rules in any Sudoku-shaped puzzle — legality is just "is this value
- * already used by a filled peer in the group," an O(group size) membership
- * check with no expression evaluation needed. Recognizing that shape
- * (`isSimpleAllDifferent` below) and checking it directly makes
- * forward-checking's lookahead nearly free for ordinary rules. Any
- * constraint that doesn't match that shape — true variants: thermometers,
- * cages, whisper lines, anything bespoke — still goes through the full
- * generic oracle exactly as before. This is the one place this file knows
- * what an operator means; everything else stays generic.
+ * A plain `allDifferent` over a region is the most common rule in a Sudoku-shaped puzzle.
+ * For this rule, a value is legal if no filled peer in the group has it.
+ * This is an O(group size) membership check and needs no expression evaluation.
+ * The function `isSimpleAllDifferent` (below) finds this shape.
+ * The direct check makes the lookahead nearly free for ordinary rules.
+ * Each constraint with a different shape still goes through the full generic oracle.
+ * These are the true variants: thermometers, cages, whisper lines, and any bespoke constraint.
+ * This is the only place in this file that knows what an operator means.
+ * All other code stays generic.
  *
- * Search stops as soon as a second solution is found (existence/uniqueness
- * only), and is budgeted by oracle-call count and wall-clock time; exceeding
- * either reports "unknown" rather than guessing. The wall-clock check lives
- * in the search loop itself, not only inside the oracle call: a puzzle made
- * entirely of plain allDifferent rules may never call the oracle at all.
+ * The search stops when it finds a second solution, because it only tests existence and uniqueness.
+ * The search has a budget of oracle calls and a budget of wall-clock time.
+ * If it exceeds one of them, it reports "unknown" and does not guess.
+ * The wall-clock check is in the search loop itself, not only in the oracle call.
+ * A puzzle that has only plain allDifferent rules can finish without one oracle call.
  *
- * Deliberately out of scope: difficulty rating / human-technique-only
- * solving. This proves existence and uniqueness for authoring, nothing more.
+ * Out of scope: difficulty rating and solving with human techniques only.
+ * This file proves existence and uniqueness for authoring, and nothing more.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";
@@ -53,9 +48,9 @@ import { evaluate, evaluateIncremental, type EvaluationResult, type ValueLookup 
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 
 export interface SolveOptions {
-    /** Oracle-call budget. Exceeding it reports "unknown" rather than guessing. */
+    /** Oracle-call budget. If the search exceeds it, the result is "unknown". */
     maxProbes?: number;
-    /** Wall-clock budget in milliseconds — the real backstop, since probe cost isn't uniform. */
+    /** Wall-clock budget in milliseconds. This is the real limit, because the cost of a probe is not uniform. */
     maxMs?: number;
 }
 
@@ -63,9 +58,9 @@ export type SolveStatus = "unique" | "multiple" | "none" | "unknown";
 
 export interface SolveResult {
     status: SolveStatus;
-    /** The first solution found, whenever the search found at least one. */
+    /** The first solution found, if the search found at least one. */
     solution?: Readonly<Record<CellId, number>>;
-    /** Oracle (evaluateIncremental) calls made, for diagnostics/tests. */
+    /** Number of oracle (evaluateIncremental) calls, for diagnostics and tests. */
     probes: number;
 }
 
@@ -73,13 +68,13 @@ const DEFAULT_MAX_PROBES = 2_000_000;
 const DEFAULT_MAX_MS = 2_000;
 
 /**
- * True iff `expr` is exactly `[allDifferent|distinct, [cells|region|values, selector]]`
- * with `selector` a bare string (a region selector like "row:0") or a literal
- * array of cell-id strings — i.e. "these raw cell values are pairwise
- * distinct," nothing transformed, nothing composed. Deliberately
- * conservative: anything that doesn't match this exact shape (nested inside
- * `not`/`and`, or built from `["list", ...]`/arithmetic/other operators)
- * falls through to the generic oracle, never misclassified as simple.
+ * True only if `expr` is exactly `[allDifferent|distinct, [cells|region|values, selector]]`.
+ * The `selector` must be a bare string (a region selector such as "row:0") or a literal
+ * array of cell-id strings. This means "these raw cell values are all different".
+ * No value is transformed or composed.
+ * The test is conservative. Any other shape goes to the generic oracle and is never classified as simple.
+ * Examples are an expression nested inside `not` or `and`, and one built from `["list", ...]`,
+ * arithmetic, or other operators.
  */
 const isSimpleAllDifferent = (expr: Expr): boolean => {
     if (!isCall(expr) || expr.length !== 2) return false;
@@ -93,11 +88,11 @@ const isSimpleAllDifferent = (expr: Expr): boolean => {
 };
 
 interface Classification {
-    /** For each cell, the full cell-groups (including itself) of every simple allDifferent touching it. */
+    /** For each cell, the full cell groups (including the cell) of each simple allDifferent that touches it. */
     groupsByCell: ReadonlyMap<CellId, readonly (readonly CellId[])[]>;
-    /** Cells touched by at least one non-simple constraint — these still need the generic oracle. */
+    /** Cells that at least one non-simple constraint touches. These still need the generic oracle. */
     hasComplex: ReadonlySet<CellId>;
-    /** Every other cell sharing any constraint (simple or complex) with a cell — forward-checking's scope. */
+    /** Each other cell that shares a constraint (simple or complex) with a cell. Forward checking uses these. */
     neighbors: ReadonlyMap<CellId, readonly CellId[]>;
 }
 
@@ -128,7 +123,7 @@ const classify = (puzzle: CompiledPuzzle): Classification => {
     return { groupsByCell, hasComplex, neighbors };
 };
 
-/** O(group size) direct check: does any OTHER filled cell in one of `cell`'s simple groups already hold `value`? */
+/** O(group size) direct check. Does any OTHER filled cell in a simple group of `cell` already hold `value`? */
 const cheapConflict = (
     cell: CellId,
     value: number,
@@ -156,24 +151,23 @@ interface SearchState {
 }
 
 /**
- * How long the search is allowed to run without handing control back to the
- * event loop. The recursive search has no awaits of its own — without this,
- * a multi-second solve (well within the normal budget) would freeze
- * whatever page called it for that whole time. Picked to land comfortably
- * under one frame (~16ms) so the page stays responsive to input/repaints
+ * The longest time the search can run before it gives control back to the event loop.
+ * The recursive search has no awaits of its own.
+ * Without this limit, a solve of several seconds (within the normal budget) would freeze the calling page.
+ * The value is below one frame (about 16ms), so the page stays responsive to input and repaints
  * while a solve runs in the background.
  */
 const YIELD_INTERVAL_MS = 12;
 
-/** Prefers the Scheduler API's `yield()` (resumes as a normal-priority task, no browser-enforced
- *  minimum delay) where available; falls back to a `setTimeout` macrotask everywhere else. */
+/** Uses the Scheduler API `yield()` where available. It resumes as a normal-priority task
+ *  and has no minimum delay enforced by the browser. Otherwise it uses a `setTimeout` macrotask. */
 const yieldToEventLoop = (): Promise<void> => {
     const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
     if (scheduler?.yield) return scheduler.yield();
     return new Promise((resolve) => setTimeout(resolve, 0));
 };
 
-/** Every oracle call goes through here so the budgets actually bound wall-clock work. */
+/** Each oracle call goes through here, so the budgets limit the wall-clock work. */
 const probe = (state: SearchState, baseline: EvaluationResult, changed: readonly CellId[]): EvaluationResult | undefined => {
     if (state.truncated) return undefined;
     state.probes++;
@@ -185,13 +179,12 @@ const probe = (state: SearchState, baseline: EvaluationResult, changed: readonly
 };
 
 /**
- * Legality of assigning `cell = value` on top of the current board: the
- * cheap direct check first (always correct for plain allDifferent groups),
- * falling back to the generic oracle only if `cell` is touched by a
- * constraint that isn't a plain allDifferent. `baseline` is the evaluation
- * to incrementally update from if the oracle is needed; the returned
- * `next` is only meaningful when `legal` is true, and equals `baseline`
- * unchanged when the oracle wasn't consulted.
+ * Tests if `cell = value` is legal on top of the current board.
+ * It does the cheap direct check first. This check is always correct for plain allDifferent groups.
+ * It uses the generic oracle only if a constraint that is not a plain allDifferent touches `cell`.
+ * `baseline` is the evaluation that the oracle updates incrementally, if it is necessary.
+ * The returned `next` has a meaning only when `legal` is true.
+ * When the solver does not use the oracle, `next` is equal to `baseline`.
  */
 const checkLegal = (
     state: SearchState,
@@ -211,28 +204,28 @@ const checkLegal = (
 };
 
 /**
- * Mutated in place for the whole search, never copied: a cell's presence
- * means "still open," its value is that cell's current candidate list. A
- * prior design rebuilt this map (`new Map(domains)`) on every node — an
- * O(total open cells) cost paid at every node regardless of how few cells
- * that node's propagation actually touched, which dominated everything once
- * the board was large (measured: a 25x25 spent its whole budget copying,
- * reaching barely any depth). Mutating in place and logging exactly which
- * entries changed — restored via `undoLog` on the way back up — makes each
- * node's cost proportional to its actual fan-out instead of to board size.
+ * The search changes this map in place and never copies it.
+ * A cell in the map is still open. Its value is the current candidate list of that cell.
+ * An earlier design rebuilt this map (`new Map(domains)`) at every node.
+ * That cost O(total open cells) at every node, even when the propagation of the node touched few cells.
+ * On a large board this cost dominated everything.
+ * Measurement: a 25x25 board used its whole budget on copies and reached very little depth.
+ * Now the search changes the map in place and logs each changed entry.
+ * It restores the entries from `undoLog` when it goes back up.
+ * So the cost of a node depends on its actual fan-out, not on the board size.
  */
 type Domains = Map<CellId, readonly number[]>;
 type UndoLog = (readonly [CellId, readonly number[]])[];
 
 /**
- * Forward checking: given that `changed` cells were just fixed (on top of
- * `board`, with `baseline` the evaluation after fixing them), narrow the
- * candidate domains of their still-open constraint neighbors in place via
- * `checkLegal` — cheap for plain allDifferent neighbors, falling back to the
- * oracle only for neighbors touched by a genuine variant constraint. Every
- * domain actually changed is appended to `undoLog` (previous value) so the
- * caller can restore it exactly on backtrack. Returns false if any
- * neighbor's domain becomes empty (a dead branch) or the budget runs out.
+ * Forward checking. The `changed` cells were just fixed on top of `board`.
+ * `baseline` is the evaluation after the solver fixed them.
+ * This function narrows, in place, the candidate domains of their open constraint neighbors with `checkLegal`.
+ * The check is cheap for plain allDifferent neighbors.
+ * It uses the oracle only for neighbors that a genuine variant constraint touches.
+ * It appends each changed domain (the previous value) to `undoLog`,
+ * so the caller can restore it exactly on backtrack.
+ * It returns false if the domain of a neighbor becomes empty (a dead branch) or if the budget ends.
  */
 const narrowNeighbors = (
     state: SearchState,
@@ -277,9 +270,9 @@ const search = async (
     onSolution: () => boolean,
 ): Promise<void> => {
     if (state.truncated) return;
-    // Checked here unconditionally, not only inside `probe()`: a puzzle made
-    // entirely of plain allDifferent rules never calls the oracle at all, so
-    // nothing else would bound wall-clock time.
+    // This check is unconditional and not only inside `probe()`.
+    // A puzzle that has only plain allDifferent rules never calls the oracle,
+    // so no other check would limit the wall-clock time.
     const t = performance.now();
     if (t > state.deadline) {
         state.truncated = true;
@@ -295,7 +288,7 @@ const search = async (
     }
 
     if (domains.size === 0) {
-        if (onSolution()) state.truncated = true; // caller signals "stop": enough solutions found
+        if (onSolution()) state.truncated = true; // The caller signals "stop": it has enough solutions.
         return;
     }
 
@@ -310,7 +303,7 @@ const search = async (
     }
     if (!cell || !candidates) return;
 
-    domains.delete(cell); // out of the "open" set while we branch on it
+    domains.delete(cell); // Remove the cell from the "open" set while the search branches on it.
 
     for (const value of candidates) {
         state.board.set(cell, value);
@@ -326,13 +319,13 @@ const search = async (
         if (state.truncated) break;
     }
 
-    domains.set(cell, candidates); // restore to the "open" set for the caller's own remaining candidates
+    domains.set(cell, candidates); // Put the cell back in the "open" set for the remaining candidates of the caller.
 };
 
 /**
- * Async because the search yields back to the event loop periodically (see
- * `YIELD_INTERVAL_MS`) so a multi-second solve doesn't freeze whatever page
- * called it — awaiting this is a background task, not a blocking call.
+ * Async, because the search yields to the event loop at intervals (see `YIELD_INTERVAL_MS`).
+ * This stops a solve of several seconds from freezing the calling page.
+ * To await this function is to wait for a background task. It does not block.
  */
 export const solve = async (puzzle: CompiledPuzzle, options: SolveOptions = {}): Promise<SolveResult> => {
     const geometry = createGeometry(puzzle.geometry);

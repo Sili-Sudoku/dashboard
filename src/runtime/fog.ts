@@ -1,29 +1,28 @@
 /**
- * Fog reveal rule: which declared-hidden cells are still hidden right now.
+ * Fog reveal rule: which declared-hidden cells are still hidden now.
  *
- * Only the *player's own progress* can trigger a reveal — a pre-existing
- * given is always "correct" by definition (that's what makes it a given),
- * so letting its correctness alone count would reveal hidden givens (or, by
- * propagation, their neighbors) the instant the puzzle loads, with zero
- * player action. So: a visible (non-hidden) cell only counts as a reveal
- * source once it's both non-given *and* holds its correct value — i.e. the
- * player filled it in correctly. A hidden cell can self-reveal the same way
- * (a hidden non-given cell the player fills in correctly), or reveal by
- * propagation from a neighboring source.
+ * Only the *progress of the player* can cause a reveal.
+ * A given is always "correct" by definition.
+ * If its correctness alone counted, the puzzle would reveal hidden givens
+ * (and, by propagation, their neighbors) when it loads, with no action by the player.
+ * So a visible (non-hidden) cell is a reveal source only if it is non-given *and* holds its correct value.
+ * That means the player filled it in correctly.
+ * A hidden cell can reveal itself in the same way
+ * (a hidden non-given cell that the player fills in correctly).
+ * A hidden cell can also reveal by propagation from a neighboring source.
  *
- * Revealing (unfogging) a cell and that cell *becoming* a source itself are
- * two different things, though: a hidden non-given cell can be unfogged by
- * propagation alone — the player can see there's an empty cell there now —
- * without yet holding a value, and an empty cell obviously can't vouch for
- * its neighbors. So a declared cell only becomes a source once it's both
- * revealed *and* actually solved; a hidden given always satisfies both at
- * once it's revealed (its value was never in question), which is what lets
- * a chain of hidden givens peel back together as the player closes in.
+ * To reveal (unfog) a cell and to make that cell a source are two different things.
+ * Propagation alone can unfog a hidden non-given cell.
+ * Then the player can see an empty cell there, but the cell has no value.
+ * An empty cell cannot vouch for its neighbors.
+ * So a declared cell becomes a source only when it is revealed *and* solved.
+ * A hidden given satisfies both when it is revealed (its value is never in question).
+ * So a chain of hidden givens peels back together as the player gets close.
  *
- * This is a small flood-fill over the declared hidden set, not a single
- * neighbor check — still cheap, bounded by the declared hidden-cell count,
- * not board size. Purely a function of the current board state, same shape
- * as `evaluate()`: no extra mutable state to keep in sync as the player types.
+ * This is a small flood-fill over the declared hidden set, not a single neighbor check.
+ * It is cheap: the cost depends on the number of declared hidden cells, not the board size.
+ * It is a pure function of the current board state, like `evaluate()`.
+ * There is no extra mutable state to keep in sync when the player types.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";
@@ -37,10 +36,10 @@ const isSolved = (solution: Readonly<Record<CellId, number>>, lookup: ValueLooku
     return answer !== undefined && lookup(cell) === answer;
 };
 
-/** Everything currently hidden: fog's progressive reveal, plus cells a dynamic rule (#72) hasn't revealed yet. */
+/** All hidden cells: the progressive reveal of fog, and cells that a dynamic rule (#72) has not revealed. */
 export const hiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
     const fog = fogHiddenCells(puzzle, lookup);
-    // A cell that isn't on the board yet is also hidden, so nothing about it can leak.
+    // A cell that is not on the board yet is also hidden, so no information about it can leak.
     const byRules = new Set([...ruleHiddenCells(puzzle, lookup), ...ruleAbsentCells(puzzle, lookup)]);
     return byRules.size === 0 ? fog : new Set([...fog, ...byRules]);
 };
@@ -54,11 +53,11 @@ const fogHiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySe
     const declaredSet = new Set(declared.filter((c) => geometry.has(c)));
 
     const revealed = new Set<CellId>();
-    // A cell is a propagation source only once it actually holds its
-    // correct value: outside the declared set, that means non-given and
-    // player-filled; inside it, that means already revealed (a hidden given
-    // always qualifies the moment it's revealed; a hidden non-given cell
-    // only once the player has also filled it in).
+    // A cell is a propagation source only when it holds its correct value.
+    // Outside the declared set, that means non-given and filled in by the player.
+    // Inside the declared set, that means already revealed.
+    // A hidden given qualifies when it is revealed.
+    // A hidden non-given cell qualifies only after the player also fills it in.
     const isSource = (cell: CellId): boolean => {
         if (!isSolved(solution, lookup, cell)) return false;
         return declaredSet.has(cell) ? revealed.has(cell) : !(cell in puzzle.givens);
