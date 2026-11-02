@@ -1,0 +1,119 @@
+.solved-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg) 60%, transparent);
+    animation: solved-fade 0.25s ease-out;
+}
+
+/* The box of the board column. The dialog is centred in it, over the board. Clicks outside the dialog
+   fall through to the backdrop below, which closes it. */
+.solved-anchor {
+    position: absolute;
+    inset: 0;
+    z-index: 52;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.solved-dialog {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 2rem 3rem 1.6rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-lg);
+    box-shadow: 6px 6px 0 var(--stamp-shadow);
+    text-align: center;
+    animation: solved-pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.solved-icon {
+    color: var(--satisfied);
+}
+
+.solved-dialog h2 {
+    margin: 0;
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    font-size: 2.6rem;
+    line-height: 1.1;
+}
+
+.solved-time {
+    margin: 0;
+    font-size: 2rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.solved-best {
+    margin: 0;
+    min-height: 1.5em;
+    color: var(--ink-soft);
+}
+
+.solved-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.solved-confetti {
+    position: fixed;
+    inset: 0;
+    z-index: 51;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.solved-confetti span {
+    position: absolute;
+    top: -2vh;
+    width: 0.6rem;
+    height: 1rem;
+    border-radius: 1px;
+    opacity: 0;
+    animation: solved-fall linear forwards;
+}
+
+@keyframes solved-fall {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0);
+    }
+    85% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--drift), 110vh) rotate(var(--spin));
+    }
+}
+
+@keyframes solved-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+}
+
+@keyframes solved-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .solved-confetti {
+        display: none;
+    }
+    .solved-backdrop,
+    .solved-dialog {
+        animation: none;
+    }
+}

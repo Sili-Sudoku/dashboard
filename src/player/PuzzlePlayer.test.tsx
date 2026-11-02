@@ -616,7 +616,28 @@ describe("<PuzzlePlayer />", () => {
             fireEvent.click(screen.getByRole("button", { name: String(solution[cell]) }));
         });
 
-        expect(screen.getByText("Solved!")).toBeTruthy();
+        // the quiet strip in the sidebar, and the celebration dialog over the board
+        expect(screen.getAllByText("Solved!")).toHaveLength(2);
+        const dialog = screen.getByRole("dialog", { name: "Solved!" });
+        expect(dialog.textContent).toMatch(/\d:\d\d/); // the solve time
+
+        fireEvent.click(screen.getByRole("button", { name: "Keep looking" }));
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(screen.getAllByText("Solved!")).toHaveLength(1); // the strip stays
+    });
+
+    it("does not celebrate a puzzle that was already solved when it opened", () => {
+        const solved = render(<PuzzlePlayer puzzle={compiled()} />);
+        const solution = miniSudoku.solution as Record<string, number>;
+        solved.container.querySelectorAll<SVGRectElement>(".cell-bg").forEach((el, i) => {
+            const cell = `r${Math.floor(i / 4) + 1}c${(i % 4) + 1}`;
+            if (cell in (miniSudoku.givens ?? {})) return;
+            fireEvent.pointerDown(el);
+            fireEvent.click(screen.getByRole("button", { name: String(solution[cell]) }));
+        });
+        solved.unmount(); // progress is saved
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 
     it("the solve timer ticks up once a second while the puzzle is open", () => {
@@ -650,14 +671,14 @@ describe("<PuzzlePlayer />", () => {
                 fireEvent.click(screen.getByRole("button", { name: String(solution[cell]) }));
             });
 
-            expect(screen.getByText("0:05")).toBeTruthy();
+            expect(screen.getAllByText("0:05").length).toBeGreaterThan(0);
             expect(screen.getByText("best 0:05")).toBeTruthy();
 
             // More ticks do not move it. The timer is stopped, not only paused.
             act(() => {
                 vi.advanceTimersByTime(5000);
             });
-            expect(screen.getByText("0:05")).toBeTruthy();
+            expect(screen.getAllByText("0:05").length).toBeGreaterThan(0);
 
             const stats = JSON.parse(localStorage.getItem(statsStorageKey("mini-sudoku")) ?? "{}") as PuzzleStats;
             expect(stats.elapsedMs).toBe(5000);

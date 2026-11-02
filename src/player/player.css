@@ -14,6 +14,7 @@
 }
 
 .pp-board-col {
+    position: relative; /* the anchor of the solved dialog */
     flex: 1 1 420px;
     min-width: 300px;
     max-width: none;

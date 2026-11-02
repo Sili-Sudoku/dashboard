@@ -17,6 +17,7 @@ import NumberPad from "@/player/components/number-pad";
 import Controls from "@/player/components/controls";
 import ConstraintPanel from "@/player/components/constraint-panel";
 import HotkeyLegend from "@/player/components/hotkey-legend";
+import SolvedCelebration from "@/player/components/solved-celebration";
 
 import "./player.css";
 
@@ -88,6 +89,15 @@ export default function PuzzlePlayer({
         rootRef,
         externalHistory,
     );
+
+    // The celebration opens when the puzzle *becomes* solved during this visit. A puzzle that was already solved
+    // when the page loaded gets the quiet "Solved!" strip only.
+    const [wasComplete, setWasComplete] = useState(session.evaluation.complete);
+    const [celebrating, setCelebrating] = useState(false);
+    if (session.evaluation.complete !== wasComplete) {
+        setWasComplete(session.evaluation.complete);
+        setCelebrating(session.evaluation.complete);
+    }
 
     useEffect(() => {
         onSelectionChange?.(session.getSelection());
@@ -299,6 +309,14 @@ export default function PuzzlePlayer({
                         </>
                     }
                 />
+                {celebrating && (
+                    <SolvedCelebration
+                        time={formatElapsed(elapsedMs)}
+                        best={bestElapsedMs !== undefined ? formatElapsed(bestElapsedMs) : undefined}
+                        newBest={bestElapsedMs !== undefined && bestElapsedMs >= elapsedMs}
+                        onClose={() => setCelebrating(false)}
+                    />
+                )}
             </div>
 
             <aside className="pp-side">
