@@ -1,13 +1,14 @@
 /**
- * Minimum/maximum markers: the cell's value must be <= (minimum) or >=
- * (maximum) every orthogonal neighbor's value. Parameterized the same way
- * `parity.ts` parameterizes odd/even. Drawn as a small "<"/">"-style wedge
- * straddling the border with each neighbor (one per orthogonal side, not
- * just a single center glyph) — entirely inside the clue cell, set back from
- * the border so it never touches the grid line: a minimum's wedge tip sits
- * deepest in the clue cell with its wings nearest the border ("<", wide end
- * at the larger neighbor); a maximum's is mirrored, tip nearest the border
- * with its wings pulled further back (">", point at the smaller neighbor).
+ * Minimum/maximum markers: the value of the cell must be <= (minimum) or >=
+ * (maximum) the value of every orthogonal neighbor. The parameters work like
+ * those of odd/even in `parity.ts`. The marker is a small "<"/">"-style wedge
+ * at the border with each neighbor: one wedge for each orthogonal side, not
+ * one center glyph. Each wedge is fully inside the clue cell and set back from
+ * the border, so it does not touch the grid line.
+ * The wedge of a minimum has its tip deepest in the clue cell and its wings nearest
+ * the border ("<", wide end at the larger neighbor).
+ * The wedge of a maximum is the mirror: its tip is nearest the border
+ * and its wings are further back (">", point at the smaller neighbor).
  */
 
 import { requireCell, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
@@ -16,14 +17,14 @@ import type { VisualObject } from "@/runtime/puzzle.ts";
 
 const CHEVRON_HALF_WIDTH = 0.12;
 const CHEVRON_DEPTH = 0.1;
-/** Clear space kept between the chevron's outermost point and the cell border, so it
- *  never touches or crosses the grid line (and reads against plain paper). */
+/** Clear space between the outermost point of the chevron and the cell border.
+ *  The chevron does not touch or cross the grid line, and it reads against plain paper. */
 const BORDER_CLEARANCE = 0.09;
 
-/** `tipOffset`/`wingOffset` are signed distances from the cell/neighbor
- *  border along the line between their centers; 0 is the border itself and
- *  negative moves back into `cellCenter`'s cell, so both stay below
- *  -BORDER_CLEARANCE to keep the whole wedge off the line. */
+/** `tipOffset`/`wingOffset` are signed distances from the border between the cell and the neighbor.
+ *  They follow the line between the two centers. 0 is the border itself.
+ *  A negative value moves back into the cell of `cellCenter`.
+ *  Both must stay below -BORDER_CLEARANCE, so the whole wedge stays off the line. */
 const chevron = (cellCenter: Point, neighborCenter: Point, tipOffset: number, wingOffset: number): VisualObject => {
     const dx = neighborCenter.x - cellCenter.x;
     const dy = neighborCenter.y - cellCenter.y;

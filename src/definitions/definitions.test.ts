@@ -113,8 +113,8 @@ describe("arrow definition", () => {
         const wideDomain: CompileContext = { ...ctx(), domain: Array.from({ length: 25 }, (_, i) => i + 1) };
         const out = arrow({ bulb: ["r1c1", "r1c2"], cells: ["r2c1", "r2c2"] }, wideDomain);
         if (out instanceof Error) throw out;
-        // base 26 (max domain value 25, plus one), not base 10 — otherwise a
-        // bulb cell holding e.g. 12 would collide with the ones column.
+        // The base is 26 (max domain value 25, plus one), not 10.
+        // With base 10, a bulb cell that holds 12 would collide with the ones column.
         expect(out.constraints[0].expr).toEqual([
             "==",
             ["sum", ["cells", ["r2c1", "r2c2"]]],

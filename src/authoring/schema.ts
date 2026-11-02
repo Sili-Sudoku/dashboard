@@ -1,8 +1,8 @@
 /**
- * What the visual puzzle builder (#54) knows about each definition: a small set of field kinds a
+ * What the visual puzzle builder (#54) knows about each definition: a small set of field kinds that a
  * generic palette/form can render. Each definition declares its own (`definition.schema`, see
- * src/definitions/types.ts), so adding a variant is one place; this module just gathers them
- * from a registry and holds the helpers that work on them.
+ * src/definitions/types.ts), so one place adds a variant. This module gathers the schemas
+ * from a registry and holds the helper functions that work on them.
  */
 
 import type { AuthoringField, DefinitionRegistry, DefinitionSchema } from "@/definitions/types.ts";
@@ -14,7 +14,7 @@ import { describeExpr } from "@/authoring/rule_tree.ts";
 export type { AuthoringField };
 
 export interface AuthoringSchema extends DefinitionSchema {
-    /** Registry key — the "use" value written into the constraint. */
+    /** Registry key: the "use" value written into the constraint. */
     name: string;
 }
 
@@ -28,7 +28,7 @@ export const authoringSchemasOf = (registry: DefinitionRegistry): AuthoringSchem
 
 export const AUTHORING_SCHEMAS: readonly AuthoringSchema[] = authoringSchemasOf(definitions);
 
-/** Only the fields a board click can fill — "number"/"boolean"/"numberList" are typed in, not clicked. */
+/** Only the fields that a board click can fill. The user types "number"/"boolean"/"numberList" fields. */
 export const cellFieldsOf = (schema: AuthoringSchema): AuthoringField[] =>
     schema.fields.filter((f) => f.kind === "cell" || f.kind === "cells");
 
@@ -52,8 +52,8 @@ export const isFieldComplete = (field: AuthoringField, value: FieldValue): boole
 export const isSchemaComplete = (schema: AuthoringSchema, values: Readonly<Record<string, FieldValue>>): boolean =>
     schema.fields.every((f) => isFieldComplete(f, values[f.key]));
 
-/** Omits a value equal to its own definition-side default, so a freshly-placed
- *  constraint's JSON stays minimal instead of echoing back every default. */
+/** Omits a value equal to the default of its definition, so the JSON of a freshly placed
+ *  constraint stays minimal and does not echo back every default. */
 export const buildConstraintParams = (
     schema: AuthoringSchema,
     values: Readonly<Record<string, FieldValue>>,
@@ -86,7 +86,7 @@ export const buildConstraintParams = (
 export const summarizeConstraint = (spec: ConstraintSpec): string => {
     if (isNamedRule(spec)) return spec.name?.trim() || describeExpr(spec.rule);
     if (!isDefinitionRef(spec)) return describeExpr(spec as Expr);
-    // The per-instance look (#132) shows on the board, not in the one-line summary.
+    // The look of each instance (#132) shows on the board, not in the one-line summary.
     const { use, color: _color, style: _style, ...rest } = spec;
     void _color;
     void _style;

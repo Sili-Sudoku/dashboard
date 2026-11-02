@@ -1,10 +1,9 @@
 /**
- * Odd/even markers: the cell's value must be odd (or even). Computed against
- * the puzzle's actual domain rather than assuming 1-9, so it works for any
- * domain size. Drawn the conventional way: a small gray filled circle (odd)
- * or square (even) under the digit — behind it in z-order already, since the
- * renderer always draws digits after constraint shapes, so this doesn't need
- * its own z tweak to stay legible.
+ * Odd/even markers: the value of the cell must be odd (or even). The definition
+ * uses the domain of the puzzle and does not assume 1-9, so it works for any
+ * domain size. The marker is a small gray filled circle (odd) or square (even)
+ * under the digit. It is already behind the digit in z-order, because the
+ * renderer always draws digits after constraint shapes. It needs no z change.
  */
 
 import {

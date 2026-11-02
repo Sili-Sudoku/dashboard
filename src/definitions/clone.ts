@@ -1,6 +1,6 @@
 /**
- * Clone: two equal-length cell regions whose values must match positionally
- * (the same shape repeated elsewhere on the grid).
+ * Clone: two cell regions of equal length. Their values must match by position
+ * (the same shape appears again in another place on the grid).
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";

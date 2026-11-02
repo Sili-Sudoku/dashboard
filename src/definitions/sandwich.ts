@@ -1,10 +1,9 @@
 /**
- * Sandwich sum: the cells strictly between wherever the domain's minimum and
- * maximum values land in a line (row/column) sum to a target. Which cells
- * that is isn't known until solve time, so this compiles to a conjunction
- * over every possible (min-position, max-position) pair in the line rather
- * than needing a new runtime primitive — the line is short and fixed at
- * compile time, so the pair count is small.
+ * Sandwich sum: the cells strictly between the minimum and maximum values of the domain
+ * in a line (row/column) sum to a target. The cells are not known until solve time.
+ * So the definition compiles to a conjunction over every possible (min-position,
+ * max-position) pair in the line. This needs no new runtime primitive.
+ * The line is short and fixed at compile time, so the pair count is small.
  */
 
 import { requireCellList, requireNumber, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";
@@ -36,8 +35,8 @@ export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | 
         }
     }
 
-    // The clue sits just outside the line, in line with it, before its first cell — which is
-    // beyond the grid for a full row/column, so the renderer grows a margin to fit it (#130).
+    // The clue is just outside the line, in line with it, before its first cell.
+    // For a full row/column this is beyond the grid, so the renderer adds a margin for it (#130).
     const first = ctx.geometry.center(cells[0]);
     const second = ctx.geometry.center(cells[1]);
     const length = Math.hypot(second.x - first.x, second.y - first.y) || 1;

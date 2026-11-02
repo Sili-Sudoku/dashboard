@@ -52,7 +52,7 @@ describe("style override helpers (#165)", () => {
         expect(drawsObjects({ use: "sudoku" }, def)).toBe(false);
         expect(drawsObjects({ use: "antiknight" }, def)).toBe(false);
         expect(drawsObjects({ use: "nonexistent" }, def)).toBe(false);
-        expect(drawsObjects({ use: "thermometer" }, def)).toBe(false); // incomplete: produces an error, so nothing
+        expect(drawsObjects({ use: "thermometer" }, def)).toBe(false); // incomplete: it produces an error, so it draws nothing
         expect(drawsObjects(["==", 1, 1], def)).toBe(false);
     });
 });

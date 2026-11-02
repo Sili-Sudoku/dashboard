@@ -1,10 +1,10 @@
 /**
- * XV: the two marked, orthogonally-adjacent cells sum to a target (10 for an
- * "X" marker, 5 for a "V" marker, in the usual convention — the target is just
- * a parameter here). Drawn the way SudokuPad does it: a plain, borderless,
- * fully-opaque white disc at the midpoint — just big enough to fully hide the
- * grid line underneath — with the letter on top, since the marker sits right
- * on the cell border where a grid line would otherwise cross through it.
+ * XV: the two marked, orthogonally adjacent cells sum to a target. By convention
+ * an "X" marker is 10 and a "V" marker is 5, but here the target is only a parameter.
+ * The drawing is the same as in SudokuPad: a plain, borderless, fully opaque
+ * white disc at the midpoint, just big enough to hide the grid line under it,
+ * with the letter on top. The marker is on the cell border, where a grid line
+ * would otherwise cross it.
  */
 
 import {

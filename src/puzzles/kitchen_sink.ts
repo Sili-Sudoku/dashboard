@@ -1,34 +1,32 @@
 /**
  * Variant-coverage showcase: one instance of every registered constraint
- * definition (plus diagonal regions via `sudoku`'s `extraRegions`, and
- * littlekillersum via `killer`'s `distinct: false`) on a single 9x9 board.
+ * definition on a single 9x9 board. It also covers diagonal regions (via `extraRegions` of `sudoku`)
+ * and littlekillersum (via `distinct: false` of `killer`).
  *
- * This is NOT a playable puzzle — there is no `solution` and no `givens`.
- * Several of the variants used here are global, whole-grid rules
- * (`antiknight`, `antiking`, `nonconsecutive`, `disjointgroups`, both
- * diagonals, on top of classic Sudoku) that are each individually reasonable
- * but, stacked together with everything else on this board, are not known to
- * share an actual completed grid — finding out would mean running the
- * project's solver as an oracle and iterating, which is a different, heavier
- * task than this file is for. The point here is purely to exercise every
- * definition's parameter *shape* against the compiler at once, as a reference
- * for what each variant's `ConstraintSpec` looks like in practice — see
- * `src/puzzles/kitchen_sink.test.ts`, which checks structural validity and
- * successful compilation, not solvability. For an actual playable composite
+ * This is NOT a playable puzzle. It has no `solution` and no `givens`.
+ * Several variants here are global, whole-grid rules (`antiknight`, `antiking`, `nonconsecutive`,
+ * `disjointgroups`, both diagonals, on top of classic Sudoku).
+ * Each rule is reasonable alone. Stacked together with everything else on this board,
+ * they are not known to share a completed grid.
+ * To find out, you must run the solver of the project as an oracle and iterate.
+ * That task is heavier than the purpose of this file, and different from it.
+ * This file exercises the parameter *shape* of every definition against the compiler at once.
+ * It is a reference for what each `ConstraintSpec` looks like in practice.
+ * See `src/puzzles/kitchen_sink.test.ts`. It checks structural validity and
+ * successful compilation, not solvability. For a playable composite
  * puzzle, see `demo_mixed.ts`.
  *
- * Placement care taken despite not needing a real solution: the two
- * equality-type variants (`palindrome`, `clone`) are placed so their forced-
- * equal cell pairs never share a row, column, box, diagonal, or
- * disjoint-group position, and are never a knight's or king's move apart —
- * otherwise they'd directly contradict one of the global allDifferent/
- * inequality rules by construction, independent of any specific values
- * (sloppy regardless of whether this board is ever solved). Likewise,
- * `kropkiDifference`'s value is set to 3, not the conventional default of 1:
- * a default-1 difference dot between two orthogonally-adjacent cells would
- * unconditionally contradict the also-present global `nonconsecutive` rule
- * (one requires that pair's difference be exactly 1, the other forbids it),
- * which is a real logical impossibility, not just an unsolved board.
+ * Placement care, although the board needs no real solution:
+ * The two equality-type variants (`palindrome`, `clone`) are placed so that their forced-equal
+ * cell pairs never share a row, column, box, diagonal or disjoint-group position.
+ * The pairs are also never a knight's or king's move apart.
+ * Otherwise they contradict a global allDifferent/inequality rule by construction,
+ * for any values (sloppy even if the board is never solved).
+ * Also, `kropkiDifference` has value 3, not the conventional default of 1.
+ * A default-1 difference dot between two orthogonally-adjacent cells
+ * always contradicts the global `nonconsecutive` rule that is also present.
+ * One rule requires a difference of exactly 1 for that pair and the other forbids it.
+ * This is a real logical impossibility, not just an unsolved board.
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
@@ -86,7 +84,7 @@ export const kitchenSink: PuzzleDefinition = {
         { use: "nonconsecutive" },
         { use: "disjointgroups" },
 
-        // Killer cage, and littlekillersum reusing killer with distinct:false
+        // Killer cage, and littlekillersum that reuses killer with distinct:false
         // (a diagonal-shaped run of cells, summed but not required distinct).
         { use: "killer", cells: ["r2c1", "r2c2", "r3c1"], sum: 15 },
         { use: "killer", cells: ["r1c6", "r2c7", "r3c8", "r4c9"], sum: 20, distinct: false },
@@ -94,14 +92,14 @@ export const kitchenSink: PuzzleDefinition = {
         { use: "thermometer", cells: ["r4c1", "r5c1", "r6c1"] },
         { use: "arrow", bulb: "r9c6", cells: ["r9c7", "r9c8"] },
 
-        // value: 3, not the conventional 1 — see header comment.
+        // value: 3, not the conventional 1. See header comment.
         { use: "kropkiDifference", cells: ["r1c7", "r1c8"], value: 3 },
         { use: "kropkiRatio", cells: ["r7c5", "r7c6"] },
 
         { use: "odd", cell: "r3c4" },
         { use: "even", cell: "r3c5" },
 
-        // Mirror pairs (r2c3,r7c8) and (r4c2,r6c7); r5c5 is the unconstrained
+        // Mirror pairs (r2c3,r7c8) and (r4c2,r6c7). r5c5 is the unconstrained
         // center. See header comment for why these specific cells.
         { use: "palindrome", cells: ["r2c3", "r4c2", "r5c5", "r6c7", "r7c8"] },
 
@@ -118,8 +116,8 @@ export const kitchenSink: PuzzleDefinition = {
 
         { use: "betweenline", cells: ["r5c7", "r5c8", "r5c9"] },
 
-        // "Negative" global exclusions, excluding the pairs already explicitly
-        // dotted/marked above — see src/definitions/negative.ts.
+        // "Negative" global exclusions. They exclude the pairs already explicitly
+        // dotted/marked above. See src/definitions/negative.ts.
         { use: "negativeDifference", excludePairs: [["r1c7", "r1c8"]] },
         { use: "negativeRatio", excludePairs: [["r7c5", "r7c6"]] },
         { use: "negativeXV", excludePairs: [["r4c6", "r4c7"]] },

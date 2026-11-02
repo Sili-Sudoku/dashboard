@@ -1,10 +1,9 @@
 /**
- * A tiny fluent builder for puzzle artifacts — the "creator experience" seam.
+ * A small fluent builder for puzzle artifacts. It is the "creator experience" seam.
  *
- * It produces a plain `PuzzleDefinition` (the same JSON you could type by hand),
- * so "publishing" is just `build()` followed by serialization. A full authoring
- * UI would sit on top of this; it is deliberately not one.
- *
+ * It produces a plain `PuzzleDefinition` (the same JSON you can type by hand).
+ * So "publishing" is `build()` followed by serialization. A full authoring
+ * UI can sit on top of this. This builder is deliberately not that UI.
  *   const artifact = PuzzleBuilder.create("my-puzzle", "My Puzzle")
  *       .grid(9, 9)
  *       .domain([1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -50,7 +49,7 @@ export class PuzzleBuilder {
         return this;
     }
 
-    /** Any geometry: e.g. several grids composed into one space (`{ type: "composite", grids: [...] }`). */
+    /** Any geometry, for example several grids composed into one space (`{ type: "composite", grids: [...] }`). */
     geometry(spec: GeometrySpec): this {
         this.geometrySpec = spec;
         return this;
@@ -82,7 +81,7 @@ export class PuzzleBuilder {
         return this;
     }
 
-    /** Add a definition reference, e.g. use("killer", { cells: [...], sum: 20 }). */
+    /** Add a definition reference, for example use("killer", { cells: [...], sum: 20 }). */
     use(name: string, params: Readonly<Record<string, unknown>> = {}): this {
         this.constraintList.push({ use: name, ...params });
         return this;
@@ -93,13 +92,13 @@ export class PuzzleBuilder {
         return this;
     }
 
-    /** Cells hidden behind fog at the start (needs a `solution` to reveal against). */
+    /** Cells hidden behind fog at the start. Needs a `solution` to reveal against. */
     fog(hidden: readonly CellId[]): this {
         this.fogHidden = hidden;
         return this;
     }
 
-    /** A dynamic rule: effects that depend on the board's current state (see `PuzzleRule`). */
+    /** A dynamic rule: its effects depend on the current state of the board (see `PuzzleRule`). */
     rule(rule: PuzzleRule): this {
         this.ruleList.push(rule);
         return this;

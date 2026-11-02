@@ -1,10 +1,10 @@
 /**
- * A "definition" is a puzzle-author package: a pure function that turns a few
+ * A "definition" is a package for a puzzle author: a pure function that turns a few
  * parameters into primitive constraints (and optionally visual objects).
  *
- * Definitions live entirely on top of the runtime. `compilePuzzle` receives the
- * registry as an argument rather than importing it, so the runtime has no build
- * dependency on any specific variant. Delete this whole folder and puzzles
+ * Definitions are fully on top of the runtime. `compilePuzzle` gets the
+ * registry as an argument and does not import it. So the runtime has no build
+ * dependency on any specific variant. If you delete this whole folder, puzzles
  * written in primitive constraints still load and play.
  */
 
@@ -29,11 +29,12 @@ export interface DefinitionOutput {
 }
 
 /**
- * How the Visual tab lets an author place a definition: the fields of its `params` as a few
- * kinds a generic palette/form can render. Optional and declared with the definition itself
- * (`thermometer.schema = {...}` beside the function), so a definition that travels — a shared
- * variant — brings its builder support with it. Plain data, nothing more. A definition without
- * one still works everywhere; it just isn't offered in the palette.
+ * How the Visual tab lets an author place a definition. It lists the fields of its `params`
+ * as a few kinds that a generic palette/form can render. The schema is optional. It is declared
+ * with the definition (`thermometer.schema = {...}` next to the function). So a definition that
+ * moves to another place, such as a shared variant, brings its builder support with it.
+ * The schema is plain data only. A definition without a schema still works everywhere.
+ * The palette does not offer it.
  */
 export type AuthoringField =
     | { kind: "cell"; key: string; label: string }

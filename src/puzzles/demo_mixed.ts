@@ -1,11 +1,11 @@
 /**
- * The demonstration puzzle: one 9x9 board carrying four independent constraint
- * systems at once — classic Sudoku, a killer cage, a thermometer and an arrow —
- * each supplied as a definition reference, none known to the engine.
+ * The demonstration puzzle: one 9x9 board with four independent constraint
+ * systems at once: classic Sudoku, a killer cage, a thermometer and an arrow.
+ * Each is a definition reference. The engine knows none of them.
  *
- * Base clues are the canonical Sudoku puzzle with two clues removed (r1c2, r3c8)
- * so the cage and thermometer do real work. The variant constraints are all
- * consistent with the single solution in `solution`.
+ * Base clues are the canonical Sudoku puzzle with two clues removed (r1c2, r3c8),
+ * so the cage and thermometer do real work. All variant constraints
+ * are consistent with the single solution in `solution`.
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";

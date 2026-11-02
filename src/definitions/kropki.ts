@@ -1,8 +1,8 @@
 /**
- * Kropki dots between two cells: a white/"difference" dot means the two
- * values differ by exactly `value` (default 1, i.e. consecutive); a
- * black/"ratio" dot means one is exactly `value` times the other (default 2).
- * Draws the dot at the midpoint between the two cells.
+ * Kropki dots between two cells. A white/"difference" dot means that the two
+ * values differ by exactly `value` (default 1, that is consecutive).
+ * A black/"ratio" dot means that one value is exactly `value` times the other (default 2).
+ * The definition draws the dot at the midpoint between the two cells.
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";
@@ -29,10 +29,10 @@ const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): Cons
         const ca = ctx.geometry.center(a);
         const cb = ctx.geometry.center(b);
         const mid = { x: (ca.x + cb.x) / 2, y: (ca.y + cb.y) / 2 };
-        // Deliberately fixed black/white, not theme-aware "ink": the dot's
-        // color *is* the clue (white = difference, black = ratio), so it
-        // can't follow --ink into dark mode without the two becoming the
-        // same near-white and losing the distinction they exist to draw.
+        // The colors are fixed black and white on purpose, not the theme "ink".
+        // The color of the dot is the clue (white = difference, black = ratio).
+        // If it followed --ink into dark mode, both dots would become the same
+        // near-white, and the distinction between them would be lost.
         const isCustomValue = value !== defaultValue;
         const objects: VisualObject[] = [
             {
@@ -45,10 +45,9 @@ const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): Cons
                         : { fill: "#000", stroke: "#000", strokeWidth: 0.02, z: 3 },
             },
         ];
-        // A non-default value is invisible without a label — only the
-        // conventional default (1 for difference, 2 for ratio) is implied by
-        // the plain dot, same as a real f-puzzles export shows a digit here
-        // once the value departs from that default.
+        // A non-default value is not visible without a label.
+        // The plain dot implies only the usual default (1 for difference, 2 for ratio).
+        // A real f-puzzles export also shows a digit here when the value is not the default.
         if (isCustomValue) {
             objects.push({
                 kind: "text",

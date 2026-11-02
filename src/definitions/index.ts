@@ -1,13 +1,13 @@
 /**
  * The built-in definition registry.
  *
- * This is a plain lookup table passed to `compilePuzzle`. Nothing in
- * `src/runtime` imports it. Adding a variant is: write a function, add a line
- * here. Removing every entry leaves the runtime fully functional for puzzles
- * authored in primitive constraints.
+ * This is a plain lookup table that goes to `compilePuzzle`. Nothing in
+ * `src/runtime` imports it. To add a variant, write a function and add a line
+ * here. If you remove every entry, the runtime still works fully for puzzles
+ * written in primitive constraints.
  *
- * A definition can also declare how the visual builder places it (`definition.schema`, see types.ts),
- * right beside its function — no second table to keep in step.
+ * A definition can also declare how the visual builder places it (`definition.schema`, see types.ts).
+ * The schema is next to the function, so there is no second table to keep in step.
  */
 
 import type { DefinitionRegistry } from "@/definitions/types.ts";

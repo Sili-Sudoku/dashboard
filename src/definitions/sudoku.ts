@@ -1,9 +1,9 @@
 /**
- * Classic Sudoku, expressed as generic constraints:
+ * Classic Sudoku, written as generic constraints:
  *   every row, column and box is `allDifferent`.
  *
- * The engine is not consulted about "Sudoku" anywhere. This function just reads
- * the geometry's region selectors and emits one primitive per group.
+ * The engine does not know "Sudoku". This function only reads
+ * the region selectors of the geometry and emits one primitive for each group.
  */
 
 import type { ConstraintDefinition, DefinitionOutput } from "@/definitions/types.ts";
@@ -28,10 +28,10 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
             return new Error(`sudoku: unknown extra region "${sel}"`);
         }
         selectors.push(sel);
-        // "diagonal:*" is this project's naming convention for the two main
-        // diagonals (see fpuzzles.ts's importer and kitchen_sink.ts) — draw the
-        // line the same way a thermometer/palindrome draws its path, since
-        // nothing else would otherwise show this region on the board at all.
+        // "diagonal:*" is the naming convention of this project for the two main
+        // diagonals (see the importer in fpuzzles.ts and kitchen_sink.ts).
+        // Draw the line in the same way as the path of a thermometer/palindrome.
+        // Without it, nothing shows this region on the board.
         if (sel.startsWith("diagonal:")) {
             objects.push({ kind: "path", cells: [...cells], style: { stroke: "var(--diagonal)", strokeWidth: 0.12, z: 1 } });
         }

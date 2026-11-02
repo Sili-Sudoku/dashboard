@@ -1,11 +1,11 @@
 /**
- * The expression tree behind the visual builder's custom-rule editor (#127): a rule being built,
- * slot by slot, out of the runtime's primitive operators (see `operators.ts`). Pure data and pure
- * functions — the UI is a thin recursive view over it, and `toExpr` turns a finished tree into
- * exactly the `Expr` a hand-written constraint would be.
+ * The expression tree behind the custom-rule editor of the visual builder (#127): a rule that the user builds,
+ * slot by slot, from the primitive operators of the runtime (see `operators.ts`). It is pure data and pure
+ * functions. The UI is a thin recursive view over it. `toExpr` turns a finished tree into
+ * exactly the `Expr` that a hand-written constraint gives.
  *
- * A slot that hasn't been chosen yet is `null`. A path addresses a node by the argument indexes
- * leading down from the root (`[]` is the root itself).
+ * A slot that is not chosen yet is `null`. A path addresses a node by the argument indexes
+ * from the root down (`[]` is the root itself).
  */
 
 import {
@@ -23,7 +23,7 @@ export type RuleNode =
     /** A group of cells: picked on the board, or a named region/selector such as "row:0". */
     | { k: "cells"; cells: readonly string[]; selector: string }
     | { k: "cell"; cell: string | undefined }
-    /** `$`: the value of the cell a `count` is looking at. */
+    /** `$`: the value of the cell that a `count` examines. */
     | { k: "each" };
 
 export type Path = readonly number[];
@@ -66,7 +66,7 @@ export const getAt = (root: RuleNode | null, path: Path): RuleNode | null => {
     return node;
 };
 
-/** What the slot at `path` accepts, or undefined if there's no such slot. */
+/** What the slot at `path` accepts, or undefined if there is no such slot. */
 export const specAt = (root: RuleNode | null, path: Path): SlotSpec | undefined => {
     if (path.length === 0) return ROOT_SLOT;
     const parent = getAt(root, path.slice(0, -1));
@@ -76,7 +76,7 @@ export const specAt = (root: RuleNode | null, path: Path): SlotSpec | undefined 
     return sig && index < parent.args.length ? argSpec(sig, index) : undefined;
 };
 
-/** A copy of the tree with the node at `path` replaced (an op replaced by another keeps nothing of the old). */
+/** A copy of the tree with the node at `path` replaced (a replacement op keeps nothing of the old one). */
 export const setAt = (root: RuleNode | null, path: Path, node: RuleNode | null): RuleNode | null => {
     if (path.length === 0) return node;
     if (!root || root.k !== "op") return root;
@@ -94,7 +94,7 @@ export const addArg = (root: RuleNode | null, path: Path): RuleNode | null => {
     return setAt(root, path, { ...node, args: [...node.args, null] });
 };
 
-/** Takes slot `index` off a variadic operator, as long as it keeps the minimum it needs. */
+/** Removes slot `index` from a variadic operator, as long as it keeps the minimum number of slots it needs. */
 export const removeArg = (root: RuleNode | null, path: Path, index: number): RuleNode | null => {
     const node = getAt(root, path);
     const sig = node && node.k === "op" ? signatureOf(node.name) : undefined;
@@ -138,7 +138,7 @@ export const toExpr = (node: RuleNode): Expr => {
     }
 };
 
-/** Whether `$` makes sense under this path: only inside the per-cell rule of a `count`. */
+/** Whether `$` has meaning under this path: only inside the per-cell rule of a `count`. */
 export const bindsEachAt = (root: RuleNode | null, path: Path): boolean => {
     for (let depth = 0; depth < path.length; depth++) {
         const parent = getAt(root, path.slice(0, depth));
@@ -156,7 +156,7 @@ const SYMBOLS: Record<string, string> = { "==": "=", "!=": "≠", "<=": "≤", "
 const cellList = (cells: readonly unknown[]): string =>
     cells.length <= 4 ? cells.join(", ") : `${cells[0]}…${cells[cells.length - 1]} (${cells.length} cells)`;
 
-/** A short human reading of an expression, for the list of what's in the puzzle. */
+/** A short human reading of an expression, for the list of what is in the puzzle. */
 export const describeExpr = (expr: Expr): string => {
     if (!Array.isArray(expr)) return String(expr);
     const [head, ...args] = expr as readonly Expr[];

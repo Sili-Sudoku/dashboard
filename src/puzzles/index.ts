@@ -1,6 +1,6 @@
 /**
- * The development puzzle registry: a plain map of id -> artifact. This stands in
- * for a future database or content service. `/p/<id>` resolves here; `/p/<blob>`
+ * The development puzzle registry: a plain map of id -> artifact. It stands in
+ * for a future database or content service. `/p/<id>` resolves here. `/p/<blob>`
  * decodes an artifact straight from the URL.
  */
 

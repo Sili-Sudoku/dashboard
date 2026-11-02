@@ -8,7 +8,10 @@ import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 /** Run printed code the way the Author page's Run button does. */
 const run = (code: string): PuzzleDefinition => new Function("PuzzleBuilder", code)(PuzzleBuilder) as PuzzleDefinition;
-/** The JSON form of a puzzle, with empty `givens`/`regions` treated as absent (the builder never emits them; same meaning). */
+/**
+ * The JSON form of a puzzle, with empty `givens`/`regions` treated as absent.
+ * The builder never emits them. They have the same meaning.
+ */
 const json = (def: PuzzleDefinition): unknown => {
     const copy = JSON.parse(JSON.stringify(def)) as Record<string, unknown>;
     for (const key of ["givens", "regions"]) {

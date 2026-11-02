@@ -1,9 +1,10 @@
 /**
- * Dynamic rules (#72) in a 4x4 Sudoku that starts as a 4x3 board: the bottom row does not exist (not drawn,
- * not selectable) until the three rows above it are filled with distinct digits, and a
- * green line lights the left column once it is. Each `when` is an ordinary expression over the board, so
- * the same language that writes constraints also writes triggers; nothing is stored, and the board
- * shows exactly what the current digits say (undo a digit and the bottom row vanishes again).
+ * Dynamic rules (#72) in a 4x4 Sudoku that starts as a 4x3 board.
+ * The bottom row does not exist (not drawn, not selectable) until the three rows above it
+ * are filled with distinct digits. Then a green line lights the left column.
+ * Each `when` is an ordinary expression over the board. The same language that writes constraints
+ * also writes triggers. Nothing is stored. The board
+ * shows what the current digits say (undo a digit and the bottom row vanishes again).
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";

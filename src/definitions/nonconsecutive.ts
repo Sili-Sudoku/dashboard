@@ -1,8 +1,8 @@
 /**
- * Nonconsecutive: no two orthogonally-adjacent cells hold consecutive values.
- * Applies globally. Unlike antiknight/antiking, this only needs `Geometry`'s
- * generic `neighbors()`, so it works on any geometry with an orthogonal notion
- * of adjacency, not just grids.
+ * Nonconsecutive: no two orthogonally adjacent cells hold consecutive values.
+ * It applies to the whole grid. Unlike antiknight/antiking, it needs only the generic
+ * `neighbors()` of `Geometry`. So it works on any geometry that has orthogonal
+ * adjacency, not only grids.
  */
 
 import type { ConstraintDefinition, DefinitionOutput, EmittedConstraint } from "@/definitions/types.ts";

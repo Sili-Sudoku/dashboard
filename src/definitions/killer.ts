@@ -1,11 +1,11 @@
 /**
  * Killer cage: the cells are all different and (optionally) sum to a target.
- * Contributes a dashed "cage" outline with the sum printed in the corner.
+ * The definition adds a dashed "cage" outline with the sum in the corner.
  *
- * `distinct: false` turns this into a plain sum-only clue (no allDifferent) —
- * e.g. a "little killer" diagonal, whose cells aren't necessarily already
- * distinct the way a cage's cells are. Drawn as a sum label at the first cell
- * instead of a cage outline, since there's no enclosed region to outline.
+ * `distinct: false` makes this a plain sum-only clue (no allDifferent).
+ * An example is a "little killer" diagonal. Its cells are not always distinct,
+ * unlike the cells of a cage. The definition draws a sum label at the first cell
+ * and no cage outline, because there is no enclosed region to outline.
  */
 
 import {

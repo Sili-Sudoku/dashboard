@@ -1,6 +1,6 @@
 /**
- * Antiking: no two cells a chess king's-move apart (including diagonals) share
- * a value. Applies globally across the whole grid, same shape as `antiknight`.
+ * Antiking: no two cells a chess king's move apart (including diagonals) share
+ * a value. It applies to the whole grid, like `antiknight`.
  */
 
 import type { ConstraintDefinition, DefinitionOutput, EmittedConstraint } from "@/definitions/types.ts";

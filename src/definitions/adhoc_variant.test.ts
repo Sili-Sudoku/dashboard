@@ -7,8 +7,8 @@ import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 /**
  * "German Whispers": along a line, every adjacent pair of digits differs by >= 5.
- * This variant is NOT in src/definitions. It is written straight into the puzzle
- * as primitive constraints — no engine change, no definition, no registry entry.
+ * This variant is NOT in src/definitions. The test writes it directly into the puzzle
+ * as primitive constraints. It needs no engine change, no definition, and no registry entry.
  */
 const whisperPair = (a: string, b: string) => [
     "or",

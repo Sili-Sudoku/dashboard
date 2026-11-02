@@ -1,8 +1,8 @@
 /**
- * Reading and writing a placed constraint's own look (#132/#165): the `color` and `style` fields any
- * definition reference can carry (see `restyle` in compile.ts). The visual builder only edits the
- * three that mean something without knowing the definition: colour, dashed, opacity. Anything else
- * already in `style` (set in JSON) is left untouched.
+ * Read and write the own look of a placed constraint (#132/#165): the `color` and `style` fields that any
+ * definition reference can carry (see `restyle` in compile.ts). The visual builder edits only the
+ * three fields that have meaning without knowledge of the definition: colour, dashed, opacity.
+ * It does not change anything else already in `style` (set in JSON).
  */
 
 import { definitions } from "@/definitions/index.ts";
@@ -14,7 +14,7 @@ export interface StyleOverride {
     dashed?: boolean;
     opacity?: number;
     pattern?: PatternName;
-    /** A picture filling the shape: a data: URL when uploaded in the builder. Excludes `pattern`. */
+    /** A picture that fills the shape: a data: URL when uploaded in the builder. Excludes `pattern`. */
     image?: string;
 }
 
@@ -37,12 +37,12 @@ export const readOverride = (spec: ConstraintSpec): StyleOverride => {
     };
 };
 
-/** The spec with `patch` applied; a key set to `undefined` goes back to the definition's own look. */
+/** The spec with `patch` applied. A key set to `undefined` goes back to the look of the definition. */
 export const withOverride = (spec: Ref, patch: Partial<Record<keyof StyleOverride, unknown>>): Ref => {
     const { color, style: _style, ...rest } = spec;
     void _style;
     const nextStyle: Record<string, unknown> = { ...styleOf(spec) };
-    // A pattern and a picture both replace the fill, so choosing one drops the other.
+    // A pattern and a picture both replace the fill, so a choice of one drops the other.
     const exclusive = patch.pattern !== undefined ? "image" : patch.image !== undefined ? "pattern" : undefined;
     if (exclusive) delete nextStyle[exclusive];
     for (const key of ["dashed", "opacity", "pattern", "image"] as const) {

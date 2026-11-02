@@ -1,11 +1,12 @@
 /**
- * The inverse of running PuzzleBuilder code: print a `PuzzleDefinition` as the
- * `PuzzleBuilder` calls that rebuild it, so the Author page's Code tab can show the
- * puzzle that is actually loaded (kept in sync with the JSON and Visual tabs) and
- * not a fixed sample. Round-trip exactness — running the printed code yields a
- * definition equal to the input — is pinned by to_code.test.ts across every puzzle
- * in the repo, so a new definition field can't be silently dropped without a test
- * failing (the builder gets a method for it, and this function prints it).
+ * The inverse of running PuzzleBuilder code. It prints a `PuzzleDefinition` as the
+ * `PuzzleBuilder` calls that rebuild it.
+ * The Author page's Code tab uses it to show the puzzle that is loaded, not a fixed sample.
+ * The code stays in sync with the JSON and Visual tabs.
+ * to_code.test.ts pins round-trip exactness: running the printed code gives a definition equal to the input.
+ * The test covers every puzzle in the repo.
+ * So a new definition field cannot be dropped silently. The test fails until the builder gets a method for it
+ * and this function prints it.
  */
 
 import { givensFromRows } from "@/puzzles/grid_text.ts";
@@ -32,8 +33,8 @@ const sameCells = (a: Readonly<Record<CellId, number>>, b: Readonly<Record<CellI
 };
 
 /**
- * A 9x9-style row picture ("5.3.." per row) when the cell map is single-digit values
- * on a grid, else undefined. Only used when reading the rows back gives the same map.
+ * A 9x9-style row picture ("5.3.." per row) when the cell map has single-digit values
+ * on a grid. Otherwise undefined. Used only when reading the rows back gives the same map.
  */
 const asRows = (map: Readonly<Record<CellId, number>>, width: number, height: number): string[] | undefined => {
     const rows: string[] = [];
@@ -53,7 +54,7 @@ const asRows = (map: Readonly<Record<CellId, number>>, width: number, height: nu
 export const puzzleToCode = (def: PuzzleDefinition): string => {
     const { id, title, ...rest } = def.metadata;
     const calls: string[] = [];
-    // The row-text shorthand only exists for a single grid; elsewhere cells are listed one by one.
+    // The row-text shorthand exists only for a single grid. Elsewhere, the code lists cells one by one.
     const grid = def.geometry.type === "grid" ? def.geometry : undefined;
 
     if (Object.keys(rest).length > 0) calls.push(`.describe(${literal(rest)})`);

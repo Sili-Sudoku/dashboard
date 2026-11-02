@@ -1,14 +1,15 @@
 /**
- * Samurai Sudoku: five 9x9 grids in one 21x21 space, the four corner grids
- * each sharing a 3x3 box with the centre one. It shows the composite geometry — each grid brings
- * its own rows, columns and boxes, so `{ use: "sudoku" }` constrains all five without being told
- * where they are, and the shared boxes are single cells that belong to both grids.
+ * Samurai Sudoku: five 9x9 grids in one 21x21 space.
+ * Each of the four corner grids shares a 3x3 box with the centre grid.
+ * It shows the composite geometry. Each grid brings its own rows, columns and boxes.
+ * So `{ use: "sudoku" }` constrains all five grids and needs no cell positions.
+ * Each shared box is made of single cells that belong to both grids.
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { givensFromRows } from "@/puzzles/grid_text.ts";
 
-/** 21 columns by 21 rows of the shared space; "." is a cell that is not there (or no given). */
+/** 21 columns by 21 rows of the shared space. "." is a cell that is not there (or no given). */
 const SOLUTION = [
     "123456789...351246789",
     "456789123...672589134",

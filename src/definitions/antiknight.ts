@@ -1,9 +1,9 @@
 /**
- * Antiknight: no two cells a chess knight's-move apart share a value. Applies
- * globally across the whole grid — there is no per-clue cell list. This is a
- * grid/chess concept (not every `Geometry` has a well-defined knight move), so
- * it leans on grid cell-id parsing directly, the same way `sudoku.ts` leans on
- * `row:`/`col:`/`box:` selectors without the engine needing to know Sudoku.
+ * Antiknight: no two cells a chess knight's move apart share a value.
+ * It applies to the whole grid. There is no cell list per clue.
+ * This is a grid concept: not every `Geometry` has a defined knight move.
+ * So it parses grid cell ids directly. `sudoku.ts` uses `row:`/`col:`/`box:`
+ * selectors in the same way, and the engine does not need to know Sudoku.
  */
 
 import type { ConstraintDefinition, DefinitionOutput, EmittedConstraint } from "@/definitions/types.ts";

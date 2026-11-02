@@ -1,14 +1,12 @@
 /**
- * Global "negative" constraints: for every orthogonally-adjacent cell pair
- * that is NOT already covered by an explicit clue of the same kind, assert
- * the pair does NOT satisfy that clue's relation (f-puzzles' top-level
- * "negative" flag, e.g. negative:["ratio"] means every undotted adjacent
- * pair is guaranteed not to be in a 2:1 ratio).
+ * Global "negative" constraints: for every orthogonally adjacent cell pair
+ * that no explicit clue of the same kind covers, assert that the pair does NOT
+ * satisfy the relation of that clue. This is the top-level "negative" flag of f-puzzles.
+ * For example, negative:["ratio"] means that no undotted adjacent pair has a 2:1 ratio.
  *
- * The importer (`src/interop/fpuzzles.ts`) is the one place that knows which
- * pairs are "already covered" by an explicit kropki/xv clue; it passes that
- * set in as `excludePairs` so these definitions stay generic and don't need
- * to know about other constraints in the puzzle.
+ * Only the importer (`src/interop/fpuzzles.ts`) knows which pairs an explicit
+ * kropki/xv clue already covers. It passes that set in as `excludePairs`.
+ * So these definitions stay generic and do not need to know about other constraints.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";

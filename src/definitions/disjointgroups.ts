@@ -1,8 +1,8 @@
 /**
  * Disjoint groups: cell N of every box holds a different value from cell N of
- * every other box (equivalently: the N-th cells of each box form their own
- * allDifferent group). Reads `ctx.geometry`'s own `box:` selectors generically,
- * the same way `sudoku.ts` does — this file has no idea what a box's shape is.
+ * every other box. Equivalently, the N-th cells of each box form their own
+ * allDifferent group. The definition reads the `box:` selectors of `ctx.geometry`
+ * in a generic way, like `sudoku.ts`. This file does not know the shape of a box.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";

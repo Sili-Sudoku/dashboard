@@ -1,10 +1,9 @@
 /**
- * A 625-cell board whose only purpose is to be big: exercises the viewport
- * virtualization built for #48 (scroll around; only the cells near the
- * visible area ever hit the DOM). No givens — just a large grid with the
- * generic `sudoku` definition for structure, plus a generated valid solution
- * (standard band-shift construction) so it satisfies the same "every
- * built-in puzzle ships a working solution" contract as the others.
+ * A 625-cell board that exists to be big. It exercises the viewport virtualization built for #48.
+ * When you scroll, only the cells near the visible area go into the DOM. The puzzle has no givens.
+ * It uses the generic `sudoku` definition for structure.
+ * A generated valid solution (standard band-shift construction) satisfies the contract
+ * that every built-in puzzle ships a working solution.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";

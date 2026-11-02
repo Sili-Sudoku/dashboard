@@ -1,9 +1,9 @@
 /**
- * What the visual builder knows about the primitive operators (#127): each one's label, what it
- * produces, and the kind of thing each of its slots takes. The primitive-layer counterpart of a
- * definition's `schema` (#126) — it lets one generic editor build any expression the runtime
- * accepts, without a screen per operator. `operators.test.ts` keeps it in step with the runtime's
- * own `OPERATORS` table: an operator added there fails the test until it is described here.
+ * What the visual builder knows about the primitive operators (#127): the label of each, what it
+ * produces, and the kind of value that each of its slots takes. It is the primitive-layer counterpart of the
+ * `schema` of a definition (#126). It lets one generic editor build any expression the runtime
+ * accepts, without a screen for each operator. `operators.test.ts` keeps it in step with the runtime's
+ * own `OPERATORS` table: when you add an operator there, the test fails until you describe it here.
  */
 
 /** What an operator produces, or what a slot takes. */
@@ -22,18 +22,18 @@ export type SlotKind =
 export interface SlotSpec {
     label: string;
     kind: SlotKind;
-    /** The slot is evaluated once per cell of the previous slot, with `$` standing for that cell's value. */
+    /** The slot is evaluated once per cell of the previous slot. `$` stands for the value of that cell. */
     bindsEach?: boolean;
 }
 
 export interface OperatorSignature {
     name: string;
     label: string;
-    /** Menu section: how the operator is grouped when offering a choice. */
+    /** Menu section: how the builder groups the operator when it offers a choice. */
     group: "Compare" | "Arithmetic" | "Counting" | "Cells" | "Order" | "Logic";
     returns: Exclude<SlotKind, "cells" | "cell">;
     args: readonly SlotSpec[];
-    /** Extra arguments past `args` (variadic operators): their kind and how many are needed at least. */
+    /** Extra arguments past `args` (variadic operators): their kind and the minimum number needed. */
     rest?: { label: string; kind: SlotKind; min: number };
     /** How it reads in a summary: "infix" puts the name between two or more arguments. */
     infix?: boolean;
@@ -187,13 +187,14 @@ export const OPERATOR_SIGNATURES: readonly OperatorSignature[] = [
     },
 ];
 
-/** Operators that are only ways of writing another one, or that the builder expresses as a leaf instead. */
+/** Operators that only write another operator in a different way, or that the builder expresses as a leaf. */
 export const NOT_OFFERED: readonly string[] = ["cells", "region", "values", "distinct"];
 
 const BY_NAME = new Map(OPERATOR_SIGNATURES.map((s) => [s.name, s]));
 
 export const signatureOf = (name: string): OperatorSignature | undefined => BY_NAME.get(name);
 
-/** The operators that can fill a slot of `kind` (a `cells` slot also takes a group of cells directly, not via an operator). */
+/** The operators that can fill a slot of `kind`.
+ *  A `cells` slot also takes a group of cells directly, not via an operator. */
 export const operatorsFor = (kind: SlotKind): readonly OperatorSignature[] =>
     OPERATOR_SIGNATURES.filter((s) => s.returns === kind || (kind === "nums" && s.returns === "nums"));

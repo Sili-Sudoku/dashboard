@@ -1,5 +1,5 @@
 /**
- * Small helpers for writing grid puzzles by hand: turn rows of characters into
+ * Small helpers to write grid puzzles by hand: they turn rows of characters into
  * `{ r1c1: 5, ... }` maps. "." or " " means empty.
  */
 

@@ -1,11 +1,10 @@
 /**
- * `large_demo.ts` at realistic clue densities, carved from its own known
- * `solution` via a seeded PRNG — the same fixtures used to benchmark the
- * solver (src/runtime/solver.ts) against #46. Kept here as viewable puzzles
- * rather than throwaway test fixtures: 0%/30%/50% show the solver bailing
- * out with "unknown" past the default time budget (the classic CSP
- * easy-hard-easy phase transition — see the solver's own comment), while
- * 70% solves uniquely almost instantly.
+ * `large_demo.ts` at realistic clue densities. A seeded PRNG carves the clues from its own known
+ * `solution`. These are the same fixtures that benchmark the solver (src/runtime/solver.ts) against #46.
+ * They stay here as viewable puzzles, not as throwaway test fixtures.
+ * At 0%, 30% and 50%, the solver stops with "unknown" after the default time budget.
+ * This is the classic CSP easy-hard-easy phase transition (see the solver's own comment).
+ * At 70%, the solver finds a unique solution almost instantly.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";

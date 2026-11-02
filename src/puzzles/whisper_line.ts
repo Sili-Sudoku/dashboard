@@ -1,13 +1,13 @@
 /**
- * German Whispers — a variant that is NOT a built-in definition.
+ * German Whispers: a variant that is NOT a built-in definition.
  *
  * There is no `{ "use": "whispers" }` and no `whispers` entry in
  * `src/definitions`. The rule ("adjacent digits on the green line differ by at
- * least 5") lives entirely in this puzzle's `constraints` as primitive
+ * least 5") lives only in the `constraints` of this puzzle, as primitive
  * expressions: `or( (a - b) >= 5 , (b - a) >= 5 )` for each adjacent pair.
  *
- * The engine never learns the word "whisper". It only sees `or`, `>=`, `-`,
- * `value` — operators it already had. Open this puzzle in the Author view to
+ * The engine never learns the word "whisper". It sees only `or`, `>=`, `-` and `value`.
+ * It already had these operators. Open this puzzle in the Author view to
  * read the expanded constraints in the JSON.
  */
 
@@ -54,7 +54,7 @@ export const whisperLinePuzzle: PuzzleDefinition = {
     },
     geometry: { type: "grid", width: 9, height: 9 },
     domain: { values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
-    // clear the two clues that sit on the line so the whisper rule does the work
+    // Clear the two clues on the line, so the whisper rule does the work.
     givens: omit(BASE_GIVENS, ["r2c4", "r2c5"]),
     solution: givensFromRows([
         "534678912",

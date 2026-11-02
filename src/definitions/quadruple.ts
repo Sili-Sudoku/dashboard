@@ -1,11 +1,11 @@
 /**
- * Quadruple: a small cell group (typically the 4 cells meeting at a grid
- * intersection, but the group size isn't assumed here) must collectively
- * contain each listed value at least as many times as it repeats in the
- * clue's `values` list — e.g. `values: [3, 3]` needs at least two 3s among
- * the cells. Drawn as the clue's digits inside a small filled circle at the
- * cells' shared corner, so the digits stay legible over the grid lines that
- * otherwise cross right through that point.
+ * Quadruple: a small group of cells (usually the 4 cells at a grid
+ * intersection, but this code does not assume the group size) must together
+ * contain each listed value at least as many times as it occurs in the
+ * `values` list of the clue. For example, `values: [3, 3]` needs at least two 3s among
+ * the cells. The definition draws the digits of the clue inside a small filled circle
+ * at the shared corner of the cells. So the digits stay legible over the grid lines
+ * that otherwise cross that point.
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";

@@ -1,8 +1,8 @@
 /**
- * A 4x4 Sudoku written entirely in primitive constraints — no `use:` anywhere,
+ * A 4x4 Sudoku written only in primitive constraints. It has no `use:`,
  * so it does not touch `src/definitions` at all. This is the acceptance test for
- * "delete the definitions and the runtime doesn't care": this puzzle still
- * compiles, evaluates, and plays.
+ * "delete the definitions and the runtime does not care": this puzzle still
+ * compiles, evaluates and plays.
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";

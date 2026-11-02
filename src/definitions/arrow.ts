@@ -1,7 +1,7 @@
 /**
- * Arrow: the digits along the arrow shaft sum to the digit in the bulb. A
- * multi-cell bulb reads as a multi-digit number (first cell = most significant).
- * Contributes a bulb circle and a shaft line with an arrowhead.
+ * Arrow: the digits along the arrow shaft sum to the digit in the bulb.
+ * A bulb of many cells is a multi-digit number. The first cell is the most significant digit.
+ * The definition adds a bulb circle and a shaft line with an arrowhead.
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";
@@ -10,7 +10,7 @@ import type { CellId } from "@/runtime/geometry.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
 const BULB_RADIUS = 0.4;
-/** How far short of the last shaft cell's centre the arrowhead's tip stops (digits reach about 0.25 out). */
+/** The arrowhead tip stops this far short of the centre of the last shaft cell. Digits reach about 0.25 out. */
 const HEAD_CLEARANCE = 0.3;
 
 export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
@@ -38,8 +38,8 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
             kind: "line",
             points: [bulbCells[bulbCells.length - 1], ...path],
             arrow: true,
-            // Start at the bulb's rim and stop the head short of the last digit, so the
-            // shaft never strikes through either number.
+            // Start at the rim of the bulb. Stop the head short of the last digit.
+            // This keeps the shaft off both numbers.
             trim: { start: BULB_RADIUS, end: HEAD_CLEARANCE },
             style: { stroke: "var(--arrow)", strokeWidth: 0.04, z: 1 },
         },
@@ -58,11 +58,11 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
 
 const bulbNumberExpr = (bulbCells: readonly CellId[], domain: readonly number[]): Expr => {
     if (bulbCells.length === 1) return ["value", bulbCells[0]];
-    // Positional notation in the base of the puzzle's own domain (base 10 for
-    // classic 1-9 sudoku) rather than a hardcoded base 10, which breaks the
-    // moment a cell's own value can exceed 9 (e.g. a 1-25 domain).
+    // Use positional notation in the base of the domain of the puzzle (base 10 for
+    // classic 1-9 sudoku). A fixed base 10 fails when a cell value can exceed 9
+    // (for example a 1-25 domain).
     const base = Math.max(...domain) + 1;
-    // most-significant digit first
+    // The most significant digit is first.
     const terms: Expr[] = bulbCells.map((cell, i) => {
         const place = Math.pow(base, bulbCells.length - 1 - i);
         return place === 1 ? ["value", cell] : ["*", place, ["value", cell]];

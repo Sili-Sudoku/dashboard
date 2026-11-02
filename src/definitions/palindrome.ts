@@ -1,7 +1,7 @@
 /**
- * Palindrome: the digits along a line read the same forwards and backwards,
- * i.e. cell i equals cell (n-1-i) for every i. Drawn as a path, like a
- * thermometer, but with no implied ordering.
+ * Palindrome: the digits along a line read the same forwards and backwards.
+ * That is, cell i equals cell (n-1-i) for every i. The definition draws a path,
+ * like a thermometer, but the path has no order.
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";

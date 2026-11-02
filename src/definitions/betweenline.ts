@@ -1,7 +1,7 @@
 /**
- * Between line: the two circled endpoints bound every strictly-interior cell's
- * value (order-independent — whichever endpoint turns out higher). Drawn as a
- * path with circles at the endpoints.
+ * Between line: the two circled endpoints bound the value of every cell strictly between them.
+ * The order does not matter: either endpoint can be the higher one.
+ * The definition draws a path with circles at the endpoints.
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";

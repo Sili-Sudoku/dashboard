@@ -1,7 +1,7 @@
 /**
- * Thermometer: values along the path, from the bulb outward, are strictly
- * increasing. Contributes both the constraint and its own visuals (a rounded
- * path plus a bulb disc) — the renderer only knows "path" and "circle".
+ * Thermometer: values along the path, from the bulb outward, strictly increase.
+ * The definition adds the constraint and its own visuals (a rounded
+ * path and a bulb disc). The renderer knows only "path" and "circle".
  */
 
 import { requireCellList, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";
