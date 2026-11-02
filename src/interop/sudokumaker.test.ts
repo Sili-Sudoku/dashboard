@@ -7,11 +7,10 @@ import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 const id = (row: number, col: number) => col + row * 9;
 
-/** A hand-built 9x9 SudokuMaker export: standard 3x3 boxes, one given, a
- *  killer cage, a thermometer, an arrow, both edge-clue kinds, and odd/even
- *  marks. Field shapes follow the format spec the user reverse-engineered
- *  from the live app and which was verified against a real share link (see
- *  module doc comment / kanban #81) — not independently re-derived here. */
+/** A hand-built 9x9 SudokuMaker export. It has standard 3x3 boxes, one given, a killer cage, a thermometer, an arrow,
+ *  both edge-clue kinds, and odd/even marks. The field shapes follow the format spec that the user reverse-engineered
+ *  from the live app. A real share link verified the spec (see the module doc comment and kanban #81).
+ *  This test does not derive the spec again. */
 const sampleSudokuMaker = (): SudokuMakerExport => {
     const cells = Array.from({ length: 81 }, (_, i) => (i === 0 ? { given: true, value: 5 } : {}));
     const regions = Array.from({ length: 81 }, (_, i) => Math.floor(Math.floor(i / 9) / 3) * 3 + Math.floor((i % 9) / 3));
@@ -79,8 +78,8 @@ describe("importSudokuMaker", () => {
     it("falls back to named jigsaw regions when boxes aren't a rectangular tiling", () => {
         const data = sampleSudokuMaker();
         const regionsConstraint = data.puzzle.constraints.find((c) => c.type === 1) as unknown as { regions: number[] };
-        // Swap one cell's region with its neighbor's so no (bw,bh) rectangular
-        // tiling can reproduce the partition.
+        // Swap the region of one cell with the region of its neighbor.
+        // Then no (bw,bh) rectangular tiling can reproduce the partition.
         const a = regionsConstraint.regions[0];
         regionsConstraint.regions[0] = regionsConstraint.regions[3];
         regionsConstraint.regions[3] = a;
@@ -95,8 +94,8 @@ describe("importSudokuMaker", () => {
     });
 
     it("decodes a real share link (D-prefixed deflate payload) end to end", () => {
-        // Captured from an actual share link, https://dev.sudokumaker.app/?puzzle=<payload> —
-        // a 9x9 classic sudoku with two givens and standard 3x3 boxes, nothing else.
+        // Taken from a real share link, https://dev.sudokumaker.app/?puzzle=<payload>.
+        // It is a 9x9 classic sudoku with two givens and standard 3x3 boxes. It has nothing else.
         const shareLink =
             "https://dev.sudokumaker.app/?puzzle=DpZHNCoMwEITfZc5B_LfkQXopHoJsraCJxChUybsX13Nt2vLtYZlhZ2F3w93YQbkr2akzGhJJVEYxBMZ5XXuC3KDVQJCAgJrdw9ijb6jvJ8jb5sVfhbZbSEM6O5PAovqZIJN3RvlVTHVuF4Ex6bmdB8Zkv93i85g_r1qgMXpyVnXa8cvgniNBxvvKo00ELLWd0bsfi52ESZkQJWNypmBClJKpmAsToNS-9v4F";
         const result = importSudokuMaker(shareLink);
@@ -188,8 +187,8 @@ describe("exportSudokuMaker", () => {
 describe("a real solvable 4x4 jigsaw round-trips end to end", () => {
     it("imports, compiles, and the stated solution satisfies every constraint", () => {
         // 4x4 with irregular (non-2x2-box) regions: two interlocking L-tetrominoes,
-        // a 2x2 block offset by one row, and a full row (same verified fixture as
-        // fpuzzles.test.ts's equivalent jigsaw case).
+        // a 2x2 block offset by one row, and a full row.
+        // This is the same verified fixture as the equivalent jigsaw case in fpuzzles.test.ts.
         const regionLayout = [
             [0, 0, 1, 1],
             [0, 2, 2, 1],

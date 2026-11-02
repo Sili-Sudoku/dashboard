@@ -11,11 +11,10 @@ import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
 import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
-/** A hand-built 9x9 f-puzzles export: standard 3x3 boxes, one given, a killer
- *  cage, a thermometer, an arrow, both kropki dot kinds, and odd/even marks.
- *  Field shapes are this importer's best-effort reconstruction of the public
- *  f-puzzles JSON (no network route to verify against a live export in this
- *  sandbox) — see the module doc comment. */
+/** A hand-built 9x9 f-puzzles export. It has standard 3x3 boxes, one given, a killer cage, a thermometer, an arrow,
+ *  both kropki dot kinds, and odd/even marks. The field shapes are a best-effort reconstruction of the public
+ *  f-puzzles JSON by this importer. The sandbox has no network route to check a live export.
+ *  See the module doc comment. */
 const sampleFPuzzles = (): FPuzzlesExport => {
     const grid = Array.from({ length: 9 }, (_, r) =>
         Array.from({ length: 9 }, (_, c) => ({
@@ -120,8 +119,8 @@ describe("importFPuzzles", () => {
 
     it("falls back to named jigsaw regions when boxes aren't a rectangular tiling", () => {
         const data = sampleFPuzzles();
-        // Swap one cell's region with its neighbor's box so no (bw,bh) rectangular
-        // tiling can reproduce the partition.
+        // Swap the region of one cell with the region of its neighbor's box.
+        // Then no (bw,bh) rectangular tiling can reproduce the partition.
         data.grid[0][3].region = data.grid[0][0].region;
         data.grid[0][0].region = 1;
 
@@ -136,8 +135,8 @@ describe("importFPuzzles", () => {
     });
 
     it("falls back to the default (sqrt-based) box size, with a warning, when region data is incomplete", () => {
-        // 9x9 is a perfect square, so missing region data defaults to standard 3x3
-        // boxes rather than dropping the box constraint outright (see fpuzzles.ts).
+        // 9x9 is a perfect square. Missing region data gives standard 3x3 boxes
+        // and does not remove the box constraint (see fpuzzles.ts).
         const data = sampleFPuzzles();
         delete data.grid[8][8].region;
         const result = importFPuzzles(data);
@@ -152,9 +151,8 @@ describe("importFPuzzles", () => {
     });
 
     it("disables boxes outright, with a warning, when region data is incomplete on a non-square-sized grid", () => {
-        // 6x6's default box (per geometry.ts) degenerates to one box covering the
-        // whole grid, which would make allDifferent impossible — so unlike the 9x9
-        // case above, boxes stay off here.
+        // The default box of 6x6 (per geometry.ts) is one box that covers the whole grid.
+        // That makes allDifferent impossible. So, unlike the 9x9 case above, boxes stay off here.
         const data: FPuzzlesExport = {
             size: 6,
             grid: Array.from({ length: 6 }, () => Array.from({ length: 6 }, () => ({}))),
@@ -173,10 +171,10 @@ describe("importFPuzzles", () => {
     });
 
     it("arrow: the line's leading cell is the bulb even when 'cells' also repeats it (matches a real f-puzzles export)", () => {
-        // Verified against an actual f-puzzles.com share link: a single-cell-bulb
-        // arrow's "lines" entry includes the bulb as its first cell, with "cells"
-        // separately repeating it — not a bulb-free shaft as the doc comment on an
-        // earlier draft of this importer wrongly assumed.
+        // Checked against a real f-puzzles.com share link.
+        // The "lines" entry of an arrow with a one-cell bulb has the bulb as its first cell.
+        // The "cells" field repeats the bulb. The line does not hold a shaft only.
+        // The doc comment on an earlier draft of this importer assumed this wrongly.
         const data = sampleFPuzzles();
         data.arrow = [{ cells: ["R1C1"], lines: [["R1C1", "R1C2", "R1C3"]] }];
         const result = importFPuzzles(data);
@@ -187,17 +185,17 @@ describe("importFPuzzles", () => {
         const compiled = compilePuzzle(result.puzzle, definitions);
         if (compiled instanceof Error) throw compiled;
         const arrowConstraint = compiled.constraints.find((c) => c.source === "arrow");
-        // sum(shaft) == value(bulb); with r1c1=5 (the sample's given) and the
-        // shaft cells both filled with 2, 2+2 should equal the bulb's value (5),
-        // i.e. this check should fail -- proving the shaft genuinely excludes r1c1.
+        // The rule is sum(shaft) == value(bulb). Here r1c1=5 (the given of the sample).
+        // Both shaft cells have the value 2, and 2+2 does not equal the value of the bulb (5).
+        // So this check must fail. This proves that the shaft excludes r1c1.
         const outcome = evaluate(compiled, lookupFromRecord({ r1c1: 5, r1c2: 2, r1c3: 2 }));
         const status = outcome.constraints.find((c) => c.id === arrowConstraint?.id)?.status;
-        expect(status).toBe("violated"); // 2+2=4 != 5 -- confirms r1c1 isn't double-counted into the shaft
+        expect(status).toBe("violated"); // 2+2=4 != 5. This confirms that r1c1 is not counted twice in the shaft
     });
 
     it("imports a flat row-major solution array of numeric strings", () => {
         const data = sampleFPuzzles();
-        data.solution = Array.from({ length: 81 }, () => "1"); // not a valid sudoku solution, just shape-valid
+        data.solution = Array.from({ length: 81 }, () => "1"); // not a valid sudoku solution, only a valid shape
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
         expect(result.puzzle.solution?.r1c1).toBe(1);
@@ -316,16 +314,16 @@ describe("exportFPuzzles", () => {
         const sudokuPadLink = encodeSudokuPadShareLink(exported.data);
         expect(sudokuPadLink).toMatch(/^https:\/\/sudokupad\.app\/fpuzzles/);
 
-        // Same lz-string payload, just a different URL wrapper -- decode both
-        // and confirm they carry identical data.
+        // The lz-string payload is the same and only the URL wrapper is different.
+        // Decode both and check that they hold the same data.
         const fPuzzlesPayload = fPuzzlesLink.slice(fPuzzlesLink.indexOf("load=") + "load=".length);
         const sudokuPadPayload = sudokuPadLink.slice("https://sudokupad.app/fpuzzles".length);
         expect(sudokuPadPayload).toBe(fPuzzlesPayload);
     });
 });
 
-/** sampleFPuzzles() plus one instance of every newly-supported clue type, on
- *  cells the base sample doesn't already touch. */
+/** sampleFPuzzles() plus one instance of each newly supported clue type.
+ *  The new clues use cells that the base sample does not touch. */
 const sampleExtendedFPuzzles = (): FPuzzlesExport => ({
     ...sampleFPuzzles(),
     "diagonal+": true,
@@ -340,13 +338,12 @@ const sampleExtendedFPuzzles = (): FPuzzlesExport => ({
     minimum: [{ cell: "R9C1" }],
     maximum: [{ cell: "R9C2" }],
     xv: [{ cells: ["R9C3", "R9C4"], value: "X" }],
-    // Anchored just outside the grid, not by a resolved cell list — see the
-    // module doc comment. "R0C3" sits above column 3; stepping "DR" from there
-    // lands on r1c4, then r2c5, ... (the real f-puzzles shape, confirmed via a
-    // live import crash on our first, wrong guess).
+    // The anchor is just outside the grid. It is not a resolved cell list (see the module doc comment).
+    // "R0C3" is above column 3. Stepping "DR" from there reaches r1c4, then r2c5, and so on.
+    // This is the real f-puzzles shape. A live import crash on our first, wrong guess confirmed it.
     littlekillersum: [{ cell: "R0C3", direction: "DR", value: "9" }],
-    // "R10C9" sits below column 9 on this 9x9 grid; a sandwich anchor is never
-    // a resolved cell list either — it always means "this whole column/row".
+    // "R10C9" is below column 9 on this 9x9 grid.
+    // A sandwich anchor is never a resolved cell list. It always means "this whole column/row".
     sandwichsum: [{ cell: "R10C9", value: "0" }],
     betweenline: [{ lines: [["R6C7", "R6C8", "R6C9"]] }],
 });
@@ -380,13 +377,13 @@ describe("importFPuzzles: extended clue types", () => {
     it("skips (with warnings, never silently) malformed instances of the new clue types", () => {
         const data = sampleFPuzzles() as unknown as Record<string, unknown>;
         data.palindrome = [{ lines: [["R1C1"]] }]; // too short
-        data.clone = [{ cells: ["R1C1"], cloneCells: ["R1C2", "R1C3"] }]; // mismatched lengths
+        data.clone = [{ cells: ["R1C1"], cloneCells: ["R1C2", "R1C3"] }]; // lengths do not match
         data.quadruple = [{ cells: ["bad-cell"], values: [1] }]; // bad cell id
         data.minimum = [{ cell: "bad-cell" }];
-        data.xv = [{ cells: ["R1C1", "R1C2"], value: "Q" }]; // unrecognized marker
+        data.xv = [{ cells: ["R1C1", "R1C2"], value: "Q" }]; // unknown marker
         data.littlekillersum = [{ cell: "R0C1", direction: "DR" }]; // no numeric sum
-        data.sandwichsum = [{ cell: "bad-cell", value: "5" }]; // unrecognized anchor
-        data.betweenline = [{ lines: [["R1C1", "R1C2"]] }]; // too few cells (need >= 3)
+        data.sandwichsum = [{ cell: "bad-cell", value: "5" }]; // unknown anchor
+        data.betweenline = [{ lines: [["R1C1", "R1C2"]] }]; // too few cells (3 or more are necessary)
 
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
@@ -494,13 +491,13 @@ describe("exportFPuzzles: extended clue types", () => {
 });
 
 describe("importFPuzzles: real f-puzzles.com share link", () => {
-    // Captured from an actual share link, https://f-puzzles.com/?load=<payload> —
-    // a 6x6 arrow sudoku with no region data at all. 6 isn't a perfect square, so
-    // this hits the "disable boxes outright" branch (box constraint omitted, with
-    // a warning) rather than the default-box-size fallback — see fpuzzles.ts. It
-    // also has six single-cell-bulb arrows; this is the fixture that caught a real
-    // bug: the "cells" field on an arrow clue repeats the bulb that's already the
-    // line's first entry, rather than the line being bulb-free shaft-only.
+    // Taken from a real share link, https://f-puzzles.com/?load=<payload>.
+    // It is a 6x6 arrow sudoku with no region data. 6 is not a perfect square.
+    // So this case uses the "disable boxes outright" branch (no box constraint, with a warning)
+    // and not the default-box-size fallback (see fpuzzles.ts).
+    // It also has six arrows with a one-cell bulb. This fixture found a real bug.
+    // The "cells" field of an arrow clue repeats the bulb, which is already the first entry of the line.
+    // The line is not a shaft without the bulb.
     const shareLink =
         "https://f-puzzles.com/?load=N4IgzglgXgpiBcA2ANCALhNAbO8QBUYw0ACABwFcoocRUBDCtACwHsAnBEAZQiwgDG9LHRABzdhAAmCANqzQAN2EVcAJlRiIimADsEadqoC+yJStwBGTdr0GjMU+ayqEAZhs798QybMhlF1wAFk87HwcnAIsEFHFbb19Hf0DXeABWMMTIgF1kBWighFD4r3s/ZzS4rTKIisK0zNLwpKjU9Szy5MqrTrruhtwPZuyTPIL2hCaalsiUmPgNEa62hZKZ0YHJ+Gtl/tWi+GGNlfnD6oSV8Z6EXZP9s7Tjy4ebpD7Wx9xpl8+3pfuf0GxQ+uXybwutSB23WvzmbzucPq22eUPhwIyoORCwBSMc1wxqNm2MOPzRJLSuPJWwWkOJNMOsOpBzSiOZOTyIHo7HYrAA7nJQPxdEQ5LIQAAlSwAYWCoglaml6XlbiVIA5qAEMCwWDAcklMrlOSiwtF8HkBulbnlirlqAlqqNnK1Or15st1uN/lNbotEuCsvl6UD9sQVvVzu1uv1/sDXqFEBFvvFset9uDaclYbUEc1Ud9koDnpNibNfsVmYd0pz9oDOY1IBd0fdCvD8ZAPrFksVNclqss8oDA4bTYLrfrxmNQA=";
 

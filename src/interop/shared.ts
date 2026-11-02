@@ -1,7 +1,8 @@
 import { GridGeometry, type CellId } from "@/runtime/geometry.ts";
 
-/** Helpers both interop formats need, kept in one place so a fix found via one
- *  format's real-world case (e.g. #80, the box-size regression) reaches the other. */
+/** Helpers that both interop formats need.
+ *  They are in one place.
+ *  A fix from a real case of one format (e.g. #80, the box-size regression) then reaches the other. */
 
 export const slugify = (s: string): string => {
     const slug = s
@@ -23,10 +24,9 @@ const regionSignature = (groups: readonly (readonly CellId[])[]): string =>
         .sort()
         .join("|");
 
-/** Find the (boxWidth, boxHeight) whose standard box:N partition matches the
- *  given per-cell groups exactly, if any — so a non-sqrt-shaped but still
- *  rectangular tiling (e.g. 6x6 with 3x2 boxes) renders its box lines
- *  correctly instead of being treated as jigsaw. */
+/** Find the (boxWidth, boxHeight) whose standard box:N partition matches the given per-cell groups exactly, if any.
+ *  This lets a rectangular tiling that is not sqrt-shaped (e.g. 6x6 with 3x2 boxes) show correct box lines.
+ *  Without it, the importer treats such a tiling as jigsaw. */
 export const findRectangularBoxes = (
     size: number,
     actualGroups: readonly (readonly CellId[])[],

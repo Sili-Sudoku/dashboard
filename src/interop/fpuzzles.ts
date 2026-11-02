@@ -1,34 +1,29 @@
 /**
  * f-puzzles JSON interop (import/export).
  *
- * f-puzzles (and the SudokuPad/Logic Mines/Crack The Cuber ecosystem built on
- * its JSON export) is the de facto standard interchange format for
- * hand-authored variant sudokus. This module is a standalone adapter,
- * isolated from the generic runtime exactly like `runtime/serialization.ts`
- * — nothing in `src/runtime` or `src/definitions` knows this format exists.
+ * f-puzzles is the common exchange format for hand-made variant sudokus.
+ * SudokuPad, Logic Mines and Crack The Cuber also use its JSON export.
+ * This module is a separate adapter. It is isolated from the generic runtime, like `runtime/serialization.ts`.
+ * Nothing in `src/runtime` or `src/definitions` knows this format exists.
  *
- * The shape below is reconstructed from community documentation of the
- * public f-puzzles export (this sandbox has no network route to
- * f-puzzles.com to fetch the live spec) and may not match every
- * exporter/version byte-for-byte — verify against a real exported file
- * before relying on an import. Covers: classic sudoku (including jigsaw
- * regions and diagonals), givens, killer cages (and little killer sums),
- * thermometers, arrows, kropki dots (difference/ratio), xv, odd/even and
- * minimum/maximum markers, palindrome/between lines, clones, quadruples,
- * sandwich sums, the antiknight/antiking/nonconsecutive/disjointgroups
- * global flags, and the "negative" global ratio/difference/xv exclusion
- * flags. Anything else present in the source is reported as a warning,
- * never silently dropped — same for any supported clue whose cells don't
- * resolve.
+ * The shape below is rebuilt from community documentation of the public f-puzzles export.
+ * The sandbox has no network route to f-puzzles.com, so the live spec is not checked.
+ * The shape can differ from some exporters or versions.
+ * Check a real exported file before you rely on an import.
+ * Covers: classic sudoku (including jigsaw regions and diagonals), givens,
+ * killer cages (and little killer sums), thermometers, arrows, kropki dots (difference/ratio), xv,
+ * odd/even and minimum/maximum markers, palindrome/between lines, clones, quadruples, sandwich sums,
+ * the antiknight/antiking/nonconsecutive/disjointgroups global flags,
+ * and the "negative" global ratio/difference/xv exclusion flags.
+ * The importer reports any other data in the source as a warning. It never drops data silently.
+ * It also reports a supported clue whose cells do not resolve.
  *
- * sandwichsum/littlekillersum are NOT a resolved-cells list like the other
- * clue types — confirmed the hard way, via a real f-puzzles.com import
- * crash (`currentSandwich.set is null`) on our first guess. Both are
- * anchored by a single cell just *outside* the grid edge/corner (e.g.
- * "R0C4" sits above column 4); littlekillersum additionally carries a
- * `direction` ("UL"/"UR"/"DL"/"DR") for which diagonal runs back into the
- * grid from that corner. See `outsideCellCoords`/`sandwichAnchor`/
- * `littleKillerAnchor` below.
+ * sandwichsum and littlekillersum are NOT a resolved-cells list like the other clue types.
+ * A real f-puzzles.com import crash (`currentSandwich.set is null`) showed this on our first guess.
+ * Each has one anchor cell just *outside* the grid edge or corner (e.g. "R0C4" is above column 4).
+ * littlekillersum also has a `direction` ("UL"/"UR"/"DL"/"DR").
+ * The direction gives the diagonal that runs back into the grid from that corner.
+ * See `outsideCellCoords`/`sandwichAnchor`/`littleKillerAnchor` below.
  */
 
 import { compressToBase64, decompressFromBase64 } from "lz-string";
@@ -69,13 +64,13 @@ export interface FPuzzlesQuadrupleClue {
 
 export type FPuzzlesCellClue = string | { cell: string };
 
-/** Anchored one cell outside the grid edge (e.g. "R0C4" above column 4), no direction needed. */
+/** Anchored one cell outside the grid edge (e.g. "R0C4" is above column 4). It needs no direction. */
 export interface FPuzzlesOutsideClue {
     cell: string;
     value?: string | number;
 }
 
-/** Anchored one cell outside the grid corner, with a diagonal direction back into the grid. */
+/** Anchored one cell outside the grid corner. It has a diagonal direction back into the grid. */
 export interface FPuzzlesLittleKillerClue {
     cell: string;
     direction: "UL" | "UR" | "DL" | "DR";
@@ -156,9 +151,9 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "negative",
 ]);
 
-/** The "negative" array's entries vary by exporter -- fold the synonyms seen
- *  in the wild onto the canonical kind that already has its own importer
- *  branch (kropki difference, kropki ratio, xv) before looking up its pairs. */
+/** The entries of the "negative" array change with the exporter.
+ *  Map the synonyms seen in real files to the canonical kind that already has its own importer branch
+ *  (kropki difference, kropki ratio, xv). Do this before the lookup of its pairs. */
 const NEGATIVE_KIND_ALIASES: Record<string, "difference" | "ratio" | "xv"> = {
     difference: "difference",
     differentpair: "difference",
@@ -190,12 +185,11 @@ const mapCells = (ids: readonly string[]): CellId[] | undefined => {
 };
 
 /**
- * Parse an "R{row}C{col}" cell reference without requiring it to be inside
- * the grid — unlike `toProjectCell`, which only resolves cells that are
- * actually part of the puzzle. Outside-the-grid anchor cells (0-indexed row
- * 0 or `size+1`, same for column) are how f-puzzles positions sandwich and
- * little killer clues, so they need their raw, possibly out-of-range
- * coordinates, not a validated `CellId`.
+ * Parse an "R{row}C{col}" cell reference. The cell can be outside the grid.
+ * `toProjectCell` is different: it resolves only cells that are part of the puzzle.
+ * f-puzzles puts sandwich and little killer clues on anchor cells outside the grid
+ * (0-indexed row 0 or `size+1`, the same for column).
+ * So these clues need the raw coordinates, which can be out of range. They cannot use a validated `CellId`.
  */
 const outsideCellCoords = (cell: string): { row: number; col: number } | undefined => {
     const m = /^[Rr](\d+)[Cc](\d+)$/.exec(cell);
@@ -210,7 +204,8 @@ const DIAGONAL_DELTA: Record<"UL" | "UR" | "DL" | "DR", { dr: number; dc: number
     DR: { dr: 1, dc: 1 },
 };
 
-/** Decode a sandwichsum anchor (just above/below a column, or left/right of a row) into the full row/column of cells it sums across. */
+/** Decode a sandwichsum anchor (just above/below a column, or left/right of a row)
+ *  into the full row/column of cells that it sums. */
 const sandwichCellsFromAnchor = (anchor: { row: number; col: number }, size: number): CellId[] | undefined => {
     const rowInGrid = anchor.row >= 1 && anchor.row <= size;
     const colInGrid = anchor.col >= 1 && anchor.col <= size;
@@ -219,7 +214,7 @@ const sandwichCellsFromAnchor = (anchor: { row: number; col: number }, size: num
     return undefined;
 };
 
-/** Encode a sandwich's full row/column of cells back into its outside-the-grid anchor cell. */
+/** Encode the full row/column of cells of a sandwich back into its anchor cell outside the grid. */
 const sandwichAnchor = (cells: readonly CellId[], size: number): string | undefined => {
     if (cells.length !== size) return undefined;
     const coords = cells.map(parseGridCellId);
@@ -232,7 +227,7 @@ const sandwichAnchor = (cells: readonly CellId[], size: number): string | undefi
     return undefined;
 };
 
-/** Decode a littlekillersum anchor + direction into the diagonal run of in-grid cells it sums. */
+/** Decode a littlekillersum anchor and direction into the diagonal run of in-grid cells that it sums. */
 const littleKillerCellsFromAnchor = (
     anchor: { row: number; col: number },
     direction: string,
@@ -251,7 +246,8 @@ const littleKillerCellsFromAnchor = (
     return cells.length > 0 ? cells : undefined;
 };
 
-/** Encode a littlekillersum's diagonal run of cells back into its outside-the-grid anchor cell + direction. */
+/** Encode the diagonal run of cells of a littlekillersum back into
+ *  its anchor cell outside the grid and its direction. */
 const littleKillerAnchor = (
     cells: readonly CellId[],
 ): { cell: string; direction: "UL" | "UR" | "DL" | "DR" } | undefined => {
@@ -273,13 +269,13 @@ const littleKillerAnchor = (
 };
 
 /**
- * f-puzzles.com shares a puzzle as a URL whose "load" query parameter is the
- * JSON, lz-string-compressed and base64-encoded (`?load=<payload>`) — not raw
- * JSON. Confirmed against a real share link; also confirmed the payload is
- * NOT percent-encoded (it contains literal "+"/"/" base64 characters), so
- * this deliberately avoids `URLSearchParams`/`decodeURIComponent`: those
- * apply form-urlencoded decoding, which turns a literal "+" into a space and
- * silently corrupts the payload.
+ * f-puzzles.com shares a puzzle as a URL with a "load" query parameter (`?load=<payload>`).
+ * The payload is the JSON, lz-string-compressed and base64-encoded. It is not raw JSON.
+ * A real share link confirmed this.
+ * It also confirmed that the payload is NOT percent-encoded: it has literal "+" and "/" base64 characters.
+ * So this code deliberately does not use `URLSearchParams` or `decodeURIComponent`.
+ * Those apply form-urlencoded decoding. That decoding turns a literal "+" into a space
+ * and silently corrupts the payload.
  */
 const extractShareLinkPayload = (text: string): string => {
     const m = /[?&]load=([^&#]+)/.exec(text);
@@ -296,8 +292,8 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         const trimmed = input.trim();
         let jsonText = trimmed;
         if (!trimmed.startsWith("{")) {
-            // Not raw JSON: treat it as a share link (full URL, or just the "load"
-            // payload copied on its own) and try to decompress it first.
+            // The input is not raw JSON. Treat it as a share link (a full URL, or only the "load"
+            // payload copied alone) and try to decompress it first.
             const decompressed = decompressFromBase64(extractShareLinkPayload(trimmed));
             if (!decompressed) {
                 return new Error(
@@ -358,14 +354,13 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     let sudokuRef: ConstraintSpec;
 
     if (!allHaveRegion) {
-        // f-puzzles omits per-cell "region" entirely for puzzles that just use the
-        // default box shape (confirmed: a real exported classic-sudoku-shaped puzzle
-        // had no region data at all, yet still has standard boxes) — so when the grid
-        // size is a perfect square, default to the geometry's own √-based box size
-        // rather than disabling boxes outright. For a non-square size (e.g. 6), that
-        // default degenerates to one box covering the whole grid (see geometry.ts'
-        // defaultBox), which would make `allDifferent` impossible to satisfy — so
-        // boxes stay disabled there, same as before.
+        // f-puzzles omits the per-cell "region" for puzzles that use the default box shape.
+        // A real exported classic-sudoku-shaped puzzle had no region data, but it still has standard boxes.
+        // So when the grid size is a perfect square, use the own sqrt-based box size of the geometry.
+        // Do not disable boxes outright.
+        // For a size that is not a square (e.g. 6), that default is one box that covers the whole grid
+        // (see defaultBox in geometry.ts). That makes `allDifferent` impossible to satisfy.
+        // So boxes stay disabled there.
         const root = Math.sqrt(size);
         if (Number.isInteger(root)) {
             warnings.push(
@@ -397,9 +392,8 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         }
     }
 
-    // Diagonals are exactly the generic named-region + extraRegions mechanism
-    // `sudoku.ts` already exposes — no new definition needed, just synthesize
-    // the cell list and thread it through the same way jigsaw regions are.
+    // Diagonals use the generic named-region + extraRegions mechanism that `sudoku.ts` already exposes.
+    // They need no new definition. Build the cell list and pass it on the same way as jigsaw regions.
     const diagonalFlags: { key: "diagonal+" | "diagonal-"; name: string; cells: () => CellId[] }[] = [
         { key: "diagonal+", name: "diagonal:bltr", cells: () => range(size).map((i) => `r${size - i}c${i + 1}`) },
         { key: "diagonal-", name: "diagonal:tlbr", cells: () => range(size).map((i) => `r${i + 1}c${i + 1}`) },
@@ -422,9 +416,9 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     if (src.antiking) constraints.push({ use: "antiking" });
     if (src.nonconsecutive) constraints.push({ use: "nonconsecutive" });
     if (src.disjointgroups) {
-        // disjointgroups reads the geometry's own box:N selectors, so it's only
-        // honorable when those selectors actually match the puzzle's real boxes
-        // (not jigsaw, and not degenerate/disabled — see kanban #80).
+        // disjointgroups reads the own box:N selectors of the geometry.
+        // So it is valid only when those selectors match the real boxes of the puzzle
+        // (not jigsaw, and not degenerate or disabled - see kanban #80).
         const boxesUsable = !regions || Object.keys(regions).every((name) => name.startsWith("diagonal:"));
         const probeGeometry = boxesUsable ? new GridGeometry(geometry) : undefined;
         if (probeGeometry?.resolveRegion("box:0")) {
@@ -467,11 +461,11 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
                 warnings.push("arrow line with an unrecognized cell id was skipped");
                 continue;
             }
-            // The line's leading cell(s) are always the bulb, whether or not "cells"
-            // redundantly repeats them (confirmed against a real f-puzzles export:
-            // a single-cell-bulb arrow has lines: [[bulb, ...shaft]] and
-            // cells: [bulb] at once) — so the shaft is always the line with however
-            // many bulb cells sliced off the front, never the full line.
+            // The leading cell(s) of the line are always the bulb. "cells" can repeat them or not.
+            // A real f-puzzles export confirmed this: an arrow with a one-cell bulb
+            // has lines: [[bulb, ...shaft]] and cells: [bulb] at the same time.
+            // So the shaft is always the line with the bulb cell(s) removed from the front.
+            // It is never the full line.
             const bulb = bulbCells && bulbCells.length > 0 ? bulbCells : [cells[0]];
             const shaft = cells.slice(bulb.length);
             if (shaft.length === 0) {
@@ -754,7 +748,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             continue;
         }
         const { use, ...params } = spec;
-        if (use === "sudoku") continue; // implied by the grid + regions above
+        if (use === "sudoku") continue; // the grid and the regions above already imply it
 
         if (use === "killer") {
             if (params.distinct === false) {
@@ -791,8 +785,8 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 warnings.push("arrow with a non-grid cell id was skipped");
                 continue;
             }
-            // The line carries the bulb cell(s) as its leading entries, same as a
-            // real f-puzzles export does (see the importer's matching comment).
+            // The line has the bulb cell(s) as its leading entries.
+            // A real f-puzzles export does the same (see the matching comment in the importer).
             arrow.push({ cells: bulb, lines: [[...bulb, ...shaft]] });
         } else if (use === "kropkiDifference" || use === "kropkiRatio") {
             const cells = exportCells(params.cells as CellId[]);
@@ -919,17 +913,16 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
     return { data, warnings };
 };
 
-/** The inverse of the share-link decoding in `importFPuzzles`: lz-string
- *  `compressToBase64`, dropped into the same `?load=` query param. */
+/** The inverse of the share-link decoding in `importFPuzzles`.
+ *  It uses lz-string `compressToBase64` and puts the result in the same `?load=` query param. */
 export const encodeFPuzzlesShareLink = (data: FPuzzlesExport): string =>
     `https://f-puzzles.com/?load=${compressToBase64(JSON.stringify(data))}`;
 
-/** SudokuPad reads the same f-puzzles JSON payload, lz-string-compressed the
- *  same way, but via its own URL scheme (`sudokupad.app/fpuzzles<data>`,
- *  payload appended directly to the path rather than a `?load=` query param)
- *  rather than round-tripping through f-puzzles.com. Unverified against the
- *  live site -- sudokupad.app isn't on this sandbox's network allowlist --
- *  so this should be sanity-checked against a real SudokuPad load before
- *  relying on it. */
+/** SudokuPad reads the same f-puzzles JSON payload with the same lz-string compression.
+ *  It uses its own URL scheme (`sudokupad.app/fpuzzles<data>`).
+ *  The payload goes directly after the path. It is not a `?load=` query param.
+ *  The export does not go through f-puzzles.com.
+ *  This is not verified against the live site: sudokupad.app is not on the network allowlist of this sandbox.
+ *  Check it against a real SudokuPad load before you rely on it. */
 export const encodeSudokuPadShareLink = (data: FPuzzlesExport): string =>
     `https://sudokupad.app/fpuzzles${compressToBase64(JSON.stringify(data))}`;

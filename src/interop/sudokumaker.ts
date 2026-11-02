@@ -1,22 +1,22 @@
 /**
  * SudokuMaker (sudokumaker.app) JSON interop (import/export).
  *
- * Standalone adapter, isolated from the generic runtime exactly like
- * `interop/fpuzzles.ts` and `runtime/serialization.ts` — nothing in
- * `src/runtime` or `src/definitions` knows this format exists.
+ * This is a separate adapter. It is isolated from the generic runtime,
+ * like `interop/fpuzzles.ts` and `runtime/serialization.ts`.
+ * Nothing in `src/runtime` or `src/definitions` knows this format exists.
  *
- * The shape here was reconstructed (by the user, from the live app's build)
- * rather than from this sandbox (no network route to sudokumaker.app) and
- * verified once against a real share link before trusting it: base64url-decode
- * the payload, drop the leading "D", raw-inflate, and the result is the
- * documented JSON shape. A leading "N" instead of "D" marks a legacy
- * lz-string-compressed payload (`compressToEncodedURIComponent`). Scope is
- * deliberately partial, matching the f-puzzles adapter's "common types first"
- * cut: classic sudoku (including jigsaw regions), givens, killer cages,
- * thermometers, arrows, kropki-equivalent dots (the Difference/Ratio edge
- * clues), and odd/even markers. Anything else present in the source — or any
- * puzzle constraint this module can't represent on export — is reported as a
- * warning, never silently dropped.
+ * The user reconstructed the shape from the build of the live app.
+ * The sandbox has no network route to sudokumaker.app.
+ * One real share link verified the shape before it was trusted:
+ * base64url-decode the payload, drop the leading "D", and raw-inflate it.
+ * The result is the documented JSON shape.
+ * A leading "N" instead of "D" marks a legacy lz-string-compressed payload (`compressToEncodedURIComponent`).
+ * The scope is deliberately partial, like the "common types first" cut of the f-puzzles adapter:
+ * classic sudoku (including jigsaw regions), givens, killer cages, thermometers, arrows,
+ * kropki-equivalent dots (the Difference/Ratio edge clues), and odd/even markers.
+ * The importer reports any other data in the source as a warning.
+ * It does the same for a puzzle constraint that this module cannot represent on export.
+ * It never drops data silently.
  */
 
 import { deflateRaw, inflateRaw } from "pako";
@@ -84,9 +84,9 @@ const toBase64Url = (bytes: Uint8Array): string => {
     return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
-/** SudokuMaker shares a puzzle as `?puzzle=<payload>`, same deliberate avoidance
- *  of `URLSearchParams` as the f-puzzles adapter's share-link extraction, for
- *  the same reason (literal unencoded base64 characters). */
+/** SudokuMaker shares a puzzle as `?puzzle=<payload>`.
+ *  Like the share-link extraction of the f-puzzles adapter, this code deliberately does not use `URLSearchParams`.
+ *  The reason is the same: the payload has literal unencoded base64 characters. */
 const extractSharePayload = (text: string): string => {
     const m = /[?&]puzzle=([^&#]+)/.exec(text);
     return m ? m[1] : text;
@@ -119,13 +119,12 @@ const cellToId = (cell: CellId, width: number): number | undefined => {
     return (Number(m[2]) - 1) + (Number(m[1]) - 1) * width;
 };
 
-/** Edge ids address the gap between two orthogonally-adjacent cells, used by
- *  Difference/Ratio/XV clues. Per-row block of size 2*width: the low half
- *  [0,width) is the horizontal-neighbor (left/right) pair ending at column
- *  `block+1`; the high half [width,2*width) is the vertical-neighbor
- *  (up/down) pair starting at column `block-width`. Derived directly from the
- *  two forward formulas in the spec, not from its (seemingly inverted) prose
- *  description of the inverse. */
+/** Edge ids address the gap between two orthogonally adjacent cells. Difference/Ratio/XV clues use them.
+ *  Each row has a block of size 2*width.
+ *  The low half [0,width) is the horizontal-neighbor (left/right) pair that ends at column `block+1`.
+ *  The high half [width,2*width) is the vertical-neighbor (up/down) pair that starts at column `block-width`.
+ *  This comes directly from the two forward formulas in the spec.
+ *  It does not come from the prose description of the inverse in the spec, which seems to be inverted. */
 const edgeToCells = (edge: number, width: number, height: number): [CellId, CellId] | undefined => {
     if (!Number.isInteger(edge) || edge < 0) return undefined;
     const row = Math.floor(edge / (2 * width));
@@ -229,11 +228,11 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
     for (const c of constraintsRaw) {
         if (typeof c?.type !== "number") continue;
         switch (c.type) {
-            case 0: // Givens — "normal sudoku rules apply" marker (rows/cols)
+            case 0: // Givens: the "normal sudoku rules apply" marker (rows/cols)
                 sawGivensMarker = true;
                 break;
 
-            case 1: { // Regions — box shape (and possibly jigsaw)
+            case 1: { // Regions: the box shape (and possibly jigsaw)
                 sawRegionsConstraint = true;
                 const regionsArr = Array.isArray(c.regions) ? (c.regions as unknown[]) : [];
                 const byRegion = new Map<number, CellId[]>();
@@ -353,12 +352,11 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                             continue;
                         }
                         const cells = (line as number[]).map((id) => idToCell(id, width));
-                        // Assumed to include the bulb cell(s) as leading entries, unverified
-                        // against a real exported arrow (none in the sample this was built
-                        // against) — matches this format's own Thermometer convention
-                        // ("bulb -> tip", bulb included) and the equivalent f-puzzles bug
-                        // fixed earlier in this project's interop work. Flag for real-data
-                        // verification the same way that bug was caught.
+                        // Assumption: the line includes the bulb cell(s) as leading entries.
+                        // This is not verified against a real exported arrow (the sample used to build this has none).
+                        // It matches the own Thermometer convention of this format ("bulb -> tip", bulb included).
+                        // It also matches the equivalent f-puzzles bug that was fixed earlier in the interop work.
+                        // Verify it with real data, the same way as that bug was found.
                         const resolvedBulb = bulb.length > 0 ? bulb : [cells[0]];
                         const shaft = cells.slice(resolvedBulb.length);
                         if (shaft.length === 0) {
@@ -491,7 +489,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             continue;
         }
         const { use, ...params } = spec;
-        if (use === "sudoku") continue; // handled by the Givens/Regions constraints above
+        if (use === "sudoku") continue; // the Givens/Regions constraints above handle it
 
         if (use === "killer") {
             const ids = exportIds(params.cells as CellId[]);
@@ -560,8 +558,8 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
     return { data: { formatVersion: FORMAT_VERSION, puzzle }, warnings };
 };
 
-/** The inverse of the share-link decoding in `importSudokuMaker`'s "D" branch:
- *  raw-deflate via `pako`, base64url-encoded, dropped into `?puzzle=`. Always
- *  writes the current (non-legacy) "D"-prefixed format. */
+/** The inverse of the share-link decoding in the "D" branch of `importSudokuMaker`.
+ *  It uses raw-deflate via `pako` and base64url encoding, and puts the result in `?puzzle=`.
+ *  It always writes the current ("D"-prefixed, non-legacy) format. */
 export const encodeSudokuMakerShareLink = (data: SudokuMakerExport): string =>
     `https://sudokumaker.app/?puzzle=D${toBase64Url(deflateRaw(new TextEncoder().encode(JSON.stringify(data))))}`;
