@@ -9,6 +9,7 @@ const basePuzzle: CompiledPuzzle = {
     domain: [1, 2],
     regions: {},
     givens: { r1c1: 1 },
+    rules: [],
     objects: [],
     constraints: [],
     solution: { r1c1: 1, r1c2: 2, r2c1: 2, r2c2: 1 },

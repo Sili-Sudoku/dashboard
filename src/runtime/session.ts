@@ -12,9 +12,10 @@
 
 import type { CellId, Direction, Geometry } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
-import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
+import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
 import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
 import { hiddenCells } from "@/runtime/fog.ts";
+import { ruleAbsentCells, visibleObjects } from "@/runtime/rules.ts";
 import { MARK_COLOR_COUNT, markIndexForDigit } from "@/runtime/mark_colors.ts";
 import {
     EMPTY_PEN,
@@ -229,6 +230,16 @@ export class PuzzleSession {
         return hiddenCells(this.puzzle, this.valueOf);
     }
 
+    /** Cells a dynamic rule (#72) hasn't made `appear` yet: not drawn, not selectable. */
+    getAbsentCells(): ReadonlySet<CellId> {
+        return ruleAbsentCells(this.puzzle, this.valueOf);
+    }
+
+    /** The visual objects to draw right now: dynamic rules (#72) can show or hide some. */
+    getVisibleObjects(): readonly VisualObject[] {
+        return visibleObjects(this.puzzle, this.valueOf);
+    }
+
     get evaluation(): EvaluationResult {
         if (!this.cachedEvaluation) {
             this.cachedEvaluation = evaluate(this.puzzle, this.valueOf);
@@ -255,7 +266,7 @@ export class PuzzleSession {
     // --- selection -------------------------------------------------------
 
     select(cell: CellId, mode: SelectMode = "replace"): void {
-        if (!this.geometry.has(cell)) return;
+        if (!this.geometry.has(cell) || this.getAbsentCells().has(cell)) return;
         this.leaveCursorCell(cell);
         if (mode === "replace") {
             this.selection = new Set([cell]);
@@ -288,7 +299,10 @@ export class PuzzleSession {
             this.emit();
             return;
         }
-        const next = this.geometry.step(this.cursor, dir);
+        // Cells that aren't on the board yet are stepped over, like a gap between grids.
+        const absent = this.getAbsentCells();
+        let next = this.geometry.step(this.cursor, dir);
+        while (next && absent.has(next)) next = this.geometry.step(next, dir);
         if (!next) return;
         this.leaveCursorCell(next);
         this.cursor = next;
@@ -302,7 +316,8 @@ export class PuzzleSession {
         if (!this.cursor) return;
         const value = this.valueOf(this.cursor);
         if (value === null) return;
-        this.selection = new Set(this.geometry.cells.filter((c) => this.valueOf(c) === value));
+        const absent = this.getAbsentCells();
+        this.selection = new Set(this.geometry.cells.filter((c) => !absent.has(c) && this.valueOf(c) === value));
         this.emit();
     }
 
@@ -320,7 +335,7 @@ export class PuzzleSession {
             if (!wrap && (raw < 0 || raw >= cells.length)) return false;
             const index = ((raw % cells.length) + cells.length) % cells.length;
             const cell = cells[index];
-            if (this.valueOf(cell) === null) {
+            if (this.valueOf(cell) === null && !this.getAbsentCells().has(cell)) {
                 this.leaveCursorCell(cell);
                 this.cursor = cell;
                 this.selection = new Set([cell]);
@@ -473,7 +488,10 @@ export class PuzzleSession {
     }
 
     private targets(): CellId[] {
-        const cells = this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : [];
+        const absent = this.getAbsentCells();
+        const cells = (this.selection.size > 0 ? [...this.selection] : this.cursor ? [this.cursor] : []).filter(
+            (c) => !absent.has(c),
+        );
         // A given is normally immutable, but while it's still hidden by fog
         // the player has no way to tell it apart from a hidden empty cell —
         // so it stays editable, same as one, until it's revealed.

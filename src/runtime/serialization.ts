@@ -76,6 +76,23 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
         }
     }
 
+    if (obj.rules !== undefined) {
+        if (!Array.isArray(obj.rules)) return new Error("rules must be an array");
+        for (const rule of obj.rules as unknown[]) {
+            const r = rule as { when?: unknown; then?: Record<string, unknown> } | null;
+            if (typeof r !== "object" || r === null || !Array.isArray(r.when) || typeof r.then !== "object" || r.then === null) {
+                return new Error('each rule needs a "when" expression and a "then" object');
+            }
+            const known = ["reveal", "appear", "show", "hide", "enable", "disable"];
+            for (const [key, refs] of Object.entries(r.then)) {
+                if (!known.includes(key)) return new Error(`unknown rule effect "${key}" (expected ${known.join(", ")})`);
+                if (!Array.isArray(refs) || !refs.every((x) => typeof x === "string")) {
+                    return new Error(`rule effect "${key}" must be an array of strings`);
+                }
+            }
+        }
+    }
+
     if (obj.givens !== undefined && !isRecordOfNumbers(obj.givens)) {
         return new Error("givens must be a map of cell -> number");
     }

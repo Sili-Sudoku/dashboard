@@ -7,7 +7,7 @@
  * "path", "circle", "line", "cage" (an outline around a cell set), and so on.
  */
 
-import type { CellId, Geometry, Point } from "@/runtime/geometry.ts";
+import type { BoardLine, CellId, Geometry, Point } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle, PointRef, VisualObject, VisualStyle } from "@/runtime/puzzle.ts";
 import type { EvaluationResult } from "@/runtime/evaluate.ts";
@@ -36,6 +36,8 @@ export interface SceneInput {
     evaluation: EvaluationResult;
     /** Cells still hidden by fog — see `runtime/fog.ts`. */
     hiddenCells: ReadonlySet<CellId>;
+    /** Cells not on the board yet (a dynamic rule's `appear`): left out of the scene along with the lines around them. */
+    absentCells?: ReadonlySet<CellId>;
     /** Compiled constraint ids (see `compile.ts`'s `solutionViolations`) to draw
      *  in red instead of their normal style — e.g. the Author page's visual
      *  builder, showing a constraint that conflicts with the puzzle's own
@@ -137,7 +139,9 @@ export const buildScene = (input: SceneInput): Scene => {
     // hidden cell can't be used to reveal where its digit appears).
     const sameAs = input.highlightSameValue && input.cursor ? input.valueOf(input.cursor) : null;
 
-    const cells: CellShape[] = geometry.cells.map((cell) => {
+    const absent = input.absentCells;
+    const shownCells = absent ? geometry.cells.filter((cell) => !absent.has(cell)) : geometry.cells;
+    const cells: CellShape[] = shownCells.map((cell) => {
         const p = geometry.anchor(cell, "tl");
         const hidden = input.hiddenCells.has(cell);
         return {
@@ -190,7 +194,7 @@ export const buildScene = (input: SceneInput): Scene => {
         viewBox: `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`,
         cellSize,
         cells,
-        gridLines: gridLines(geometry, cellSize),
+        gridLines: gridLines(geometry, cellSize, absent),
         shapes,
         selectionOutline: selectionOutline(selected, input.cursor, geometry, cellSize),
         origin: { x: 0, y: 0 },
@@ -600,11 +604,83 @@ const cageLabelAnchor = (cells: readonly CellId[], geometry: Geometry): Point | 
 
 /** Major (region boundary) lines draw heavier than plain cell dividers, and come last
  *  so a thin divider that meets one never paints over it (the array is draw order). */
-const gridLines = (geometry: Geometry, cellSize: number): { points: Point[]; weight: number }[] =>
-    geometry
-        .boardLines()
+const gridLines = (
+    geometry: Geometry,
+    cellSize: number,
+    absent?: ReadonlySet<CellId>,
+): { points: Point[]; weight: number }[] =>
+    (absent && absent.size > 0 ? withoutAbsent(geometry, absent) : geometry.boardLines())
         .map((l) => ({
             points: l.points.map((p) => scalePoint(p, cellSize)),
             weight: l.major ? 3 : 1,
         }))
         .sort((a, b) => a.weight - b.weight);
+
+/**
+ * The board's lines with the absent cells taken out: an edge is drawn only if a present cell is on one
+ * side of it, and it is a heavy outline wherever the board now ends. Works edge by edge (every
+ * geometry's lines here are axis-aligned), then joins runs back into long lines.
+ */
+const withoutAbsent = (geometry: Geometry, absent: ReadonlySet<CellId>): readonly BoardLine[] => {
+    const cellAt = new Map<string, CellId>();
+    for (const cell of geometry.cells) {
+        const c = geometry.center(cell);
+        cellAt.set(`${Math.floor(c.x)},${Math.floor(c.y)}`, cell);
+    }
+    const present = (x: number, y: number) => {
+        const cell = cellAt.get(`${x},${y}`);
+        return cell !== undefined && !absent.has(cell);
+    };
+    const kept = new Map<string, { horizontal: boolean; fixed: number; at: number; major: boolean }>();
+    const other: BoardLine[] = [];
+    for (const line of geometry.boardLines()) {
+        const [a, b] = line.points;
+        if (!a || !b || line.points.length !== 2 || (a.x !== b.x && a.y !== b.y)) {
+            other.push(line);
+            continue;
+        }
+        const horizontal = a.y === b.y;
+        const fixed = horizontal ? a.y : a.x;
+        const [from, to] = horizontal
+            ? [Math.min(a.x, b.x), Math.max(a.x, b.x)]
+            : [Math.min(a.y, b.y), Math.max(a.y, b.y)];
+        for (let at = from; at < to; at++) {
+            // the two cells either side of this unit edge
+            const before = horizontal ? present(at, fixed - 1) : present(fixed - 1, at);
+            const after = horizontal ? present(at, fixed) : present(fixed, at);
+            if (!before && !after) continue;
+            const major = line.major || before !== after;
+            const key = `${horizontal}:${fixed}:${at}`;
+            kept.set(key, { horizontal, fixed, at, major: (kept.get(key)?.major ?? false) || major });
+        }
+    }
+    const runs = new Map<string, { horizontal: boolean; fixed: number; major: boolean; at: number[] }>();
+    for (const e of kept.values()) {
+        const key = `${e.horizontal}:${e.fixed}:${e.major}`;
+        const run = runs.get(key) ?? { horizontal: e.horizontal, fixed: e.fixed, major: e.major, at: [] };
+        run.at.push(e.at);
+        runs.set(key, run);
+    }
+    const lines: BoardLine[] = [...other];
+    for (const { horizontal, fixed, major, at } of runs.values()) {
+        at.sort((x, y) => x - y);
+        let start = at[0] as number;
+        at.forEach((last, i) => {
+            if (at[i + 1] === last + 1) return;
+            lines.push({
+                points: horizontal
+                    ? [
+                          { x: start, y: fixed },
+                          { x: last + 1, y: fixed },
+                      ]
+                    : [
+                          { x: fixed, y: start },
+                          { x: fixed, y: last + 1 },
+                      ],
+                major,
+            });
+            start = at[i + 1] as number;
+        });
+    }
+    return lines;
+};

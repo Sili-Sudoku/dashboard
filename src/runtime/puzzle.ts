@@ -90,8 +90,51 @@ export interface NamedRule {
 export const isNamedRule = (spec: ConstraintSpec): spec is NamedRule =>
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && !isDefinitionRef(spec) && "rule" in spec;
 
+/** The object ids a visual object answers to (a definition's objects carry the ids of their constraints, comma-joined). */
+export const objectIds = (o: VisualObject): readonly string[] => (o.id ? o.id.split(",") : []);
+
 export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k: string]: unknown } =>
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && typeof (spec as { use?: unknown }).use === "string";
+
+/**
+ * A dynamic rule (#72): `when` is an ordinary expression over the current board (the same language
+ * as constraints), and `then` says what holds while it is definitely true. Nothing is stored: every
+ * effect is a function of the board right now, so undo, reload and share links need no extra state,
+ * and a rule switches back off if the board stops satisfying it.
+ */
+export interface PuzzleRule {
+    /** Optional name, for error messages. */
+    id?: string;
+    when: Expr;
+    then: {
+        /** Cells (ids or region selectors) that stay hidden, as under fog, until this rule holds. */
+        reveal?: readonly string[];
+        /**
+         * Cells (ids or region selectors) that are not on the board at all until this rule holds: not
+         * drawn, not selectable, no grid lines around them. A 4x3 board that grows a fourth row.
+         */
+        appear?: readonly string[];
+        /** Visual objects (by `id`) drawn only while the rule holds. */
+        show?: readonly string[];
+        /** Visual objects drawn except while the rule holds. */
+        hide?: readonly string[];
+        /** Constraints (by compiled id such as `killer#2`, or by source/name) enforced only while the rule holds. */
+        enable?: readonly string[];
+        /** Constraints enforced except while the rule holds. */
+        disable?: readonly string[];
+    };
+}
+
+/** A rule after compilation: `enable`/`disable` are already folded into the constraints themselves. */
+export interface CompiledRule {
+    id: string;
+    when: Expr;
+    cells: readonly CellId[];
+    reveal: readonly CellId[];
+    appear: readonly CellId[];
+    show: readonly string[];
+    hide: readonly string[];
+}
 
 export interface PuzzleDefinition {
     version: typeof PUZZLE_FORMAT_VERSION;
@@ -109,6 +152,8 @@ export interface PuzzleDefinition {
      * since "correctly" is defined against it.
      */
     fog?: { hidden: readonly CellId[] };
+    /** Dynamic rules: effects that depend on the board's current state — see `PuzzleRule`. */
+    rules?: readonly PuzzleRule[];
     /** Author-declared visual objects (definitions may add more). */
     objects?: readonly VisualObject[];
     /** Constraints: primitive expressions and/or definition references. */
@@ -140,6 +185,7 @@ export interface CompiledPuzzle {
     regions: Readonly<Record<string, readonly CellId[]>>;
     givens: Readonly<Record<CellId, number>>;
     fog?: { hidden: readonly CellId[] };
+    rules: readonly CompiledRule[];
     objects: readonly VisualObject[];
     constraints: readonly CompiledConstraint[];
     solution?: Readonly<Record<CellId, number>>;

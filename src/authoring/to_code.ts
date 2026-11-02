@@ -86,6 +86,7 @@ export const puzzleToCode = (def: PuzzleDefinition): string => {
 
     for (const object of def.objects ?? []) calls.push(`.visual(${literal(object)})`);
     if (def.fog) calls.push(`.fog(${literal(def.fog.hidden)})`);
+    for (const rule of def.rules ?? []) calls.push(`.rule(${literal(rule)})`);
 
     if (def.solution) {
         const rows = grid && asRows(def.solution, grid.width, grid.height);

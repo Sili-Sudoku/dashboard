@@ -15,7 +15,7 @@
  */
 
 import type { CellId, GeometrySpec } from "@/runtime/geometry.ts";
-import type { ConstraintSpec, PuzzleDefinition, PuzzleMetadata, VisualObject } from "@/runtime/puzzle.ts";
+import type { ConstraintSpec, PuzzleDefinition, PuzzleMetadata, PuzzleRule, VisualObject } from "@/runtime/puzzle.ts";
 import type { Expr } from "@/runtime/expression.ts";
 import { givensFromRows } from "@/puzzles/grid_text.ts";
 
@@ -28,6 +28,7 @@ export class PuzzleBuilder {
     private readonly constraintList: ConstraintSpec[] = [];
     private readonly objectList: VisualObject[] = [];
     private fogHidden?: readonly CellId[];
+    private readonly ruleList: PuzzleRule[] = [];
     private solutionMap?: Record<CellId, number>;
     private presentationOpts: PuzzleDefinition["presentation"];
 
@@ -98,6 +99,12 @@ export class PuzzleBuilder {
         return this;
     }
 
+    /** A dynamic rule: effects that depend on the board's current state (see `PuzzleRule`). */
+    rule(rule: PuzzleRule): this {
+        this.ruleList.push(rule);
+        return this;
+    }
+
     solution(map: Record<CellId, number>): this {
         this.solutionMap = map;
         return this;
@@ -125,6 +132,7 @@ export class PuzzleBuilder {
         if (Object.keys(this.givenMap).length > 0) def.givens = this.givenMap;
         if (Object.keys(this.regionMap).length > 0) def.regions = this.regionMap;
         if (this.fogHidden) def.fog = { hidden: this.fogHidden };
+        if (this.ruleList.length > 0) def.rules = this.ruleList;
         if (this.objectList.length > 0) def.objects = this.objectList;
         if (this.solutionMap) def.solution = this.solutionMap;
         if (this.presentationOpts) def.presentation = this.presentationOpts;

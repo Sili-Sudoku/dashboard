@@ -21,6 +21,8 @@ import {
     isNamedRule,
     PUZZLE_FORMAT_VERSION,
     type CompiledConstraint,
+    objectIds,
+    type CompiledRule,
     type CompiledPuzzle,
     type ConstraintSpec,
     type PointRef,
@@ -153,6 +155,9 @@ export const compilePuzzle = (
         }
     }
 
+    const rules = compileRules(def, geometry, regions, staticCtx, constraints, objects);
+    if (rules instanceof Error) return rules;
+
     const compiled: CompiledPuzzle = {
         metadata: def.metadata,
         geometry: def.geometry,
@@ -160,6 +165,7 @@ export const compilePuzzle = (
         regions,
         givens,
         fog: def.fog,
+        rules,
         objects,
         constraints,
         solution: def.solution,
@@ -187,6 +193,84 @@ export const solutionViolations = (compiled: CompiledPuzzle): ReadonlySet<string
     if (!compiled.solution) return new Set();
     const result = evaluate(compiled, lookupFromRecord(compiled.solution));
     return new Set(result.constraints.filter((c) => c.status === "violated").map((c) => c.id));
+};
+
+/**
+ * Resolves the rules (#72). `enable`/`disable` are folded straight into the constraints they name —
+ * "enforce C only while W" is just `implies(W, C)`, "...except while W" is `or(W, C)` — so the
+ * evaluator and the solver need to know nothing about rules. Mutates `constraints` in place.
+ */
+const compileRules = (
+    def: PuzzleDefinition,
+    geometry: Geometry,
+    regions: Readonly<Record<string, readonly CellId[]>>,
+    staticCtx: EvalContext,
+    constraints: CompiledConstraint[],
+    objects: readonly VisualObject[],
+): CompiledRule[] | Error => {
+    const out: CompiledRule[] = [];
+    for (const [i, rule] of (def.rules ?? []).entries()) {
+        const id = rule.id ?? `rule#${i + 1}`;
+        const fail = (message: string) => new Error(`rule "${id}": ${message}`);
+        let cells: readonly CellId[];
+        try {
+            staticCheckExpr(rule.when);
+            cells = collectCells(rule.when, staticCtx);
+        } catch (err) {
+            return fail(err instanceof Error ? err.message : String(err));
+        }
+
+        const resolveCells = (effect: string, refs: readonly string[] | undefined): CellId[] | Error => {
+            const found: CellId[] = [];
+            for (const ref of refs ?? []) {
+                const group = geometry.has(ref) ? [ref] : (regions[ref] ?? geometry.resolveRegion(ref));
+                if (!group) return fail(`${effect}: "${ref}" is neither a cell nor a region`);
+                found.push(...group);
+            }
+            return found;
+        };
+        const reveal = resolveCells("reveal", rule.then.reveal);
+        if (reveal instanceof Error) return reveal;
+        const appear = resolveCells("appear", rule.then.appear);
+        if (appear instanceof Error) return appear;
+        for (const [effect, refs] of [
+            ["show", rule.then.show],
+            ["hide", rule.then.hide],
+        ] as const) {
+            for (const ref of refs ?? []) {
+                if (!objects.some((o) => objectIds(o).includes(ref))) return fail(`${effect}: no visual object has the id "${ref}"`);
+            }
+        }
+        for (const [effect, refs] of [
+            ["enable", rule.then.enable],
+            ["disable", rule.then.disable],
+        ] as const) {
+            for (const ref of refs ?? []) {
+                const hits = constraints.filter((c) => c.id === ref || c.source === ref);
+                if (hits.length === 0) return fail(`${effect}: no constraint has the id or name "${ref}"`);
+                for (const c of hits) {
+                    const index = constraints.indexOf(c);
+                    constraints[index] = {
+                        ...c,
+                        expr: [effect === "enable" ? "implies" : "or", rule.when, c.expr],
+                        // The footprint drives incremental re-evaluation, so it has to include what `when` reads too.
+                        cells: [...new Set([...c.cells, ...cells])],
+                    };
+                }
+            }
+        }
+
+        out.push({
+            id,
+            when: rule.when,
+            cells,
+            reveal,
+            appear,
+            show: rule.then.show ?? [],
+            hide: rule.then.hide ?? [],
+        });
+    }
+    return out;
 };
 
 interface ExpandedSpec {

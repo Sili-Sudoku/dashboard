@@ -29,6 +29,7 @@
 import type { CellId } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
+import { ruleAbsentCells, ruleHiddenCells } from "@/runtime/rules.ts";
 import type { ValueLookup } from "@/runtime/evaluate.ts";
 
 const isSolved = (solution: Readonly<Record<CellId, number>>, lookup: ValueLookup, cell: CellId): boolean => {
@@ -36,7 +37,15 @@ const isSolved = (solution: Readonly<Record<CellId, number>>, lookup: ValueLooku
     return answer !== undefined && lookup(cell) === answer;
 };
 
+/** Everything currently hidden: fog's progressive reveal, plus cells a dynamic rule (#72) hasn't revealed yet. */
 export const hiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
+    const fog = fogHiddenCells(puzzle, lookup);
+    // A cell that isn't on the board yet is also hidden, so nothing about it can leak.
+    const byRules = new Set([...ruleHiddenCells(puzzle, lookup), ...ruleAbsentCells(puzzle, lookup)]);
+    return byRules.size === 0 ? fog : new Set([...fog, ...byRules]);
+};
+
+const fogHiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
     const declared = puzzle.fog?.hidden;
     const solution = puzzle.solution;
     if (!declared || declared.length === 0 || !solution) return new Set();

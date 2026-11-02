@@ -55,6 +55,13 @@ runtime has **no build-time edge** to `src/definitions/`. Consequences:
   its bulb/track visuals from one spec. The engine provides capability; the
   author provides meaning.
 
+## 4b. Dynamic behaviour is data too
+
+Anything that changes with the board (cells uncovered, objects shown, constraints switched on) is a puzzle `rules`
+entry: a `when` expression and `then` effects. They are pure functions of the current board, like fog, so the session
+keeps no extra state and undo/reload/share links need nothing new. `enable`/`disable` are compiled into the
+constraints (`implies`/`or`), so the evaluator and solver are untouched.
+
 ## 5. Geometry is an interface; grid is one implementation
 
 `Geometry` exposes cells, centres/corners, adjacency, region selectors, cursor

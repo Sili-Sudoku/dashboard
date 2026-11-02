@@ -417,6 +417,56 @@ describe("grid line draw order", () => {
     });
 });
 
+describe("cells that are not on the board yet (#72)", () => {
+    const grown = compilePuzzle(
+        {
+            version: 1,
+            metadata: { id: "g", title: "g" },
+            geometry: { type: "grid", width: 4, height: 4, boxWidth: 2, boxHeight: 2 },
+            domain: { values: [1, 2, 3, 4] },
+            constraints: [{ use: "sudoku" }],
+        },
+        definitions,
+    );
+    if (grown instanceof Error) throw grown;
+    const input = (absent: ReadonlySet<string>): SceneInput => ({
+        puzzle: grown,
+        valueOf: () => null,
+        notesOf: () => [],
+        centerNotesOf: () => [],
+        flaggedCells: new Set(),
+        incorrectCells: new Set(),
+        isGiven: () => false,
+        selection: new Set(),
+        cursor: null,
+        hiddenCells: absent,
+        absentCells: absent,
+        evaluation: evaluate(grown, lookupFromRecord({})),
+    });
+    const bottomRow = new Set(["r4c1", "r4c2", "r4c3", "r4c4"]);
+
+    it("leaves them out, and ends the board where the present cells end", () => {
+        const scene = buildScene(input(bottomRow));
+        expect(scene.cells).toHaveLength(12);
+        const size = scene.cells[0]!.size;
+        const horizontals = scene.gridLines.filter((l) => l.points[0]!.y === l.points[1]!.y);
+        // no line below the third row's bottom edge, which is now the heavy outline
+        expect(Math.max(...horizontals.map((l) => l.points[0]!.y))).toBe(3 * size);
+        const bottom = horizontals.find((l) => l.points[0]!.y === 3 * size)!;
+        expect(bottom.weight).toBe(3);
+        expect(Math.abs(bottom.points[1]!.x - bottom.points[0]!.x)).toBe(4 * size);
+        // the verticals stop there too
+        const verticals = scene.gridLines.filter((l) => l.points[0]!.x === l.points[1]!.x);
+        expect(Math.max(...verticals.flatMap((l) => l.points.map((p) => p.y)))).toBe(3 * size);
+    });
+
+    it("draws the whole board again once nothing is absent", () => {
+        const scene = buildScene(input(new Set()));
+        expect(scene.cells).toHaveLength(16);
+        expect(Math.max(...scene.gridLines.flatMap((l) => l.points.map((p) => p.y)))).toBe(4 * scene.cells[0]!.size);
+    });
+});
+
 describe("pen layer shapes (#45)", () => {
     const puzzle = (() => {
         const r = compilePuzzle({

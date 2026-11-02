@@ -145,9 +145,15 @@ export default function PuzzlePlayer({
     const scene = useMemo(
         () =>
             buildScene({
-                puzzle: previewObjects?.length
-                    ? { ...puzzle, objects: [...puzzle.objects, ...previewObjects] }
-                    : puzzle,
+                puzzle: (() => {
+                    // Dynamic rules (#72) can show/hide objects as the board changes.
+                    const objects = session.getVisibleObjects();
+                    return previewObjects?.length
+                        ? { ...puzzle, objects: [...objects, ...previewObjects] }
+                        : objects === puzzle.objects
+                          ? puzzle
+                          : { ...puzzle, objects };
+                })(),
                 valueOf: (c) =>
                     showSolution && puzzle.solution?.[c] !== undefined
                         ? puzzle.solution[c]
@@ -161,6 +167,7 @@ export default function PuzzlePlayer({
                 cursor: session.getCursor(),
                 evaluation: session.evaluation,
                 hiddenCells: session.getHiddenCells(),
+                absentCells: session.getAbsentCells(),
                 invalidConstraintIds,
                 highlightSameValue: settings.highlightSameValue,
                 colorsOf: (c) => session.displayState(c).colors,

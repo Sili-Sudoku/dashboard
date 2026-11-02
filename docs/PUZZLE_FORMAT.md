@@ -32,6 +32,8 @@ renderer, deterministic, reasonably compact, and versioned by the top-level
 
   "fog": { "hidden": ["r7c7", "r7c8"] },           // optional, requires "solution"
 
+  "rules": [ /* dynamic rules, see "Rules" below */ ],   // optional
+
   "objects": [ /* visual objects, see below */ ],   // optional
 
   "constraints": [ /* see below */ ],               // required (may be empty)
@@ -45,6 +47,35 @@ renderer, deterministic, reasonably compact, and versioned by the top-level
 ### Cell ids
 
 Grid cells are `r<row>c<col>`, 1-indexed, row-major. `r1c1` is top-left.
+
+### Rules
+
+Things that change with the board: a rule is a condition and what holds while it is true.
+
+```jsonc
+"rules": [
+  { "id": "uncover-bottom",
+    "when": ["allDifferent", ["cells", "row:0"]],        // any expression, as in a constraint
+    "then": { "reveal": ["row:3"] } }                    // effects, below
+]
+```
+
+`when` is evaluated on the current board with the same three-valued logic as constraints, and counts only when it
+is *definitely* true (while some cell it reads is still empty, it hasn't happened yet). Effects, all optional:
+
+| effect    | meaning while the rule holds                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| `reveal`  | these cells (ids or region selectors) are visible; until then they are hidden, as under fog     |
+| `appear`  | these cells (ids or region selectors) are on the board; until then they are not: not drawn, not selectable, no lines around them, and the board outline closes up around the rest (a 4×3 board that grows a row) |
+| `show`    | these visual objects (by `id`) are drawn; until then they are not                               |
+| `hide`    | these visual objects are not drawn                                                              |
+| `enable`  | these constraints (by compiled id such as `killer#2`, or by `source`/name) are enforced; until then they are not |
+| `disable` | these constraints are not enforced                                                              |
+
+Nothing is stored: each effect is a function of the board right now, so undo, reload and share links need no extra
+state, and a rule switches off again if the board stops satisfying it. `enable`/`disable` are folded into the
+constraint itself at compile time (`implies(when, c)` / `or(when, c)`), so the solver and the uniqueness check see
+them without knowing about rules. A reference that matches nothing is a compile error.
 
 ### Fog
 
