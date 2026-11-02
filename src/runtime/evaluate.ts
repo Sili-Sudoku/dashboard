@@ -288,3 +288,49 @@ export const affectedConstraints = (
         .filter((c) => c.cells.some((cell) => changedSet.has(cell)))
         .map((c) => c.id);
 };
+
+/**
+ * Finds the note digits that a placed digit already rules out.
+ * `noted` maps each cell to the note digits to test. For each constraint that covers the cell,
+ * the function trial-places each digit in the cell and checks the constraint. A digit is ruled out
+ * when the constraint is then *definitely* false (Kleene logic). An incomplete constraint rules
+ * nothing out, so the answer is never a guess. It covers every operator (rows, boxes, sums, ...)
+ * with no code for each one. It skips the brute-force infeasibility search, to stay cheap on each keystroke.
+ */
+export const ruledOutNotes = (
+    puzzle: CompiledPuzzle,
+    lookup: ValueLookup,
+    noted: ReadonlyMap<CellId, readonly number[]>,
+): ReadonlyMap<CellId, ReadonlySet<number>> => {
+    const result = new Map<CellId, Set<number>>();
+    if (noted.size === 0) return result;
+
+    const geometry = createGeometry(puzzle.geometry);
+    const domain = new Set(puzzle.domain);
+    for (const constraint of puzzle.constraints) {
+        for (const cell of constraint.cells) {
+            const digits = noted.get(cell);
+            if (!digits || lookup(cell) !== null) continue;
+            for (const digit of digits) {
+                if (!domain.has(digit) || result.get(cell)?.has(digit)) continue;
+                const trial: ValueLookup = (c) => (c === cell ? digit : lookup(c));
+                try {
+                    const value = evalExpr(constraint.expr, {
+                        geometry,
+                        regions: puzzle.regions,
+                        domain: puzzle.domain,
+                        valueOf: trial,
+                    });
+                    if (value.t === "bool" && value.v === false) {
+                        const set = result.get(cell) ?? new Set<number>();
+                        set.add(digit);
+                        result.set(cell, set);
+                    }
+                } catch {
+                    // An expression that cannot be evaluated proves nothing about this digit.
+                }
+            }
+        }
+    }
+    return result;
+};

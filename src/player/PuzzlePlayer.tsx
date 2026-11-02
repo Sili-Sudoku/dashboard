@@ -156,6 +156,7 @@ export default function PuzzlePlayer({
                 notesOf: (c) => session.displayState(c).notes,
                 centerNotesOf: (c) => session.displayState(c).centerNotes,
                 flaggedCells: session.getFlaggedCells(),
+                ruledOutNotes: session.getRuledOutNotes(),
                 incorrectCells: session.getIncorrectCells(),
                 isGiven: (c) => session.isGiven(c),
                 selection: session.getSelection(),

@@ -14,7 +14,13 @@
 import type { CellId, Direction, Geometry } from "@/runtime/geometry.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
 import type { CompiledPuzzle, VisualObject } from "@/runtime/puzzle.ts";
-import { evaluate, evaluateIncremental, lookupFromRecord, type EvaluationResult } from "@/runtime/evaluate.ts";
+import {
+    evaluate,
+    evaluateIncremental,
+    lookupFromRecord,
+    ruledOutNotes,
+    type EvaluationResult,
+} from "@/runtime/evaluate.ts";
 import { hiddenCells } from "@/runtime/fog.ts";
 import { ruleAbsentCells, visibleObjects } from "@/runtime/rules.ts";
 import { MARK_COLOR_COUNT, markIndexForDigit } from "@/runtime/mark_colors.ts";
@@ -229,6 +235,21 @@ export class PuzzleSession {
         if (!this.cursor || this.valueOf(this.cursor) === null) return;
         this.matchCell = this.cursor;
         this.emit();
+    }
+
+    /**
+     * The note digits (corner and centre) that a placed digit already rules out, for each cell.
+     * It uses the constraints of the puzzle, not only the rows, columns and boxes.
+     */
+    getRuledOutNotes(): ReadonlyMap<CellId, ReadonlySet<number>> {
+        const hidden = this.getHiddenCells();
+        const noted = new Map<CellId, number[]>();
+        for (const [cell, state] of this.board) {
+            if (state.value !== null || hidden.has(cell)) continue;
+            const digits = [...new Set([...state.notes, ...state.centerNotes])];
+            if (digits.length > 0) noted.set(cell, digits);
+        }
+        return ruledOutNotes(this.puzzle, this.valueOf, noted);
     }
 
     /** Cells whose centre notes exclude the solution digit. `checkNotesOnLeave` or `checkAgainstSolution` sets them. */

@@ -423,7 +423,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: "Center note 1" }));
         fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2
-        expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
+        expect(container.querySelectorAll("text.note-flagged")).toHaveLength(0);
     });
 
     it("flags a cell's remaining centre notes in red on leave, once the Settings (#69) preference is on", () => {
@@ -439,13 +439,13 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.click(screen.getByRole("button", { name: "Center note 3" }));
         fireEvent.pointerDown(cells[2]); // leave r1c2; candidates {1,3} still miss '2'
         // Centre notes render as one joined <text>. Corner notes render as one <text> per digit.
-        expect(container.querySelectorAll(".note-flagged")).toHaveLength(1);
+        expect(container.querySelectorAll("text.note-flagged")).toHaveLength(1);
 
         // fixing the candidates (adding the correct digit back) clears the flag on next leave
         fireEvent.pointerDown(cells[1]);
         fireEvent.click(screen.getByRole("button", { name: "Center note 2" }));
         fireEvent.pointerDown(cells[2]);
-        expect(container.querySelectorAll(".note-flagged")).toHaveLength(0);
+        expect(container.querySelectorAll("text.note-flagged")).toHaveLength(0);
     });
 
     it("hides the Check button for puzzles with no declared solution", () => {

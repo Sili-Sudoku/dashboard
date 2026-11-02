@@ -29,6 +29,7 @@ const bigScene = (n: number, cellSize = 20): Scene => {
                 given: false,
                 notes: [],
                 centerNotes: [],
+                ruledOutNotes: [],
                 flagged: false,
                 incorrect: false,
                 hidden: false,

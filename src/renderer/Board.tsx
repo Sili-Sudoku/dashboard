@@ -703,7 +703,7 @@ export default function Board({
                                 return (
                                     <text
                                         key={`n-${c.cell}-${n}`}
-                                        className={`note ${c.flagged ? "note-flagged" : ""}`}
+                                        className={`note ${c.flagged || c.ruledOutNotes.includes(n) ? "note-flagged" : ""}`}
                                         x={c.x + c.size * (0.22 + col * 0.28)}
                                         y={c.y + c.size * (0.24 + row * 0.28)}
                                         fontSize={c.size * 0.2}
@@ -723,7 +723,14 @@ export default function Board({
                                     textAnchor="middle"
                                     dominantBaseline="central"
                                 >
-                                    {centerText}
+                                    {c.centerNotes.map((n) => (
+                                        <tspan
+                                            key={n}
+                                            className={c.ruledOutNotes.includes(n) ? "note-flagged" : undefined}
+                                        >
+                                            {n}
+                                        </tspan>
+                                    ))}
                                 </text>
                             )}
                         </g>

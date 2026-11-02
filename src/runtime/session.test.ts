@@ -282,6 +282,32 @@ describe("PuzzleSession", () => {
         expect(session.isMatchHighlighted()).toBe(false);
     });
 
+    it("rules out a note digit that a placed digit in the same constraint already excludes", () => {
+        // row 1 must be all different, and r1c1 is a given 1
+        session.select("r1c2");
+        session.toggleCornerNote(1);
+        session.toggleCornerNote(2);
+        session.toggleCenterNote(1);
+        session.select("r2c2"); // not in the row constraint
+        session.toggleCornerNote(1);
+
+        const out = session.getRuledOutNotes();
+        expect(out.get("r1c2")).toEqual(new Set([1])); // '1' repeats the given, '2' is fine
+        expect(out.has("r2c2")).toBe(false);
+    });
+
+    it("stops ruling the note out once the conflicting digit is gone", () => {
+        session.select("r1c3");
+        session.input(3);
+        session.select("r1c2");
+        session.toggleCornerNote(3);
+        expect(session.getRuledOutNotes().get("r1c2")).toEqual(new Set([3]));
+
+        session.select("r1c3");
+        session.erase();
+        expect(session.getRuledOutNotes().has("r1c2")).toBe(false);
+    });
+
     it("jumps to the next/previous empty cell, wrapping around the board", () => {
         session.select("r1c1"); // a given, but a valid cursor position
         session.jumpToEmptyCell(1);

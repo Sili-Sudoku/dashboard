@@ -48,6 +48,8 @@ export interface SceneInput {
     /** Flag every other cell that shows the same value as the cursor cell (#73).
      *  This is only visual. It does not change the real selection or cursor. */
     highlightSameValue?: boolean;
+    /** The note digits that a placed digit already rules out, for each cell. They are drawn as wrong. */
+    ruledOutNotes?: ReadonlyMap<CellId, ReadonlySet<number>>;
     /** Colour marks for each cell, as palette indices (#35), resolved against `markPalette`. */
     colorsOf?: (cell: CellId) => readonly number[];
     markPalette?: readonly string[];
@@ -71,6 +73,8 @@ export interface CellShape {
     given: boolean;
     notes: readonly number[];
     centerNotes: readonly number[];
+    /** The notes (corner and centre) that a placed digit already rules out. */
+    ruledOutNotes: readonly number[];
     /** Flagged by checkNotesOnLeave/checkAgainstSolution. The notes left do not include the solution digit. */
     flagged: boolean;
     /** Flagged by checkAgainstSolution: the placed value does not match the solution. */
@@ -170,6 +174,7 @@ export const buildScene = (input: SceneInput): Scene => {
             given: input.isGiven(cell) && !hidden,
             notes: input.notesOf(cell),
             centerNotes: input.centerNotesOf(cell),
+            ruledOutNotes: [...(input.ruledOutNotes?.get(cell) ?? [])],
             flagged: input.flaggedCells.has(cell),
             incorrect: input.incorrectCells.has(cell),
             hidden,

@@ -14,6 +14,7 @@ const cell = (over: Partial<CellShape> = {}): CellShape => ({
     given: false,
     notes: [],
     centerNotes: [],
+    ruledOutNotes: [],
     flagged: false,
     incorrect: false,
     hidden: false,
