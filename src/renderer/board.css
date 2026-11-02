@@ -245,9 +245,10 @@
     font-weight: 700;
 }
 
-/* The board is a Tab stop (#64). Keep a visible ring for keyboard focus. */
+/* The board is a Tab stop (#64). Keep a visible ring for keyboard focus. It is ink, not the blue brand
+   colour: it sits on the grid's edge, and the edge must never turn blue. */
 .board:focus-visible {
-    outline: 3px solid var(--brand);
+    outline: 3px solid var(--ink);
     outline-offset: -3px; /* inside: the viewport clips all that is outside the board */
 }
 
