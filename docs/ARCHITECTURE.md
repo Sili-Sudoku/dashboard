@@ -58,11 +58,14 @@ runtime has **no build-time edge** to `src/definitions/`. Consequences:
 ## 5. Geometry is an interface; grid is one implementation
 
 `Geometry` exposes cells, centres/corners, adjacency, region selectors, cursor
-stepping, bounds. `GridGeometry` implements it. Nothing assumes 9, square, or
+stepping, bounds. `GridGeometry` implements it, and so does `CompositeGeometry`
+(several independently-tiled grids in one shared coordinate space: the
+Samurai puzzle in `src/puzzles/samurai.ts` runs on it, unchanged evaluator,
+session, renderer and `sudoku` definition). Nothing assumes 9, square, or
 even "grid": `buildScene` sizes the SVG `viewBox` from `geometry.bounds()`, the
 number pad derives its keys from `domain`, the session speaks only cell ids.
 
-A 9×9 Sudoku is a small instance. Overlapping grids, hex boards, or a
+A 9×9 Sudoku is a small instance. Overlapping grids are the composite one; hex boards, or a
 SudokuCon-scale world would be new `Geometry` implementations (plus, for very
 large boards, a viewport/culling layer in the renderer) — no change to the
 evaluator, session, definitions, or format.

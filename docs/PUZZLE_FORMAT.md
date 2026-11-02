@@ -80,6 +80,23 @@ Anywhere a constraint wants a group of cells it uses a selector string:
 | `cage:top-left` | a puzzle-defined named region           |
 | `["r1c1","r1c2"]` | an explicit list (as a JSON array)   |
 
+### Composite geometry
+
+Several grids in one coordinate space (linked and Samurai sudokus, boards with a gap between them):
+
+```jsonc
+"geometry": { "type": "composite", "grids": [
+  { "id": "nw", "row": 0, "col": 0,  "width": 9, "height": 9 },
+  { "id": "ne", "row": 0, "col": 12, "width": 9, "height": 9 }
+] }
+```
+
+`row`/`col` place each grid's top-left cell (from 0) in the shared space; `boxWidth`/`boxHeight` work as for a
+single grid. Cells keep the `rNcM` names, counted across the whole space, so a constraint can reach any grid. Grids may
+overlap (a shared cell exists once) and leave gaps (no cells). Each grid has its own regions, named
+`nw/row:0`, `nw/col:3`, `nw/box:4` (plus `all`); a bare `row:0` doesn't exist, as it would be ambiguous. `sudoku`
+constrains every grid on its own.
+
 ## Constraints
 
 Each entry of `constraints` is **either** a primitive expression **or** a

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "@/app/toast.ts";
 import { useSettings, type EditorMode } from "@/app/use_settings.ts";
 import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
-import { GridGeometry } from "@/runtime/geometry.ts";
+import { GridGeometry, describeGeometry } from "@/runtime/geometry.ts";
 import { puzzleToCode } from "@/authoring/to_code.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
@@ -76,6 +76,7 @@ interface GridDims {
 const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
     if (!def) return undefined;
     try {
+        if (def.geometry.type !== "grid") return undefined;
         const geometry = new GridGeometry(def.geometry);
         return {
             width: geometry.width,
@@ -452,6 +453,12 @@ export default function Author() {
         <div className="author">
             <div className={`author-grid${testing ? " author-grid--testing" : ""}`}>
                 <div className="author-editor">
+                    {liveDef?.geometry.type === "composite" ? (
+                        <p className="author-hint">
+                            This puzzle is several grids in one space ({describeGeometry(liveDef.geometry)}); edit its
+                            layout in the JSON.
+                        </p>
+                    ) : (
                     <div className="author-dims">
                         <div className="author-dims-group" role="group" aria-labelledby="author-dims-grid">
                             <span id="author-dims-grid" className="author-dims-label">
@@ -482,6 +489,7 @@ export default function Author() {
                             />
                         </div>
                     </div>
+                    )}
                     <div className="author-mode-bar">
                         <div className="segmented" role="tablist">
                             {EDITOR_TABS.map((tab) => (

@@ -1,3 +1,4 @@
+import { describeGeometry } from "@/runtime/geometry.ts";
 import { Link } from "react-router-dom";
 
 import { listPuzzles } from "@/puzzles/index.ts";
@@ -30,7 +31,7 @@ export default function PuzzleList() {
                             <p className="pc-desc">{p.metadata.description}</p>
                             <div className="pc-meta">
                                 <span>
-                                    {p.geometry.width}×{p.geometry.height}
+                                    {describeGeometry(p.geometry)}
                                 </span>
                                 <span>{p.metadata.difficulty}</span>
                             </div>

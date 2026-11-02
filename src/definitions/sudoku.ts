@@ -7,6 +7,7 @@
  */
 
 import type { ConstraintDefinition, DefinitionOutput } from "@/definitions/types.ts";
+import { regionKind } from "@/runtime/geometry.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
 export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
@@ -14,8 +15,9 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
     const extraRegions = Array.isArray(params.extraRegions) ? (params.extraRegions as string[]) : [];
 
     const selectors = ctx.geometry.regionSelectors.filter((s) => {
-        if (s.startsWith("row:") || s.startsWith("col:")) return true;
-        if (s.startsWith("box:")) return includeBoxes;
+        const kind = regionKind(s);
+        if (kind === "row" || kind === "col") return true;
+        if (kind === "box") return includeBoxes;
         return false;
     });
 

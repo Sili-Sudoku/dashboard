@@ -9,7 +9,7 @@ import Board, { type ZoomControls } from "@/renderer/Board.tsx";
 import type { MenuItem } from "@/app/overflow_menu.tsx";
 import { useMediaQuery } from "@/app/use_media_query.ts";
 import { buildScene } from "@/renderer/scene.ts";
-import { createGeometry } from "@/runtime/geometry.ts";
+import { createGeometry, regionKind } from "@/runtime/geometry.ts";
 
 import { describeCell, describeRegion, type ReadKind } from "@/player/describe_cell.ts";
 import { usePuzzleSession, type ExternalHistory } from "@/player/use_puzzle_session.ts";
@@ -222,7 +222,7 @@ export default function PuzzlePlayer({
             const cursor = scene.cells.find((c) => c.ring === "cursor")?.cell;
             const selector = cursor
                 ? geometry.regionSelectors.find(
-                      (s) => s.startsWith(`${kind}:`) && geometry.resolveRegion(s)?.includes(cursor),
+                      (s) => regionKind(s) === kind && geometry.resolveRegion(s)?.includes(cursor),
                   )
                 : undefined;
             const region = selector ? { selector, cells: geometry.resolveRegion(selector) ?? [] } : undefined;

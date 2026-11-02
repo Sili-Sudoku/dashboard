@@ -12,6 +12,7 @@ import { whisperLinePuzzle } from "@/puzzles/whisper_line.ts";
 import { largeDemo } from "@/puzzles/large_demo.ts";
 import { largeDemo0, largeDemo30, largeDemo50, largeDemo70 } from "@/puzzles/large_demo_density.ts";
 import { fogDemo } from "@/puzzles/fog_demo.ts";
+import { samuraiSudoku } from "@/puzzles/samurai.ts";
 
 export const puzzleRegistry: Readonly<Record<string, PuzzleDefinition>> = {
     [demoMixed.metadata.id]: demoMixed,
@@ -24,6 +25,7 @@ export const puzzleRegistry: Readonly<Record<string, PuzzleDefinition>> = {
     [largeDemo50.metadata.id]: largeDemo50,
     [largeDemo70.metadata.id]: largeDemo70,
     [fogDemo.metadata.id]: fogDemo,
+    [samuraiSudoku.metadata.id]: samuraiSudoku,
 };
 
 export const listPuzzles = (): readonly PuzzleDefinition[] => Object.values(puzzleRegistry);
@@ -41,4 +43,5 @@ export {
     largeDemo50,
     largeDemo70,
     fogDemo,
+    samuraiSudoku,
 };

@@ -52,17 +52,21 @@ const asRows = (map: Readonly<Record<CellId, number>>, width: number, height: nu
 
 export const puzzleToCode = (def: PuzzleDefinition): string => {
     const { id, title, ...rest } = def.metadata;
-    const { width, height, boxWidth, boxHeight } = def.geometry;
     const calls: string[] = [];
+    // The row-text shorthand only exists for a single grid; elsewhere cells are listed one by one.
+    const grid = def.geometry.type === "grid" ? def.geometry : undefined;
 
     if (Object.keys(rest).length > 0) calls.push(`.describe(${literal(rest)})`);
 
-    const boxes = boxWidth !== undefined || boxHeight !== undefined ? `, ${literal({ boxWidth, boxHeight })}` : "";
-    calls.push(`.grid(${width}, ${height}${boxes})`);
+    if (def.geometry.type === "grid") {
+        const { width, height, boxWidth, boxHeight } = def.geometry;
+        const boxes = boxWidth !== undefined || boxHeight !== undefined ? `, ${literal({ boxWidth, boxHeight })}` : "";
+        calls.push(`.grid(${width}, ${height}${boxes})`);
+    } else calls.push(`.geometry(${literal(def.geometry)})`);
     calls.push(`.domain(${literal(def.domain.values)})`);
 
     const cellMap = (method: string, rowsMethod: string, map: Readonly<Record<CellId, number>>) => {
-        const rows = asRows(map, width, height);
+        const rows = grid && asRows(map, grid.width, grid.height);
         if (rows) calls.push(`.${rowsMethod}(${literal(rows)})`);
         else for (const [cell, value] of Object.entries(map)) calls.push(`.${method}(${literal(cell)}, ${value})`);
     };
@@ -84,7 +88,7 @@ export const puzzleToCode = (def: PuzzleDefinition): string => {
     if (def.fog) calls.push(`.fog(${literal(def.fog.hidden)})`);
 
     if (def.solution) {
-        const rows = asRows(def.solution, width, height);
+        const rows = grid && asRows(def.solution, grid.width, grid.height);
         calls.push(rows ? `.solutionFromRows(${literal(rows)})` : `.solution(${literal(def.solution)})`);
     }
     if (def.presentation) calls.push(`.presentation(${literal(def.presentation)})`);

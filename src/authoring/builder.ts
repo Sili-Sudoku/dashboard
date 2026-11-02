@@ -14,14 +14,14 @@
  *       .build();
  */
 
-import type { CellId, GridGeometrySpec } from "@/runtime/geometry.ts";
+import type { CellId, GeometrySpec } from "@/runtime/geometry.ts";
 import type { ConstraintSpec, PuzzleDefinition, PuzzleMetadata, VisualObject } from "@/runtime/puzzle.ts";
 import type { Expr } from "@/runtime/expression.ts";
 import { givensFromRows } from "@/puzzles/grid_text.ts";
 
 export class PuzzleBuilder {
     private metadata: PuzzleMetadata;
-    private geometrySpec: GridGeometrySpec = { type: "grid", width: 9, height: 9 };
+    private geometrySpec: GeometrySpec = { type: "grid", width: 9, height: 9 };
     private values: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     private readonly givenMap: Record<CellId, number> = {};
     private readonly regionMap: Record<string, readonly CellId[]> = {};
@@ -46,6 +46,12 @@ export class PuzzleBuilder {
 
     grid(width: number, height: number, boxes?: { boxWidth: number; boxHeight: number }): this {
         this.geometrySpec = { type: "grid", width, height, ...boxes };
+        return this;
+    }
+
+    /** Any geometry: e.g. several grids composed into one space (`{ type: "composite", grids: [...] }`). */
+    geometry(spec: GeometrySpec): this {
+        this.geometrySpec = spec;
         return this;
     }
 

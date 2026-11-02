@@ -41,9 +41,24 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     if (typeof meta.title !== "string" || meta.title.length === 0) return new Error("metadata.title is required");
 
     const geometry = obj.geometry as Record<string, unknown> | undefined;
-    if (!geometry || geometry.type !== "grid") return new Error('geometry.type must be "grid"');
-    if (!isPositiveInt(geometry.width) || !isPositiveInt(geometry.height)) {
-        return new Error("geometry.width and geometry.height must be positive integers");
+    if (!geometry || (geometry.type !== "grid" && geometry.type !== "composite")) {
+        return new Error('geometry.type must be "grid" or "composite"');
+    }
+    if (geometry.type === "grid") {
+        if (!isPositiveInt(geometry.width) || !isPositiveInt(geometry.height)) {
+            return new Error("geometry.width and geometry.height must be positive integers");
+        }
+    } else {
+        const grids = geometry.grids;
+        if (!Array.isArray(grids) || grids.length === 0) return new Error("geometry.grids must be a non-empty array");
+        for (const g of grids as Record<string, unknown>[]) {
+            if (typeof g !== "object" || g === null || !isPositiveInt(g.width) || !isPositiveInt(g.height)) {
+                return new Error("each geometry grid needs a positive integer width and height");
+            }
+            if (!isNonNegativeInt(g.row) || !isNonNegativeInt(g.col)) {
+                return new Error("each geometry grid needs a row and col offset (integers from 0)");
+            }
+        }
     }
 
     const domain = obj.domain as Record<string, unknown> | undefined;
@@ -74,6 +89,7 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     return data as PuzzleDefinition;
 };
 
+const isNonNegativeInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 const isPositiveInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v > 0;
 
 const isConstraintSpecShape = (spec: unknown): spec is ConstraintSpec => {

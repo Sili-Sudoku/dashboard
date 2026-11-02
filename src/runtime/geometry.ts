@@ -94,6 +94,10 @@ export interface GridGeometrySpec {
     boxHeight?: number;
 }
 
+/** "row" | "col" | "box" for a selector such as `row:3` or, in a composite geometry, `g2/box:4`. */
+export const regionKind = (selector: string): string =>
+    selector.slice(selector.lastIndexOf("/") + 1).split(":")[0] ?? "";
+
 export const GridCellId = (row: number, col: number): CellId => `r${row + 1}c${col + 1}`;
 
 const CELL_RE = /^r(\d+)c(\d+)$/;
@@ -294,10 +298,215 @@ export class GridGeometry implements Geometry {
     }
 }
 
-export const createGeometry = (spec: GridGeometrySpec): Geometry => {
+/**
+ * Several independently-tiled grids placed in one shared coordinate space (linked and Samurai
+ * sudokus, a pair of boards with a gap between them...). Cells keep the plain `rNcM` names, but N
+ * and M now count across the whole space, so a cell in any grid is addressable by constraints
+ * with no notion of which grid it belongs to. Grids may overlap (their shared cells exist once)
+ * and may leave gaps (no cells there).
+ *
+ * Each grid brings its own rows, columns and boxes, named `<grid id>/row:0`, `<grid id>/box:4`...
+ * (`all` is every cell); a definition such as `sudoku` just walks the selectors, so it constrains
+ * each grid on its own. A plain `row:0` doesn't exist here — it would be ambiguous.
+ */
+export interface CompositeGridSpec {
+    /** Prefix of this grid's region selectors; defaults to `g1`, `g2`... by position. */
+    id?: string;
+    /** Where the grid's top-left cell sits in the shared space (0-based). */
+    row: number;
+    col: number;
+    width: number;
+    height: number;
+    boxWidth?: number;
+    boxHeight?: number;
+}
+
+export interface CompositeGeometrySpec {
+    type: "composite";
+    grids: readonly CompositeGridSpec[];
+}
+
+export type GeometrySpec = GridGeometrySpec | CompositeGeometrySpec;
+
+/** "9×9" for a grid, "21×21, 5 grids" for a composite. */
+export const describeGeometry = (spec: GeometrySpec): string =>
+    spec.type === "grid"
+        ? `${spec.width}×${spec.height}`
+        : (() => {
+              const { maxX, maxY } = new CompositeGeometry(spec).bounds();
+              return `${maxX}×${maxY}, ${spec.grids.length} grids`;
+          })();
+
+const edgeKey = (horizontal: boolean, fixed: number, at: number) => `${horizontal ? "h" : "v"}:${fixed}:${at}`;
+
+export class CompositeGeometry implements Geometry {
+    readonly cells: readonly CellId[];
+    readonly regionSelectors: readonly string[];
+
+    private readonly cellSet: Set<CellId>;
+    private readonly regions = new Map<string, readonly CellId[]>();
+    private readonly majorEdges = new Map<string, boolean>();
+    private readonly extent: Bounds;
+
+    constructor(spec: CompositeGeometrySpec) {
+        if (!Array.isArray(spec.grids) || spec.grids.length === 0) {
+            throw new Error("a composite geometry needs at least one grid");
+        }
+        const present = new Set<CellId>();
+        const selectors: string[] = ["all"];
+        const ids = new Set<string>();
+
+        spec.grids.forEach((g, i) => {
+            const id = g.id ?? `g${i + 1}`;
+            if (id === "" || /[:/]/.test(id))
+                throw new Error(`grid id "${id}" must be non-empty and contain no ":" or "/"`);
+            if (ids.has(id)) throw new Error(`two grids are both called "${id}"`);
+            ids.add(id);
+            if (!Number.isInteger(g.row) || g.row < 0 || !Number.isInteger(g.col) || g.col < 0) {
+                throw new Error(`grid "${id}": row and col must be non-negative integers`);
+            }
+            // The grid's own tiling (boxes, defaults, validation) is a plain GridGeometry's; this just moves it.
+            const local = new GridGeometry({ type: "grid", ...g });
+            const move = (cell: CellId): CellId => {
+                const rc = parseGridCellId(cell) as { row: number; col: number };
+                return GridCellId(rc.row + g.row, rc.col + g.col);
+            };
+            for (const cell of local.cells) present.add(move(cell));
+            for (const sel of local.regionSelectors) {
+                if (sel === "all") continue;
+                const name = `${id}/${sel}`;
+                selectors.push(name);
+                this.regions.set(name, (local.resolveRegion(sel) as readonly CellId[]).map(move));
+            }
+            for (const line of local.boardLines()) {
+                const [a, b] = line.points as [Point, Point];
+                const horizontal = a.y === b.y;
+                const fixed = (horizontal ? a.y : a.x) + (horizontal ? g.row : g.col);
+                const from = (horizontal ? a.x : a.y) + (horizontal ? g.col : g.row);
+                const to = (horizontal ? b.x : b.y) + (horizontal ? g.col : g.row);
+                for (let at = from; at < to; at++) {
+                    const key = edgeKey(horizontal, fixed, at);
+                    this.majorEdges.set(key, (this.majorEdges.get(key) ?? false) || line.major);
+                }
+            }
+        });
+
+        // Row-major over the whole space, so the order is stable whatever order the grids are listed in.
+        this.cells = [...present].sort((a, b) => {
+            const pa = parseGridCellId(a) as { row: number; col: number };
+            const pb = parseGridCellId(b) as { row: number; col: number };
+            return pa.row - pb.row || pa.col - pb.col;
+        });
+        this.cellSet = present;
+        this.regions.set("all", this.cells);
+        this.regionSelectors = selectors;
+
+        let [minX, minY, maxX, maxY] = [Infinity, Infinity, 0, 0];
+        for (const cell of this.cells) {
+            const { row, col } = parseGridCellId(cell) as { row: number; col: number };
+            minX = Math.min(minX, col);
+            minY = Math.min(minY, row);
+            maxX = Math.max(maxX, col + 1);
+            maxY = Math.max(maxY, row + 1);
+        }
+        this.extent = { minX, minY, maxX, maxY };
+    }
+
+    has(cell: CellId): boolean {
+        return this.cellSet.has(cell);
+    }
+
+    private require(cell: CellId): { row: number; col: number } {
+        const rc = parseGridCellId(cell);
+        if (!rc || !this.cellSet.has(cell)) throw new Error(`cell ${cell} is not part of this geometry`);
+        return rc;
+    }
+
+    center(cell: CellId): Point {
+        const { row, col } = this.require(cell);
+        return { x: col + 0.5, y: row + 0.5 };
+    }
+
+    anchor(cell: CellId, corner: CellCorner): Point {
+        const { row, col } = this.require(cell);
+        const dx = corner === "tr" || corner === "br" ? 1 : corner === "c" ? 0.5 : 0;
+        const dy = corner === "bl" || corner === "br" ? 1 : corner === "c" ? 0.5 : 0;
+        return { x: col + dx, y: row + dy };
+    }
+
+    neighbors(cell: CellId): readonly CellId[] {
+        const { row, col } = this.require(cell);
+        return Object.values(DIR_DELTA)
+            .map(({ dr, dc }) => GridCellId(row + dr, col + dc))
+            .filter((c) => this.cellSet.has(c));
+    }
+
+    adjacent(a: CellId, b: CellId): boolean {
+        const pa = this.require(a);
+        const pb = this.require(b);
+        return Math.abs(pa.row - pb.row) + Math.abs(pa.col - pb.col) === 1;
+    }
+
+    resolveRegion(selector: string): readonly CellId[] | undefined {
+        return this.regions.get(selector);
+    }
+
+    bounds(): Bounds {
+        return this.extent;
+    }
+
+    /** Every grid's lines in the shared space: shared edges once (heavy if any grid says so), runs joined. */
+    boardLines(): readonly BoardLine[] {
+        const runs = new Map<string, { horizontal: boolean; fixed: number; major: boolean; at: number[] }>();
+        for (const [key, major] of this.majorEdges) {
+            const [kind, fixedRaw, atRaw] = key.split(":") as [string, string, string];
+            const run = `${kind}:${fixedRaw}:${major}`;
+            const entry = runs.get(run) ?? { horizontal: kind === "h", fixed: Number(fixedRaw), major, at: [] };
+            entry.at.push(Number(atRaw));
+            runs.set(run, entry);
+        }
+        const lines: BoardLine[] = [];
+        for (const { horizontal, fixed, major, at } of runs.values()) {
+            at.sort((x, y) => x - y);
+            let start = at[0] as number;
+            for (let i = 0; i < at.length; i++) {
+                const last = at[i] as number;
+                if (i + 1 < at.length && at[i + 1] === last + 1) continue;
+                const [p, q] = horizontal
+                    ? [
+                          { x: start, y: fixed },
+                          { x: last + 1, y: fixed },
+                      ]
+                    : [
+                          { x: fixed, y: start },
+                          { x: fixed, y: last + 1 },
+                      ];
+                lines.push({ points: [p, q], major });
+                start = at[i + 1] as number;
+            }
+        }
+        return lines;
+    }
+
+    /** Steps across any gap between grids, so the keyboard can travel from one board to the next. */
+    step(cell: CellId, dir: Direction): CellId | undefined {
+        const { row, col } = this.require(cell);
+        const { dr, dc } = DIR_DELTA[dir];
+        const { minX, minY, maxX, maxY } = this.extent;
+        for (let r = row + dr, c = col + dc; r >= minY && r < maxY && c >= minX && c < maxX; r += dr, c += dc) {
+            const next = GridCellId(r, c);
+            if (this.cellSet.has(next)) return next;
+        }
+        return undefined;
+    }
+}
+
+export const createGeometry = (spec: GeometrySpec): Geometry => {
     switch (spec.type) {
         case "grid":
             return new GridGeometry(spec);
+        case "composite":
+            return new CompositeGeometry(spec);
         default:
             throw new Error(`unknown geometry type: ${(spec as { type: string }).type}`);
     }

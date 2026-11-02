@@ -7,7 +7,7 @@
  * resolved and variant definitions are expanded to primitive constraints.
  */
 
-import type { CellId, GridGeometrySpec } from "@/runtime/geometry.ts";
+import type { CellId, GeometrySpec } from "@/runtime/geometry.ts";
 import type { Expr } from "@/runtime/expression.ts";
 
 export const PUZZLE_FORMAT_VERSION = 1 as const;
@@ -96,7 +96,7 @@ export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k
 export interface PuzzleDefinition {
     version: typeof PUZZLE_FORMAT_VERSION;
     metadata: PuzzleMetadata;
-    geometry: GridGeometrySpec;
+    geometry: GeometrySpec;
     /** Allowed cell values. For classic Sudoku: [1..9]. */
     domain: { values: readonly number[] };
     /** Named cell groups referenced by selectors, e.g. "cage:A". */
@@ -135,7 +135,7 @@ export interface CompiledConstraint {
 
 export interface CompiledPuzzle {
     metadata: PuzzleMetadata;
-    geometry: GridGeometrySpec;
+    geometry: GeometrySpec;
     domain: readonly number[];
     regions: Readonly<Record<string, readonly CellId[]>>;
     givens: Readonly<Record<CellId, number>>;
