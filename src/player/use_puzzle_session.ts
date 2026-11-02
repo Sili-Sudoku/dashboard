@@ -393,7 +393,17 @@ export const usePuzzleSession = (
             modifierHeld.current = false;
         };
 
+        /**
+         * Events carry the real modifier state. If the preview is on but no modifier is down any more,
+         * the key-up never reached us, so the mode must go back now. That key-up can be lost when focus
+         * moved out of the player or into a text field while the key was held.
+         */
+        const healStaleModifier = (e: KeyboardEvent | PointerEvent) => {
+            if (modifierHeld.current && !e.shiftKey && !e.ctrlKey && !e.metaKey) restoreMode();
+        };
+
         const onKeyDown = (e: KeyboardEvent) => {
+            healStaleModifier(e);
             if (isInputTarget(e)) return;
 
             const isPlainDigit = /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.shiftKey;
@@ -486,7 +496,7 @@ export const usePuzzleSession = (
         };
 
         const onKeyUp = (e: KeyboardEvent) => {
-            if (!modifierHeld.current || isInputTarget(e)) return;
+            if (!modifierHeld.current) return;
             if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Meta") return;
 
             if (e.ctrlKey || e.metaKey) session.setInputMode("center");
@@ -501,14 +511,18 @@ export const usePuzzleSession = (
 
         const root = scope.current;
         root?.addEventListener("keydown", onKeyDown);
-        root?.addEventListener("keyup", onKeyUp);
+        // The key-up listens on the window, not on the player. The player does not see the release
+        // when focus is elsewhere (another control, a text field, outside the player) at that moment.
+        window.addEventListener("keyup", onKeyUp);
+        window.addEventListener("pointerdown", healStaleModifier);
         window.addEventListener("blur", onBlur);
         return () => {
             unsubscribe();
             window.clearTimeout(digitTimer.current);
             digitBuffer.current = "";
             root?.removeEventListener("keydown", onKeyDown);
-            root?.removeEventListener("keyup", onKeyUp);
+            window.removeEventListener("keyup", onKeyUp);
+            window.removeEventListener("pointerdown", healStaleModifier);
             window.removeEventListener("blur", onBlur);
         };
     }, [session, scope, puzzle.domain, check, undo, redo]);

@@ -178,6 +178,29 @@ describe("<PuzzlePlayer />", () => {
         expect(digitMode.getAttribute("aria-pressed")).toBe("true");
     });
 
+    it("restores the mode when the modifier is released outside the player (no key-up on the player)", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        const digitMode = screen.getByRole("button", { name: /^Digit$/ });
+
+        fireEvent.keyDown(root(), { key: "Shift", shiftKey: true });
+        expect(screen.getByRole("button", { name: /^Corner$/ }).getAttribute("aria-pressed")).toBe("true");
+        fireEvent.keyUp(document.body, { key: "Shift" }); // released while focus was elsewhere
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("restores the mode on the next key or click if the modifier release was lost altogether", () => {
+        render(<PuzzlePlayer puzzle={compiled()} />);
+        const digitMode = screen.getByRole("button", { name: /^Digit$/ });
+
+        fireEvent.keyDown(root(), { key: "Shift", shiftKey: true });
+        fireEvent.pointerDown(document.body); // shiftKey is false: the key is no longer down
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+
+        fireEvent.keyDown(root(), { key: "Control", ctrlKey: true });
+        fireEvent.keyDown(root(), { key: "x" }); // no ctrlKey: it was released unseen
+        expect(digitMode.getAttribute("aria-pressed")).toBe("true");
+    });
+
     it("restores the pad's own mode (not always digit) after a held-modifier preview", () => {
         render(<PuzzlePlayer puzzle={compiled()} />);
         fireEvent.click(screen.getByRole("button", { name: /^Corner$/ }));
@@ -431,12 +454,12 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("clicking Check first just reports a mistake, a second press reveals it, and fixing it clears the flag", () => {
-        const { container } = render((
+        const { container } = render(
             <>
                 <PuzzlePlayer puzzle={compiled()} />
                 <ToastViewport />
-            </>
-        ));
+            </>,
+        );
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         const checkButton = () => screen.getByRole("button", { name: /^check$/i });
 
@@ -476,23 +499,23 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("Check reports 'everything is correct' when the board has no mistakes", () => {
-        render((
+        render(
             <>
                 <PuzzlePlayer puzzle={compiled()} />
                 <ToastViewport />
-            </>
-        ));
+            </>,
+        );
         fireEvent.click(screen.getByRole("button", { name: /^check$/i }));
         expect(screen.queryByText(/everything is correct/i)).not.toBeNull();
     });
 
     it("reports a note mistake separately from a wrong value, and doesn't mention 'digit entered'", () => {
-        const { container } = render((
+        const { container } = render(
             <>
                 <PuzzlePlayer puzzle={compiled()} />
                 <ToastViewport />
-            </>
-        ));
+            </>,
+        );
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
         fireEvent.pointerDown(cells[1]); // r1c2, solution digit is '2'
@@ -653,7 +676,10 @@ describe("<PuzzlePlayer />", () => {
     });
 
     it("resumes a persisted elapsed time instead of restarting at zero", () => {
-        localStorage.setItem(statsStorageKey("mini-sudoku"), JSON.stringify({ elapsedMs: 42_000 } satisfies PuzzleStats));
+        localStorage.setItem(
+            statsStorageKey("mini-sudoku"),
+            JSON.stringify({ elapsedMs: 42_000 } satisfies PuzzleStats),
+        );
         render(<PuzzlePlayer puzzle={compiled()} />);
         expect(screen.getByText("0:42")).toBeTruthy();
     });
