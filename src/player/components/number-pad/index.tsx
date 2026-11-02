@@ -24,20 +24,13 @@ const MODES: { mode: InputMode; label: string; icon: typeof Hash }[] = [
     { mode: "pen", label: "Pen", icon: PenLine },
 ];
 
-/** Position of digit `n` in the fixed 3x3 corner-note grid, as a 0..1 fraction. */
-const cornerPosition = (n: number): { left: string; top: string } => {
-    const { col, row } = cornerSlot(n);
+/** Where the corner-mode preview sits: in the first corner. The real place of a note depends on the other notes of the cell. */
+const cornerPosition = (): { left: string; top: string } => {
+    const { col, row } = cornerSlot(0);
     return { left: `${24 + col * 26}%`, top: `${26 + row * 26}%` };
 };
 
-export default function NumberPad({
-    values,
-    palette,
-    mode,
-    onInput,
-    onErase,
-    onModeChange,
-}: Props) {
+export default function NumberPad({ values, palette, mode, onInput, onErase, onModeChange }: Props) {
     const swatches = mode === "color";
     // The shape of the pad never changes with the mode (as in SudokuPad).
     // It has the digits and a 0 key beside Erase.
@@ -67,7 +60,7 @@ export default function NumberPad({
             onClick={() => onInput(v)}
         >
             {mode === "corner" ? (
-                <span className="pad-key-preview" style={cornerPosition(v)}>
+                <span className="pad-key-preview" style={cornerPosition()}>
                     {v}
                 </span>
             ) : (

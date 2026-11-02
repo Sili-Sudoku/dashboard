@@ -75,8 +75,7 @@
     color: var(--entered);
 }
 
-/* Corner mode: preview the exact 3x3 slot where the note lands, not a centred digit.
-   So the spatial mapping is visible before the click. */
+/* Corner mode: the digit sits small in a corner of the key, not centred, to show that it will be a note. */
 .pad-key-preview {
     position: absolute;
     font-size: 0.65rem;

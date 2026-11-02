@@ -698,8 +698,8 @@ export default function Board({
                     const centerText = c.centerNotes.join("");
                     return (
                         <g key={`notes-${c.cell}`}>
-                            {c.notes.map((n) => {
-                                const { col, row } = cornerSlot(n);
+                            {c.notes.map((n, i) => {
+                                const { col, row } = cornerSlot(i);
                                 return (
                                     <text
                                         key={`n-${c.cell}-${n}`}
