@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import AppRouter from "@/app/router.tsx";
@@ -87,6 +87,13 @@ describe("AppRouter — document title", () => {
     it("prefixes the route's name on pages without their own header", () => {
         at("/settings");
         expect(document.title).toBe("Settings · Constraint Puzzle Runtime");
+    });
+
+    it("lets the gear close the settings page", () => {
+        at("/settings");
+        fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
+        expect(document.title).toBe("Constraint Puzzle Runtime");
+        expect(screen.getByRole("link", { name: "Settings" })).toBeTruthy();
     });
 
     it("names the not-found page", () => {

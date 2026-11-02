@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
-import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import Landing from "@/features/landing";
 import { ErrorBoundary } from "@/app/error_boundary.tsx";
@@ -46,7 +46,8 @@ export default function AppRouter() {
     // The route drives this choice directly. A CSS :has(.board-wrap) structural match is not used.
     // That match depends on :has() support.
     // Without that support it does nothing and gives no error. The centered layout is the fallback.
-    const pathname = useLocation().pathname;
+    const { pathname, key } = useLocation();
+    const navigate = useNavigate();
     const isBoardRoute = pathname.startsWith("/p/") || pathname === "/new";
     // The landing page has its own full-bleed sections (hero/manifesto/closer bands).
     // They have their own palette and padding.
@@ -66,36 +67,53 @@ export default function AppRouter() {
             <PageHeaderContext.Provider value={setPageHeader}>
                 <div className={`app${isBoardRoute ? " app--board" : ""}`}>
                     <header className="app-header">
-                        <Link to="/" className="logo">
-                            Constraint Puzzle Runtime
-                        </Link>
-                        {/* Play and Author register their own title here with usePageHeader.
-                            They do not render a big in-page h1+p.
-                            The description (when there is one) is a native hover tooltip.
-                            It does not use another line.
-                            Routes that set no title (Home) use the tagline. */}
-                        {pageHeader ? (
-                            <span className="app-header-page" title={pageHeader.description}>
-                                <span className="app-header-sep" aria-hidden="true">
-                                    ›
+                        <div className="app-header-title">
+                            <Link to="/" className="logo">
+                                Constraint Puzzle Runtime
+                            </Link>
+                            {/* Play and Author register their own title here with usePageHeader.
+                                They do not render a big in-page h1+p.
+                                The description (when there is one) is a native hover tooltip.
+                                It does not use another line.
+                                Routes that set no title (Home) use the tagline. */}
+                            {pageHeader ? (
+                                <span className="app-header-page" title={pageHeader.description}>
+                                    <span className="app-header-sep" aria-hidden="true">
+                                        ›
+                                    </span>
+                                    {pageHeader.title}
+                                    {pageHeader.byline && (
+                                        <span className="app-header-byline">{pageHeader.byline}</span>
+                                    )}
                                 </span>
-                                {pageHeader.title}
-                                {pageHeader.byline && (
-                                    <span className="app-header-byline">{pageHeader.byline}</span>
-                                )}
-                            </span>
-                        ) : (
-                            <span className="tagline">Puzzle types are definitions. They are not engine features.</span>
-                        )}
+                            ) : (
+                                <span className="tagline">
+                                    Puzzle types are definitions. They are not engine features.
+                                </span>
+                            )}
+                        </div>
                         {/* Play portals its View JSON/Share buttons in here (see page_header.ts).
                             It does not render its own row. */}
                         <span className="app-header-actions" ref={setActionsSlot} />
                         <nav>
                             <NavLink to="/puzzles">Puzzles</NavLink>
                             <NavLink to="/new">Author</NavLink>
-                            <NavLink to="/settings" className="btn btn-sm" aria-label="Settings">
-                                <SettingsIcon size={16} />
-                            </NavLink>
+                            {/* On the settings page the gear is a way back (key "default" = no in-app history). */}
+                            {pathname === "/settings" ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-sm"
+                                    aria-current="page"
+                                    aria-label="Close settings"
+                                    onClick={() => (key === "default" ? navigate("/") : navigate(-1))}
+                                >
+                                    <SettingsIcon size={16} />
+                                </button>
+                            ) : (
+                                <NavLink to="/settings" className="btn btn-sm" aria-label="Settings">
+                                    <SettingsIcon size={16} />
+                                </NavLink>
+                            )}
                             <button
                                 type="button"
                                 className="btn btn-sm"

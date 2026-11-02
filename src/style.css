@@ -168,30 +168,19 @@ code, pre {
     font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
 }
 
+/* The shell is exactly the window height and scrolls inside itself (never the document), with the
+   scrollbar gutter always reserved. Every page then has the same width, so the header does not
+   shift sideways between pages. On a board page the definite height is also what lets the board
+   size its SVG correctly (height:100% on an ancestor with indefinite height falls back to the
+   aspect ratio of the SVG). The always-reserved gutter also stops a loop on board pages (#77
+   follow-up): the scrollbar appearing narrows the box, the ResizeObserver-driven fit in Board.tsx
+   shrinks the board, the scrollbar vanishes, and the box widens again. The sticky toolbar in
+   board.css keeps the controls visible in a very short window. */
 .app {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-}
-/* Pages with a puzzle board (#48/#49): limit the whole shell to the window height, so content
-   does not push it taller. On a normal window there is enough room and this rule has no effect.
-   overflow-y:auto (not hidden) is a safety valve for a very short window: the user can scroll to
-   the content and nothing is clipped off-screen. The sticky toolbar in board.css covers that
-   edge case, so the controls do not scroll away. Home never renders a board, so this rule does
-   not affect it. Play and Author (its JSON editor is beside a live preview) both render a board.
-   An explicit .app--board class drives this rule. router.tsx sets the class from the current
-   route. A :has(.board-wrap) structural match does not work here. The board needs a *definite*
-   height from this chain to size its SVG correctly (height:100% on an ancestor with indefinite
-   height falls back to the aspect ratio of the SVG). A selector that does nothing where :has()
-   is not supported cannot give that height. */
-.app.app--board {
-    height: 100vh;
     overflow-y: auto;
-    /* Without this, the vertical scrollbar changes the available *width* when it appears or
-       disappears (#77 follow-up). This feeds back into the ResizeObserver-driven fit in
-       Board.tsx. The fit narrows the box, the scrollbar can vanish, and the box widens again.
-       The loop repeats. Reserving the gutter always (if the scrollbar is needed or not) stops
-       the loop at its source. */
     scrollbar-gutter: stable;
 }
 
@@ -200,26 +189,27 @@ code, pre {
    conflict with, so it was safe to change first. */
 .app-header {
     display: flex;
-    align-items: baseline;
+    /* Icon buttons (View JSON/Share/settings/theme) join the row. They share no text baseline, so
+       baseline alignment put each at its bottom margin edge and the row looked misaligned.
+       Centering the whole row fits. */
+    align-items: center;
     gap: 1rem;
-    padding: 0.9rem 1.4rem;
-    border-bottom: 2px solid var(--chrome-ink);
+    /* One compact size on every page, so the header never changes size while navigating. The board
+       gets as much vertical room as possible. */
+    padding: 0.4rem 1.4rem;
+    border-bottom: 1px solid var(--chrome-ink);
     background: var(--chrome-paper);
     font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
 }
 
-/* Board routes (solving/authoring): the board gets as much vertical room as possible. These
-   routes do not need the full marketing-page presence of this chrome. They need only enough to
-   navigate. */
-.app--board .app-header {
-    padding: 0.4rem 1.4rem;
-    border-bottom-width: 1px;
-    /* The align-items:baseline of the marketing header (above) suits a row of text (wordmark,
-       tagline). Icon buttons (View JSON/Share/settings/theme) join the row here. They share no
-       text baseline, so each aligns at its bottom margin edge. That edge does not match the
-       baseline of the title text, and the row looked misaligned. Centering the whole row fits
-       when buttons are in the row. */
-    align-items: center;
+/* The wordmark and the text next to it share one text baseline. The row is centered for the buttons. A
+   smaller font centered next to a larger one would sit visibly off. So this group aligns by baseline
+   inside, and the row centers the group as a whole. */
+.app-header-title {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    min-width: 0;
 }
 
 .app-header .logo {
@@ -298,7 +288,7 @@ code, pre {
         flex: 1 1 100%;
         gap: 0.9rem;
     }
-    .app-header nav a:not(.btn) + a.btn.btn {
+    .app-header nav a:not(.btn) + .btn.btn {
         margin-left: auto;
     }
 }
@@ -313,28 +303,31 @@ code, pre {
    overlap, but the header has needless rows. The compact layout below avoids those rows when a
    board-route rule is active. */
 @media (max-width: 600px) {
-    .app--board .app-header {
+    .app-header {
         flex-wrap: nowrap;
         padding: 0.4rem 0.6rem;
         gap: 0.5rem;
     }
-    .app--board .app-header .logo,
-    .app--board .app-header .app-header-sep,
-    .app--board .app-header-byline {
+    .app-header .logo,
+    .app-header .app-header-sep,
+    .app-header-byline {
         display: none;
     }
-    .app--board .app-header-page {
+    .app-header-title {
+        flex: 1 1 0;
+    }
+    .app-header-page {
         display: block;
         flex: 1 1 0;
         font-size: 0.82rem;
     }
-    .app--board .app-header-actions {
+    .app-header-actions {
         gap: 0.25rem;
     }
-    .app--board .app-header nav {
+    .app-header nav {
         gap: 0.35rem;
     }
-    .app--board .app-header nav a:not(.btn) {
+    .app-header nav a:not(.btn) {
         font-size: 0.78rem;
     }
 }
@@ -391,7 +384,7 @@ code, pre {
 }
 
 /* Space between the text links and the icon buttons after them. */
-.app-header nav a:not(.btn) + a.btn {
+.app-header nav a:not(.btn) + .btn {
     margin-left: 0.4rem;
 }
 
