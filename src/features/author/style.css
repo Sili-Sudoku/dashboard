@@ -572,6 +572,7 @@
 
 .visual-builder-list li {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
@@ -580,7 +581,7 @@
     border-radius: 0.4rem;
 }
 
-.visual-builder-list button {
+.visual-builder-list li > button {
     flex: none;
     display: inline-flex;
     align-items: center;
@@ -594,7 +595,7 @@
     border-radius: 0.4rem;
     cursor: pointer;
 }
-.visual-builder-list button:hover {
+.visual-builder-list li > button:hover {
     background: var(--surface-alt);
     color: var(--ink);
 }
@@ -833,4 +834,41 @@
 .rule-clear:hover {
     background: var(--surface-alt);
     color: var(--ink);
+}
+
+/* Colour / dashed / opacity panel under a placed constraint (#165). */
+.visual-builder-list li > span:first-child {
+    flex: 1;
+    min-width: 0;
+}
+.style-editor {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem 0 0.2rem;
+    border-top: 1px dashed var(--line);
+}
+.style-editor-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.style-editor-row > span:first-child:not(:only-child) {
+    min-width: 4.5rem;
+    color: var(--ink-soft);
+}
+.style-editor input[type="color"] {
+    width: 2.4rem;
+    height: 1.7rem;
+    padding: 0;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+}
+.style-editor input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--ink);
 }

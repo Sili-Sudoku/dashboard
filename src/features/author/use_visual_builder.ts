@@ -5,7 +5,7 @@ import { compilePuzzle } from "@/runtime/compile.ts";
 import { solve } from "@/runtime/solver.ts";
 
 import { createGeometry, type CellId } from "@/runtime/geometry.ts";
-import { isDefinitionRef, type PuzzleDefinition, type VisualObject } from "@/runtime/puzzle.ts";
+import { isDefinitionRef, type ConstraintSpec, type PuzzleDefinition, type VisualObject } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
 import {
     buildConstraintParams,
@@ -104,6 +104,8 @@ export interface VisualBuilderState {
     onBoardSelectionEnd: () => void;
     addConstraint: () => void;
     removeConstraint: (index: number) => void;
+    /** Replace a placed constraint in place (its colour/style, #165), as one undoable step. */
+    updateConstraint: (index: number, spec: ConstraintSpec) => void;
 }
 
 const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<CellId>): FieldValue => {
@@ -376,6 +378,11 @@ export const useVisualBuilder = (
         } else onChange(next);
     };
 
+    const updateConstraint = (index: number, spec: ConstraintSpec) => {
+        if (!def) return;
+        onChange({ ...def, constraints: def.constraints.map((c, i) => (i === index ? spec : c)) });
+    };
+
     const removeTool = (name: string) => {
         if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing) || (name === RULE_TOOL && rulePlacing)) {
             cancelPlacing();
@@ -417,5 +424,6 @@ export const useVisualBuilder = (
         onBoardSelectionEnd,
         addConstraint,
         removeConstraint,
+        updateConstraint,
     };
 };

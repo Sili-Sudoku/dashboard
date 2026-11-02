@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { useState } from "react";
+import { Palette, X } from "lucide-react";
 
 import { OverflowMenu, type MenuItem } from "@/app/overflow_menu.tsx";
 
@@ -10,6 +11,8 @@ import {
     type AuthoringSchema,
 } from "@/authoring/schema.ts";
 import { isDefinitionRef, type PuzzleDefinition } from "@/runtime/puzzle.ts";
+import { drawsObjects } from "@/authoring/style_override.ts";
+import StyleEditor from "@/features/author/StyleEditor.tsx";
 import RuleEditor from "@/features/author/RuleEditor.tsx";
 import { FOG_TOOL, RULE_TOOL, isGlobalPlaced, type VisualBuilderState } from "@/features/author/use_visual_builder.ts";
 
@@ -61,8 +64,12 @@ export default function VisualBuilder({ def, state }: Props) {
         setActiveField,
         addConstraint,
         removeConstraint,
+        updateConstraint,
         removeTool,
     } = state;
+
+    // Which placed constraint's colour/style panel is open.
+    const [styling, setStyling] = useState<number | null>(null);
 
     if (!def) {
         return (
@@ -342,14 +349,30 @@ export default function VisualBuilder({ def, state }: Props) {
                 <h3 className="visual-builder-heading">In this puzzle ({def.constraints.length})</h3>
             )}
             <ul className="visual-builder-list">
-                {def.constraints.map((c, i) => (
-                    <li key={i}>
-                        <span>{summarizeConstraint(c)}</span>
-                        <button type="button" aria-label="Remove constraint" onClick={() => removeConstraint(i)}>
-                            <X size={14} />
-                        </button>
-                    </li>
-                ))}
+                {def.constraints.map((c, i) => {
+                    const styleable = drawsObjects(c, def);
+                    return (
+                        <li key={i}>
+                            <span>{summarizeConstraint(c)}</span>
+                            {styleable && (
+                                <button
+                                    type="button"
+                                    aria-label="Style constraint"
+                                    aria-expanded={styling === i}
+                                    onClick={() => setStyling(styling === i ? null : i)}
+                                >
+                                    <Palette size={14} />
+                                </button>
+                            )}
+                            <button type="button" aria-label="Remove constraint" onClick={() => removeConstraint(i)}>
+                                <X size={14} />
+                            </button>
+                            {styleable && styling === i && isDefinitionRef(c) && (
+                                <StyleEditor spec={c} onChange={(next) => updateConstraint(i, next)} />
+                            )}
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );

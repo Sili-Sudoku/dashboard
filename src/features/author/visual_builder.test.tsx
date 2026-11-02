@@ -440,3 +440,45 @@ describe("VisualBuilder custom rule tool (#127)", () => {
         expect(onTools).toHaveBeenCalledWith([]);
     });
 });
+
+describe("VisualBuilder constraint styling (#165)", () => {
+    const thermo = { use: "thermometer", cells: ["r1c1", "r1c2", "r1c3"] };
+    const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
+        onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;
+
+    it("offers styling only for constraints that draw something", () => {
+        renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }, thermo] }, vi.fn(), []);
+        expect(screen.getAllByLabelText("Style constraint")).toHaveLength(1);
+    });
+
+    it("sets a colour, dashed and opacity on that one constraint, and puts them back", () => {
+        const other = { use: "thermometer", cells: ["r2c1", "r2c2"] };
+        const { onChange } = renderBuilder({ ...basePuzzle, constraints: [thermo, other] }, vi.fn(), []);
+        fireEvent.click(screen.getAllByLabelText("Style constraint")[0]!);
+
+        fireEvent.click(screen.getByRole("button", { name: "Set colour" }));
+        const color = lastDef(onChange).constraints[0] as { color?: string };
+        expect(color.color).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(lastDef(onChange).constraints[1]).toEqual(other);
+
+    });
+
+    it("adds dashed and opacity next to what is already there, and removes them again", () => {
+        const styled = { ...thermo, color: "#2c7a4b", style: { dashed: true } };
+        const { onChange } = renderBuilder({ ...basePuzzle, constraints: [styled] }, vi.fn(), []);
+        fireEvent.click(screen.getByLabelText("Style constraint"));
+        fireEvent.change(screen.getByLabelText("Opacity"), { target: { value: "40" } });
+        expect(lastDef(onChange).constraints[0]).toEqual({ ...styled, style: { dashed: true, opacity: 0.4 } });
+        fireEvent.click(screen.getByLabelText("Dashed"));
+        expect(lastDef(onChange).constraints[0]).toEqual({ ...thermo, color: "#2c7a4b" });
+        fireEvent.click(screen.getByRole("button", { name: "Use default" }));
+        expect(lastDef(onChange).constraints[0]).toEqual({ ...thermo, style: { dashed: true } });
+    });
+
+    it("compiles with what the editor wrote", () => {
+        const { onChange } = renderBuilder({ ...basePuzzle, constraints: [thermo] }, vi.fn(), []);
+        fireEvent.click(screen.getByLabelText("Style constraint"));
+        fireEvent.click(screen.getByRole("button", { name: "Set colour" }));
+        expect(compilePuzzle(lastDef(onChange), definitions)).not.toBeInstanceOf(Error);
+    });
+});

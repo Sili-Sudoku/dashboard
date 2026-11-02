@@ -86,7 +86,10 @@ export const buildConstraintParams = (
 export const summarizeConstraint = (spec: ConstraintSpec): string => {
     if (isNamedRule(spec)) return spec.name?.trim() || describeExpr(spec.rule);
     if (!isDefinitionRef(spec)) return describeExpr(spec as Expr);
-    const { use, ...rest } = spec;
+    // The per-instance look (#132) shows on the board, not in the one-line summary.
+    const { use, color: _color, style: _style, ...rest } = spec;
+    void _color;
+    void _style;
     const schema = AUTHORING_SCHEMAS.find((s) => s.name === use);
     const label = schema?.label ?? use;
     const parts = Object.entries(rest).map(([k, v]) => `${k}=${Array.isArray(v) ? v.join(",") : String(v)}`);
