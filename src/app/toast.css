@@ -29,6 +29,11 @@
     pointer-events: auto;
 }
 
+.toast-icon {
+    flex: none;
+    margin-top: 0.15rem;
+}
+
 .toast-message {
     flex: 1;
     padding-top: 0.15rem;

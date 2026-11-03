@@ -70,4 +70,17 @@ describe("toast", () => {
         expect(screen.getByRole("alert").textContent).toContain("bad");
         expect(screen.getByRole("status").textContent).toContain("fine");
     });
+
+    it("shows an icon for errors and successes, so the kind does not depend on colour", () => {
+        render(<ToastViewport />);
+        act(() => {
+            toast("bad", { kind: "error" });
+            toast("fine", { kind: "success" });
+            toast("plain");
+        });
+        const icons = (text: string) => screen.getByText(text).closest(".toast")!.querySelectorAll(".toast-icon").length;
+        expect(icons("bad")).toBe(1);
+        expect(icons("fine")).toBe(1);
+        expect(icons("plain")).toBe(0);
+    });
 });

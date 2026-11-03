@@ -64,6 +64,13 @@ line and text colors carry the meaning. For violations, the screen-reader
 announcement also carries the meaning. Check this table again if you
 change a state color.
 
+A state never depends on color alone, so the UI works with red-green and other
+color blindness. A broken cell has a hatch over its tint. A constraint row has
+an icon and a word ("broken", "pending", "all satisfied"). A toast has an icon.
+The mark colors were chosen to stay apart under protan, deutan and tritan
+simulation (`src/runtime/mark_colors.ts`). When you add a new state, give it a
+shape or a word too.
+
 ## Do not
 
 - Do not add new hex values for chrome. Use the tokens above.

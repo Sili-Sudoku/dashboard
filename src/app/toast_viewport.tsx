@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { X } from "lucide-react";
+import { Check, CircleAlert, X } from "lucide-react";
 
 import { dismissToast, getToasts, pauseToast, resumeToast, subscribe } from "@/app/toast.ts";
 
@@ -24,6 +24,9 @@ export function ToastViewport() {
                     onFocus={() => pauseToast(t.id)}
                     onBlur={() => resumeToast(t.id)}
                 >
+                    {/* The icon repeats what the colour says, so the kind does not depend on colour vision. */}
+                    {t.kind === "error" && <CircleAlert size={16} className="toast-icon" aria-hidden="true" />}
+                    {t.kind === "success" && <Check size={16} className="toast-icon" aria-hidden="true" />}
                     <span className="toast-message">{t.message}</span>
                     <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Dismiss" onClick={() => dismissToast(t.id)}>
                         <X size={14} />
