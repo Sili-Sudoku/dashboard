@@ -205,14 +205,43 @@ describe("pattern and image styles", () => {
     });
     const defs = fakeRegistry;
 
-    it("accepts a known pattern and safe image URLs", () => {
-        for (const style of [{ pattern: "dots" }, { image: "https://x.test/a.png" }, { image: "data:image/png;base64,AA==" }, { image: "/a.png" }]) {
-            expect(compilePuzzle(withStyle(style), defs)).not.toBeInstanceOf(Error);
-        }
+    it("accepts a known pattern, an inline picture, a picture on this site, and normal colors", () => {
+        const styles = [
+            { pattern: "dots" },
+            { image: "data:image/png;base64,AA==" },
+            { image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>" },
+            { image: "/a.png" },
+            { stroke: "#2c7a4b", fill: "rgb(10, 20, 30)" },
+            { stroke: "var(--cage)", fill: "var(--x, #fff)" },
+            { fill: "none", stroke: "rebeccapurple" },
+        ];
+        for (const style of styles) expect(compilePuzzle(withStyle(style), defs)).not.toBeInstanceOf(Error);
     });
-    it("rejects an unknown pattern and unsafe image URLs", () => {
-        for (const style of [{ pattern: "plaid" }, { image: "javascript:alert(1)" }, { image: "//evil.test/a.png" }, { image: "http://x.test/a.png" }]) {
+    it("rejects an unknown pattern and a picture from another site or from a script", () => {
+        const styles = [
+            { pattern: "plaid" },
+            { image: "javascript:alert(1)" },
+            { image: "https://x.test/a.png" }, // a tracking pixel
+            { image: "http://x.test/a.png" },
+            { image: "//evil.test/a.png" },
+            { image: "/\\evil.test/a.png" }, // a browser reads this as //evil.test
+            { image: "/\t/evil.test/a.png" }, // a browser removes the tab
+            { image: " https://x.test/a.png" },
+        ];
+        for (const style of styles) expect(compilePuzzle(withStyle(style), defs)).toBeInstanceOf(Error);
+    });
+    it("rejects a color that loads a file from another site", () => {
+        for (const style of [{ fill: "url(https://evil.test/p.svg#a)" }, { stroke: "URL(//evil.test/p.svg#a)" }]) {
             expect(compilePuzzle(withStyle(style), defs)).toBeInstanceOf(Error);
         }
+        expect(compilePuzzle({ ...base, constraints: [{ use: "demo", color: "url(//evil.test/p.svg#a)" }] }, defs)).toBeInstanceOf(Error);
+        expect(compilePuzzle({ ...base, constraints: [{ use: "demo", color: "var(--x, url(//evil.test/a))" }] }, defs)).toBeInstanceOf(Error);
+    });
+    it("checks the style of objects that the puzzle lists itself", () => {
+        const puzzle = (style: Record<string, unknown>) =>
+            compilePuzzle({ ...base, objects: [{ kind: "region", cells: ["r1c1"], style }] } as PuzzleDefinition, defs);
+        expect(puzzle({ fill: "url(//evil.test/p.svg#a)" })).toBeInstanceOf(Error);
+        expect(puzzle({ image: "https://x.test/a.png" })).toBeInstanceOf(Error);
+        expect(puzzle({ fill: "#fff", image: "/a.png" })).not.toBeInstanceOf(Error);
     });
 });

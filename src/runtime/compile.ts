@@ -331,7 +331,7 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
     const { color, style } = spec as { color?: unknown; style?: unknown };
     if (color === undefined && style === undefined) return objects;
 
-    if (color !== undefined && (typeof color !== "string" || color === "")) {
+    if (color !== undefined && (typeof color !== "string" || !isSafeColor(color))) {
         return new Error(`"${spec.use}": "color" must be a color string, for example "#2c7a4b" or "var(--cage)"`);
     }
     if (style !== undefined) {
@@ -346,7 +346,10 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
                 return new Error(`"${spec.use}": style "pattern" must be one of ${PATTERNS.join(", ")}`);
             }
             if (key === "image" && !isSafeImageUrl(value as string)) {
-                return new Error(`"${spec.use}": style "image" must be an https: URL, a data:image/ URL, or a site-relative URL`);
+                return new Error(`"${spec.use}": style "image" must be a data:image/ URL or a site-relative URL`);
+            }
+            if ((key === "stroke" || key === "fill") && !isSafeColor(value as string)) {
+                return new Error(`"${spec.use}": style "${key}" must be a color, for example "#2c7a4b" or "var(--cage)"`);
             }
         }
     }
@@ -365,9 +368,25 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
     });
 };
 
-/** A picture comes from the web, an inline data: URL, or the site. It never comes from a script or a file: URL. */
+/**
+ * A picture is an inline data: URL or a path on this site. It is never a URL of another site: a shared puzzle
+ * would then tell that site who opens the puzzle (a tracking pixel). It is never a script or a file: URL.
+ * An SVG in an image is safe: the browser runs no script in it and loads nothing from it.
+ * The path form refuses a backslash and white space or control characters. A browser removes or converts them,
+ * so "/\\host/x" or "/<tab>/host/x" would mean "//host/x", a URL of another site.
+ */
 export const isSafeImageUrl = (url: string): boolean =>
-    /^(https:\/\/|data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]|\/(?!\/))/i.test(url.trim());
+    /^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(url) ||
+    (/^\/(?![/\\])\S*$/.test(url) && !url.includes("\\") && [...url].every((c) => c.charCodeAt(0) > 31 && c !== "\x7f"));
+
+/**
+ * A color for a stroke or a fill: a hex value, a color name, a color function, or a theme variable.
+ * It has no `url(...)`. A paint can point to a file on another site, and the browser then loads it.
+ */
+export const isSafeColor = (color: string): boolean =>
+    /^(#[0-9a-f]{3,8}|[a-z]+|(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\([^()]*\)|var\(--[\w-]+(,[^()]*)?\))$/i.test(
+        color.trim(),
+    );
 
 const visualCells = (obj: VisualObject): readonly CellId[] => {
     switch (obj.kind) {
@@ -395,7 +414,13 @@ const validateObjects = (objects: readonly VisualObject[], geometry: Geometry): 
     for (const obj of objects) {
         const { image, pattern } = (obj.style ?? {}) as VisualStyle;
         if (image !== undefined && (typeof image !== "string" || !isSafeImageUrl(image))) {
-            return new Error(`visual object "${obj.kind}": style "image" must be an https: URL, a data:image/ URL, or a site-relative URL`);
+            return new Error(`visual object "${obj.kind}": style "image" must be a data:image/ URL or a site-relative URL`);
+        }
+        for (const key of ["stroke", "fill"] as const) {
+            const value = obj.style?.[key];
+            if (value !== undefined && (typeof value !== "string" || !isSafeColor(value))) {
+                return new Error(`visual object "${obj.kind}": style "${key}" must be a color, for example "#2c7a4b"`);
+            }
         }
         if (pattern !== undefined && !(PATTERNS as readonly string[]).includes(pattern)) {
             return new Error(`visual object "${obj.kind}": style "pattern" must be one of ${PATTERNS.join(", ")}`);

@@ -35,7 +35,7 @@ export interface VisualStyle {
     z?: number;
     /** Fill closed shapes (and paint lines) with a repeating pattern in the color of the shape. */
     pattern?: PatternName;
-    /** Fill with a picture (an https:, data:image/ or site-relative URL), cropped to cover the shape. */
+    /** Fill with a picture (a data:image/ or site-relative URL, never another site), cropped to cover the shape. */
     image?: string;
 }
 
