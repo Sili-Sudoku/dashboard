@@ -12,6 +12,7 @@ import { dismissToastByKey, toast } from "@/app/toast.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 import type { Direction } from "@/runtime/geometry.ts";
 import { sanitizePen } from "@/runtime/pen.ts";
+import { PROGRESS_FORMAT, PEN_FORMAT, STATS_FORMAT, decodeSaved, encodeSaved } from "@/runtime/saved.ts";
 import {
     PuzzleSession,
     penStorageKey,
@@ -25,7 +26,7 @@ import {
 const readProgress = (id: string): ProgressSnapshot | undefined => {
     try {
         const raw = localStorage.getItem(progressStorageKey(id));
-        return raw ? (JSON.parse(raw) as ProgressSnapshot) : undefined;
+        return raw ? (decodeSaved(raw, PROGRESS_FORMAT) as ProgressSnapshot | undefined) : undefined;
     } catch {
         return undefined;
     }
@@ -33,7 +34,7 @@ const readProgress = (id: string): ProgressSnapshot | undefined => {
 
 const writeProgress = (id: string, snapshot: ProgressSnapshot): void => {
     try {
-        localStorage.setItem(progressStorageKey(id), JSON.stringify(snapshot));
+        localStorage.setItem(progressStorageKey(id), encodeSaved(snapshot, PROGRESS_FORMAT));
     } catch {
         // Storage is not available (for example private mode). Progress is not persisted.
     }
@@ -42,7 +43,7 @@ const writeProgress = (id: string, snapshot: ProgressSnapshot): void => {
 const readPen = (id: string) => {
     try {
         const raw = localStorage.getItem(penStorageKey(id));
-        return raw ? sanitizePen(JSON.parse(raw)) : undefined;
+        return raw ? sanitizePen(decodeSaved(raw, PEN_FORMAT)) : undefined;
     } catch {
         return undefined;
     }
@@ -52,7 +53,7 @@ const writePen = (id: string, pen: ReturnType<PuzzleSession["toPen"]>): void => 
     try {
         if (pen.segments.length === 0 && Object.keys(pen.marks).length === 0)
             localStorage.removeItem(penStorageKey(id));
-        else localStorage.setItem(penStorageKey(id), JSON.stringify(pen));
+        else localStorage.setItem(penStorageKey(id), encodeSaved(pen, PEN_FORMAT));
     } catch {
         // Storage is not available. The pen layer is not persisted.
     }
@@ -61,7 +62,7 @@ const writePen = (id: string, pen: ReturnType<PuzzleSession["toPen"]>): void => 
 const readStats = (id: string): PuzzleStats | undefined => {
     try {
         const raw = localStorage.getItem(statsStorageKey(id));
-        return raw ? (JSON.parse(raw) as PuzzleStats) : undefined;
+        return raw ? (decodeSaved(raw, STATS_FORMAT) as PuzzleStats | undefined) : undefined;
     } catch {
         return undefined;
     }
@@ -69,7 +70,7 @@ const readStats = (id: string): PuzzleStats | undefined => {
 
 const writeStats = (id: string, stats: PuzzleStats): void => {
     try {
-        localStorage.setItem(statsStorageKey(id), JSON.stringify(stats));
+        localStorage.setItem(statsStorageKey(id), encodeSaved(stats, STATS_FORMAT));
     } catch {
         // Storage is not available. Stats are not persisted.
     }

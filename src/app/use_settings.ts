@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
+import { SETTINGS_FORMAT, decodeSaved, encodeSaved } from "@/runtime/saved.ts";
 
 /**
  * The shared place for player preferences. It is one localStorage blob.
@@ -60,7 +61,9 @@ export const getSettings = (): Settings => {
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (!raw) return DEFAULT_SETTINGS;
-        const stored = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+        const saved = decodeSaved(raw, SETTINGS_FORMAT);
+        if (typeof saved !== "object" || saved === null) return DEFAULT_SETTINGS;
+        const stored = { ...DEFAULT_SETTINGS, ...(saved as Partial<Settings>) };
         // A hand-edited or older blob must never give the board a malformed palette.
         const tools: unknown = stored.builderTools;
         return {
@@ -75,7 +78,7 @@ export const getSettings = (): Settings => {
 
 const writeSettings = (next: Settings): void => {
     try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+        localStorage.setItem(SETTINGS_KEY, encodeSaved(next, SETTINGS_FORMAT));
     } catch {
         // Storage is unavailable (private mode and others). The choice is not persisted.
     }

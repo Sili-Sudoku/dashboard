@@ -11,6 +11,7 @@ import { statsStorageKey, type PuzzleStats } from "@/runtime/session.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
+import { STATS_FORMAT, decodeSaved } from "@/runtime/saved.ts";
 
 /** Key events must start inside the player, so tests dispatch from its root. */
 const root = () => document.querySelector(".puzzle-player")!;
@@ -703,7 +704,10 @@ describe("<PuzzlePlayer />", () => {
             });
             expect(screen.getAllByText("0:05").length).toBeGreaterThan(0);
 
-            const stats = JSON.parse(localStorage.getItem(statsStorageKey("mini-sudoku")) ?? "{}") as PuzzleStats;
+            const stats = decodeSaved(
+                localStorage.getItem(statsStorageKey("mini-sudoku")) ?? "{}",
+                STATS_FORMAT,
+            ) as PuzzleStats;
             expect(stats.elapsedMs).toBe(5000);
             expect(stats.bestElapsedMs).toBe(5000);
         } finally {

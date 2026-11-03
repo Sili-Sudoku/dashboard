@@ -109,6 +109,11 @@ persistence.
 So the whole interaction model has unit tests that do not need React. A
 different client (native, canvas, or another framework) can reuse it unchanged.
 
+Everything in `localStorage` (progress, pen, stats, settings) is saved as `{ "v": 1, "data": ... }`
+(`src/runtime/saved.ts`). To change the shape of one of them, raise its `version` and add a migration
+for the old version. A save without `v` is version 0, the first release. A save of a newer app is
+ignored, not guessed.
+
 ## 7. The database is not canonical
 
 The `PuzzleDefinition` artifact is canonical. `/p/<blob>` carries a whole puzzle

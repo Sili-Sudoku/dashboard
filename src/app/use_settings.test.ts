@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 
 import { getSettings, useSettings } from "@/app/use_settings.ts";
 import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
+import { SETTINGS_FORMAT, decodeSaved } from "@/runtime/saved.ts";
 
 afterEach(() => {
     localStorage.clear();
@@ -30,7 +31,9 @@ describe("useSettings", () => {
 
         expect(result.current[0].zoomLocked).toBe(true);
         expect(getSettings().zoomLocked).toBe(true);
-        expect(JSON.parse(localStorage.getItem("cpr:settings") ?? "{}")).toMatchObject({ zoomLocked: true });
+        expect(decodeSaved(localStorage.getItem("cpr:settings") ?? "{}", SETTINGS_FORMAT)).toMatchObject({
+            zoomLocked: true,
+        });
     });
 
     it("remembers panel and editor-mode state across a remount", () => {
@@ -45,6 +48,16 @@ describe("useSettings", () => {
         expect(second.result.current[0].constraintPanelOpen).toBe(false);
         expect(second.result.current[0].authorEditorMode).toBe("visual");
         expect(second.result.current[0].hotkeyLegendOpen).toBe(false);
+    });
+
+    it("reads settings that an older release saved without a version", () => {
+        localStorage.setItem("cpr:settings", JSON.stringify({ zoomLocked: true, checkNotesOnLeave: true }));
+        expect(getSettings()).toMatchObject({ zoomLocked: true, checkNotesOnLeave: true });
+    });
+
+    it("uses the defaults for settings that a newer release saved", () => {
+        localStorage.setItem("cpr:settings", JSON.stringify({ v: 99, data: { zoomLocked: true } }));
+        expect(getSettings().zoomLocked).toBe(false);
     });
 
     it("syncs independent hook instances through the same store", () => {
