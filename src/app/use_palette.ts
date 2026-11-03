@@ -2,13 +2,16 @@ import { useState } from "react";
 
 /**
  * The look of the app, apart from light/dark (`use_theme.ts`).
- * "coffee" is the default coffee and cream look. "classic" is a plain look with system fonts,
- * white and black, and buttons that look like the buttons of the browser.
+ * "coffee" is the default coffee and cream look. "slate", "sage" and "plum" keep that look with another hue.
+ * "classic" is a plain look with system fonts, white and black, and buttons that look like the buttons of the browser.
  * The CSS reads `data-palette` on the root element. The default value sets no attribute.
  * The inline script of index.html sets the attribute before the first paint.
  */
 export const PALETTES = [
     { id: "coffee", label: "Coffee & cream" },
+    { id: "slate", label: "Slate" },
+    { id: "sage", label: "Sage" },
+    { id: "plum", label: "Plum" },
     { id: "classic", label: "Classic" },
 ] as const;
 

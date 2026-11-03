@@ -79,3 +79,14 @@ shape or a word too.
   the landing page). Never use red on anything clickable, including hover states.
 - Do not mix up "where does this control go" (`docs/UI_PLACEMENT.md`) with
   "what does it look like" (this file).
+
+## Palettes
+
+The Style setting picks a palette (`data-palette` on the root element, `src/app/use_palette.ts`).
+Coffee & cream is the default and sets no attribute. Slate, Sage and Plum keep the same look with
+another hue for the paper, the ink and the brand blue. Classic is a plain look with system fonts.
+A palette sets neutral and brand tokens only. The state colors keep their red, green and amber,
+because those hues carry meaning. To add a palette, add one block for light and one for dark in
+`src/style.css`, add it to `PALETTES`, and add it to the list in the script of `index.html`
+(a test checks that the two lists match). Use tokens in new CSS, not hex values, so that every
+palette reaches the new surface.

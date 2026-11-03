@@ -28,8 +28,10 @@
                 ? "dark"
                 : "light";
           document.documentElement.setAttribute("data-theme", theme);
-          if (localStorage.getItem("cpr:palette") === "classic") {
-            document.documentElement.setAttribute("data-palette", "classic");
+          // Keep this list in step with PALETTES in src/app/use_palette.ts (a test checks it).
+          var palette = localStorage.getItem("cpr:palette");
+          if (/^(slate|sage|plum|classic)$/.test(palette)) {
+            document.documentElement.setAttribute("data-palette", palette);
           }
         } catch (e) {
           // storage or matchMedia is not available. The "light" attribute below stands.

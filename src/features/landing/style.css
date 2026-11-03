@@ -2,14 +2,16 @@
    underline, thermometer art). Its buttons are the shared .btn. Red is only for violated
    constraints on the puzzle pages, so it is never an interactive color. */
 .landing {
-    --lp-paper: #f6efe0;
-    --lp-paper-edge: #e4d6b4;
-    --lp-ink: #211a10;
-    --lp-ink-soft: #6b5c40;
+    /* The paper and ink follow the app tokens, so every palette (data-palette) reaches this page too.
+       Only the red "pen" accents are the own colors of the page. */
+    --lp-paper: var(--chrome-paper);
+    --lp-paper-edge: var(--chrome-paper-edge);
+    --lp-ink: var(--chrome-ink);
+    --lp-ink-soft: var(--chrome-ink-soft);
     --lp-pen: #bd3b28;
     --lp-pen-dark: #8c2a1c;
-    --lp-line: #cdbb8d;
-    --lp-moss: #3c6e52;
+    --lp-line: var(--chrome-line);
+    --lp-moss: var(--chrome-moss);
 
     font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
     color: var(--lp-ink);
@@ -17,14 +19,8 @@
 }
 
 :root[data-theme="dark"] .landing {
-    --lp-paper: #1b170f;
-    --lp-paper-edge: #2c2415;
-    --lp-ink: #f1e8d3;
-    --lp-ink-soft: #c2b08a;
     --lp-pen: #e8705a;
     --lp-pen-dark: #c9532e;
-    --lp-line: #45392296;
-    --lp-moss: #63b08a;
 }
 
 .landing h1,

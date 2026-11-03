@@ -116,6 +116,156 @@
     --chrome-moss-tint: #1f2c24;
 }
 
+/* Colour palettes (data-palette, see app/use_palette.ts): the same look as above, with another hue for the paper, the ink
+   and the pen colour. They set only the neutral and brand tokens. The state colors (violated, satisfied, incomplete)
+   keep their red, green and amber, because those hues carry meaning. */
+
+/* slate: cool blue-grey paper, indigo ink. */
+:root[data-palette="slate"][data-theme="light"] {
+    --bg: #eceff4;
+    --surface: #f7f9fc;
+    --surface-alt: #dce2eb;
+    --ink: #141c2b;
+    --ink-soft: #4f5f78;
+    --line: #b4bfd0;
+    --line-strong: #141c2b;
+    --brand: #3340a8;
+    --brand-hover: #262f85;
+    --brand-tint: #dfe2f4;
+    --on-brand: #f7f9fc;
+    --given: #141c2b;
+    --entered: #3340a8;
+    --fog: #d2d8e3;
+    --fog-line: #a9b4c8;
+    --thermo: #9aa5b8;
+    --arrow: #98a3b6;
+    --diagonal: #aab4c8;
+    --chrome-paper-edge: #d9dfea;
+}
+
+:root[data-palette="slate"][data-theme="dark"] {
+    --bg: #10151f;
+    --surface: #171e2b;
+    --surface-alt: #212a3b;
+    --ink: #e6ebf5;
+    --ink-soft: #a3b0c6;
+    --line: #2f3a50;
+    --line-strong: #a3b0c6;
+    --brand: #9aa8f0;
+    --brand-hover: #b4bff5;
+    --brand-tint: #212848;
+    --on-brand: #10151f;
+    --given: #e6ebf5;
+    --entered: #9aa8f0;
+    --raised: #252f43;
+    --raised-hover: #2f3a52;
+    --stamp-shadow: #5a6a8c;
+    --fog: #273046;
+    --fog-line: #46526e;
+    --thermo: #6f7c96;
+    --arrow: #6f7c96;
+    --diagonal: #46526e;
+    --chrome-paper-edge: #1f2738;
+}
+
+
+/* sage: green-tinted paper, deep teal ink. */
+:root[data-palette="sage"][data-theme="light"] {
+    --bg: #eaf0e2;
+    --surface: #f6f9f0;
+    --surface-alt: #d9e3cb;
+    --ink: #18221a;
+    --ink-soft: #506049;
+    --line: #b3c59b;
+    --line-strong: #18221a;
+    --brand: #1d5a78;
+    --brand-hover: #154560;
+    --brand-tint: #dae8ee;
+    --on-brand: #f6f9f0;
+    --given: #18221a;
+    --entered: #1d5a78;
+    --fog: #d0dcc0;
+    --fog-line: #a9bd90;
+    --thermo: #9bab8a;
+    --arrow: #98a886;
+    --diagonal: #b5c28f;
+    --chrome-paper-edge: #d8e2c8;
+}
+
+:root[data-palette="sage"][data-theme="dark"] {
+    --bg: #121a13;
+    --surface: #18221a;
+    --surface-alt: #223024;
+    --ink: #e4eedc;
+    --ink-soft: #a6b898;
+    --line: #334a35;
+    --line-strong: #a6b898;
+    --brand: #8ec3dc;
+    --brand-hover: #a9d2e5;
+    --brand-tint: #1c2f38;
+    --on-brand: #121a13;
+    --given: #e4eedc;
+    --entered: #8ec3dc;
+    --raised: #25362a;
+    --raised-hover: #2f4434;
+    --stamp-shadow: #6a8a63;
+    --fog: #273626;
+    --fog-line: #456046;
+    --thermo: #74866b;
+    --arrow: #74866b;
+    --diagonal: #486040;
+    --chrome-paper-edge: #1f2c21;
+}
+
+
+/* plum: mauve-tinted paper, blue ink. */
+:root[data-palette="plum"][data-theme="light"] {
+    --bg: #f1eaf1;
+    --surface: #faf6fa;
+    --surface-alt: #e4d8e5;
+    --ink: #241828;
+    --ink-soft: #645070;
+    --line: #c8b3cc;
+    --line-strong: #241828;
+    --brand: #2d58a0;
+    --brand-hover: #22448a;
+    --brand-tint: #dfe5f3;
+    --on-brand: #faf6fa;
+    --given: #241828;
+    --entered: #2d58a0;
+    --fog: #dacbdc;
+    --fog-line: #b9a3be;
+    --thermo: #aa98b0;
+    --arrow: #a794ad;
+    --diagonal: #c4a8cc;
+    --chrome-paper-edge: #e2d4e3;
+}
+
+:root[data-palette="plum"][data-theme="dark"] {
+    --bg: #17101a;
+    --surface: #1f1623;
+    --surface-alt: #2b1f31;
+    --ink: #efe4f2;
+    --ink-soft: #b9a3c2;
+    --line: #43304c;
+    --line-strong: #b9a3c2;
+    --brand: #94b0ee;
+    --brand-hover: #adc2f2;
+    --brand-tint: #222a47;
+    --on-brand: #17101a;
+    --given: #efe4f2;
+    --entered: #94b0ee;
+    --raised: #33263a;
+    --raised-hover: #3f2f48;
+    --stamp-shadow: #7d6488;
+    --fog: #34263b;
+    --fog-line: #54405e;
+    --thermo: #85708d;
+    --arrow: #85708d;
+    --diagonal: #5a4466;
+    --chrome-paper-edge: #291d30;
+}
+
 /* The "classic" palette (data-palette, see app/use_palette.ts): a plain look, as an unstyled web page.
    It has system fonts, black on white (white on black in dark mode), the blue of a link, and buttons that look
    like the buttons of the browser. It sets only what differs from the theme above.

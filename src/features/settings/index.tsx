@@ -20,8 +20,8 @@ export default function Settings() {
                     <div>
                         <div className="settings-row-title">Style</div>
                         <div className="settings-row-desc">
-                            The look of the app. Classic uses the fonts of your system, white and black, and plain
-                            buttons. Use the sun or moon button in the header to switch between light and dark.
+                            The look of the app. Slate, Sage and Plum change the colors of the paper. Classic uses the
+                            fonts of your system, white and black, and plain buttons. Use the sun or moon button in the header to switch between light and dark.
                         </div>
                         <div className="settings-choice" role="group" aria-label="Style">
                             {PALETTES.map((p) => (

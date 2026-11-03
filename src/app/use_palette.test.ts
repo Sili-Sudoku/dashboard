@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
-import { usePalette } from "@/app/use_palette.ts";
+import indexHtml from "../../index.html?raw";
+import { PALETTES, usePalette } from "@/app/use_palette.ts";
 
 describe("usePalette", () => {
     beforeEach(() => {
@@ -31,5 +32,10 @@ describe("usePalette", () => {
         expect(renderHook(() => usePalette()).result.current[0]).toBe("classic");
         localStorage.setItem("cpr:palette", "neon");
         expect(renderHook(() => usePalette()).result.current[0]).toBe("coffee");
+    });
+
+    it("has the same palettes in the pre-paint script of index.html", () => {
+        const listed = /\/\^\(([a-z|]+)\)\$\/\.test\(palette\)/.exec(indexHtml)?.[1].split("|");
+        expect(listed?.sort()).toEqual(PALETTES.map((p) => p.id).filter((id) => id !== "coffee").sort());
     });
 });
