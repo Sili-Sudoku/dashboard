@@ -9,8 +9,8 @@
  * A compressed codec added later is a new leading character. It is not a breaking change.
  */
 
+import { migratePuzzle } from "@/runtime/migrations.ts";
 import {
-    PUZZLE_FORMAT_VERSION,
     type ConstraintSpec,
     type PuzzleDefinition,
 } from "@/runtime/puzzle.ts";
@@ -57,11 +57,11 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
     }
 
     if (typeof data !== "object" || data === null) return new Error("puzzle must be an object");
-    const obj = data as Record<string, unknown>;
-
-    if (obj.version !== PUZZLE_FORMAT_VERSION) {
-        return new Error(`unsupported puzzle format version: ${JSON.stringify(obj.version)}`);
-    }
+    // A puzzle file of an older version is brought to the current version first (see migrations.ts).
+    const migrated = migratePuzzle(data as Record<string, unknown>);
+    if (migrated instanceof Error) return migrated;
+    data = migrated;
+    const obj = migrated;
 
     const metadata = obj.metadata;
     if (typeof metadata !== "object" || metadata === null) return new Error("metadata is required");

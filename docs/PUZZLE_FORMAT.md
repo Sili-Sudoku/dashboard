@@ -4,6 +4,16 @@ A puzzle is one JSON object. It does not depend on React or on the renderer. It
 is deterministic and reasonably compact. The top-level `version` field gives
 its version. It can be stored in a database row, a file, or a URL.
 
+## Versions and old puzzles
+
+The `version` field is the version of the format that wrote the puzzle. A shared link or a saved file keeps it.
+The app reads every older version: when the format changes, a migration function turns version N into version N+1
+(`src/runtime/migrations.ts`), so an old link still opens. A puzzle with a newer version than the app reads is
+refused with a message to update the app.
+
+`src/runtime/fixtures/v<N>/` holds real puzzles and links of each version. A test opens every one of them.
+Never edit or delete a fixture. A change of the format must keep the old fixtures loading.
+
 ## Top-level shape
 
 ```jsonc
