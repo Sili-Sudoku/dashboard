@@ -1,7 +1,7 @@
 /**
  * Classic Sudoku's grid. The bottom-right box (a mix of givens and
  * empty cells) is hidden behind fog until solved. It demonstrates progressive
- * reveal (#50): the fog clears cell by cell as correct values land in or next to
+ * reveal: the fog clears cell by cell as correct values land in or next to
  * each hidden cell.
  */
 

@@ -19,7 +19,7 @@
     gap: 1.2rem;
 }
 
-/* Matches the "stamp" cards of the landing page (#67/#139): hard edges, a flat offset shadow (no
+/* Matches the "stamp" cards of the landing page: hard edges, a flat offset shadow (no
    blur), and a small press-down shift on hover (no color fade). It is the same identity, one
    page further in. */
 .puzzle-card {

@@ -35,7 +35,7 @@ import {
 
 import "./board.css";
 
-// Space kept free against window.innerWidth/innerHeight when the fit is clamped (#77 follow-up).
+// Space kept free against window.innerWidth/innerHeight when the fit is clamped.
 // This keeps the box away from the edge of the browser viewport.
 const EDGE_MARGIN = 16;
 
@@ -44,7 +44,7 @@ const EDGE_MARGIN = 16;
 const FOOTER_GAP = 8;
 
 /**
- * Pen input (#45). While set, the board does not select cells. A drag draws a line.
+ * Pen input. While set, the board does not select cells. A drag draws a line.
  * A click that does not leave its lattice point gives that point to `onMark`.
  * `onMark` cycles the point through X, O, and nothing.
  */
@@ -169,10 +169,10 @@ export default function Board({
     const zoomPanelId = `zoom-${useId().replace(/:/g, "")}`;
     const hatchId = `hatch-${useId().replace(/:/g, "")}`;
     const painting = useRef(false);
-    // The pen stroke being drawn (#45), as lattice points. It shows live and commits on release.
+    // The pen stroke being drawn, as lattice points. It shows live and commits on release.
     const [penDraft, setPenDraft] = useState<PenPoint[]>([]);
     const panningFrom = useRef<{ x: number; y: number } | null>(null);
-    // Two-finger touch pan/zoom (#70 follow-up). A touchscreen has no middle or right
+    // Two-finger touch pan/zoom. A touchscreen has no middle or right
     // button for the desktop pan below. One finger already drives the cell-selection drag (handleCellDown).
     // So this follows the convention of maps and photo viewers: a second finger pans and pinch-zooms.
     const activeTouches = useRef(new Map<number, { x: number; y: number }>());
@@ -190,11 +190,11 @@ export default function Board({
     const [zoomPct, setZoomPct] = useState(100);
     // Freezes the scale of the view (wheel, +/-, slider, Fit, Actual size). Panning still works.
     // It helps a player who changes the zoom by accident when they pan a puzzle that has the size they want.
-    // It starts from the Settings value (#69) and saves to Settings.
+    // It starts from the Settings value and saves to Settings.
     // Without this, it always started unlocked and forgot the choice on reload.
     const [settings, setSetting] = useSettings();
     const zoomLocked = settings.zoomLocked;
-    // The on-screen size of the wrap/viewport box (#77 follow-up). It is a stable canvas.
+    // The on-screen size of the wrap/viewport box. It is a stable canvas.
     // The view pans and zooms *within* it. The box does not resize each time the player zooms.
     // It does track the space available in .board-measure through a ResizeObserver (below).
     // So it does not freeze at the size available on first mount.
@@ -245,7 +245,7 @@ export default function Board({
             setView({ left: 0, top: 0, width: scene.width, height: scene.height });
             // 100% = the whole board fits in the view, always. It is not the achieved physical scale.
             // That scale changes with screen size, DPI, and cell size. It had no stable meaning to the player
-            // (#77 follow-up: a baseline fit read "169%" on one window and a different value on another).
+            // (a baseline fit read "169%" on one window and a different value on another).
             // Every other zoom % below has the same definition: scene.width / view.width * 100.
             setZoomPct(100);
         };
@@ -312,7 +312,7 @@ export default function Board({
         const cy = view.top + view.height / 2;
         // "Actual size" = 1 board unit for each screen pixel, centered on the current position.
         // It is a different zoom level from "fit", and it is useful by itself.
-        // So it is not literally "100%", because 100% now always means "fit" (#77 follow-up).
+        // So it is not literally "100%", because 100% now always means "fit".
         // The % shown below is this native scale relative to fit.
         // It uses the same formula as every other zoom action.
         const next = clampView(
@@ -379,7 +379,7 @@ export default function Board({
         return () => el.removeEventListener("wheel", onNativeWheel);
     }, [applyZoom, zoomLocked]);
 
-    // Panning (#49): drag with the middle or right button. So it never competes with
+    // Panning: drag with the middle or right button. So it never competes with
     // the left-button cell-selection drag below.
     const handleContainerPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
         if (e.button !== 1 && e.button !== 2) return;
@@ -629,7 +629,7 @@ export default function Board({
                     ))}
             </g>
 
-            {/* colour marks (#35): the own colouring of cells by the player, under the grid and
+            {/* colour marks: the own colouring of cells by the player, under the grid and
                 digits. One mark fills the cell. Several marks split it into even vertical
                 stripes. SudokuPad splits it into wedges. Stripes keep it simple. */}
             <g pointerEvents="none">
@@ -648,7 +648,7 @@ export default function Board({
                 )}
             </g>
 
-            {/* same-value highlight (#73): a soft wash over matching cells, under the grid and
+            {/* same-value highlight: a soft wash over matching cells, under the grid and
                 digits. It is separate from the tone fill and the selection ring */}
             <g pointerEvents="none">
                 {visibleScene.cells
@@ -806,7 +806,7 @@ export default function Board({
                 })}
             </g>
 
-            {/* pen layer (#45): the lines and X/O marks of the player over everything, and also
+            {/* pen layer: the lines and X/O marks of the player over everything, and also
                 the stroke that is being drawn now */}
             <g className="pen" pointerEvents="none">
                 {visibleScene.pen.map((s, i) => (
@@ -860,7 +860,7 @@ export default function Board({
 
     return (
         // .board-measure is the region that fills the flex space and is never capped.
-        // .board-wrap has exactly the size boxSize (#77 follow-up) and is centered horizontally
+        // .board-wrap has exactly the size boxSize and is centered horizontally
         // (aligned to the top, not centered vertically; see board.css) within it.
         // It grows to fill available space up to the natural size of the puzzle * MAX_ZOOM.
         // It shrinks to fit small puzzles and does not force a box that is mostly empty.

@@ -116,7 +116,7 @@ describe("summarizeConstraint", () => {
     });
 });
 
-describe("authoringSchemasOf (#126: a definition carries its own schema)", () => {
+describe("authoringSchemasOf (a definition carries its own schema)", () => {
     it("collects the schema each definition declares, keyed by its registry name, and skips the rest", () => {
         const mine: ConstraintDefinition = () => ({ constraints: [] });
         mine.schema = { label: "Mine", fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }] };

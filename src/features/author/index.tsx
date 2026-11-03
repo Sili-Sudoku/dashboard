@@ -119,7 +119,7 @@ export default function Author() {
     );
 
     // Undo/redo for changes made *to the puzzle*.
-    // These are visual-builder placements, grid-size edits, imports, and loading an example (#116).
+    // These are visual-builder placements, grid-size edits, imports, and loading an example.
     // The Undo/Redo of the board (and Ctrl+Z) shows them, through externalHistory of PuzzlePlayer.
     // That history tries the digits entered on the board first.
     // Typing in the JSON box keeps the native undo of the textarea.
@@ -129,7 +129,7 @@ export default function Author() {
     // So undo also puts back a tool that you just pinned or removed.
     const tools = settings.builderTools;
 
-    // The Code tab (#123, #164) shows the loaded puzzle as PuzzleBuilder code.
+    // The Code tab shows the loaded puzzle as PuzzleBuilder code.
     // It is always in step with the JSON and Visual tabs.
     // Typing starts a draft. The draft stays until you Run or Discard.
     // Run replaces the puzzle, so undo steps back. This is the same as a paste of the JSON that the code builds.

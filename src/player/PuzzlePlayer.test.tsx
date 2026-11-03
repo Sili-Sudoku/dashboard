@@ -12,7 +12,7 @@ import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
 
-/** Key events must start inside the player (#155), so tests dispatch from its root. */
+/** Key events must start inside the player, so tests dispatch from its root. */
 const root = () => document.querySelector(".puzzle-player")!;
 
 const compiled = () => {
@@ -294,7 +294,7 @@ describe("<PuzzlePlayer />", () => {
         }
     });
 
-    it("R reads the cursor's row aloud in a live region, and repeats on a second press (#155)", () => {
+    it("R reads the cursor's row aloud in a live region, and repeats on a second press", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const live = () => container.querySelector('[aria-live="assertive"]')!.textContent;
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]); // r1c2
@@ -307,7 +307,7 @@ describe("<PuzzlePlayer />", () => {
         expect(live()).toMatch(/givens?: /);
     });
 
-    it("highlights the constraints covering the selected cell in the constraints panel, opening their group (#161)", () => {
+    it("highlights the constraints covering the selected cell in the constraints panel, opening their group", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const current = () => container.querySelectorAll(".cp-item[aria-current]");
         expect(current()).toHaveLength(0);
@@ -321,7 +321,7 @@ describe("<PuzzlePlayer />", () => {
         expect(current()).toHaveLength(0);
     });
 
-    it("ignores shortcuts from outside the player, e.g. a dialog or the page header (#155)", () => {
+    it("ignores shortcuts from outside the player, e.g. a dialog or the page header", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         fireEvent.pointerDown(container.querySelectorAll<SVGRectElement>(".cell-bg")[1]);
         const outside = document.createElement("button");
@@ -369,7 +369,7 @@ describe("<PuzzlePlayer />", () => {
         fireEvent.pointerDown(cells[1]); // cursor back on r1c2
         fireEvent.keyDown(root(), { key: "Enter" });
 
-        // the cursor keeps its own ring; the other selected cell is covered by the combined outline (#157)
+        // the cursor keeps its own ring; the other selected cell is covered by the combined outline
         expect(container.querySelectorAll(".cell-ring-cursor")).toHaveLength(1);
         expect(container.querySelectorAll(".selection-outline")).toHaveLength(8); // two diagonal cells: 4 edges each
     });
@@ -428,7 +428,7 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelector(".cell-ring-cursor")).not.toBeNull();
     });
 
-    it("leaves centre notes unflagged by default ('check notes on leave' is a Settings (#69) preference, off by default)", () => {
+    it("leaves centre notes unflagged by default ('check notes on leave' is a Settings preference, off by default)", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
 
@@ -441,7 +441,7 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll("text.note-flagged")).toHaveLength(0);
     });
 
-    it("flags a cell's remaining centre notes in red on leave, once the Settings (#69) preference is on", () => {
+    it("flags a cell's remaining centre notes in red on leave, once the Settings preference is on", () => {
         // No in-page toggle now. This is a preference of the Settings page,
         // read once when the puzzle session is built.
         localStorage.setItem("cpr:settings", JSON.stringify({ checkNotesOnLeave: true }));
@@ -505,7 +505,7 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll(".digit.incorrect")).toHaveLength(1);
     });
 
-    it("announces the cursor cell in a live region, since the SVG board has no per-cell DOM (#64)", () => {
+    it("announces the cursor cell in a live region, since the SVG board has no per-cell DOM", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
         fireEvent.pointerDown(cells[1]);
@@ -794,7 +794,7 @@ describe("<PuzzlePlayer /> stacked (phone) layout", () => {
     });
 });
 
-describe("<PuzzlePlayer /> pen mode (#45)", () => {
+describe("<PuzzlePlayer /> pen mode", () => {
     it("switches the board to pen input and the pad to a hint, and leaves digits alone", () => {
         const { container } = render(<PuzzlePlayer puzzle={compiled()} />);
         expect(container.querySelector(".pen-surface")).toBeNull();

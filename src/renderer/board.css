@@ -8,7 +8,7 @@
     background: var(--surface);
 }
 
-/* A SudokuPad-style pan/zoom canvas. The board does not shrink to fit (#48/#49).
+/* A SudokuPad-style pan/zoom canvas. The board does not shrink to fit.
    Board.tsx computes an exact pixel size for .board-wrap and .board-viewport.
    It uses the space that .board-measure has.
    player.css and the style.css of the app shell complete the chain.
@@ -53,7 +53,7 @@
     display: block;
 }
 
-/* The flex region that has no cap. The on-screen size of the board fits to it (#77 follow-up).
+/* The flex region that has no cap. The on-screen size of the board fits to it.
    Board.tsx gives .board-wrap and .board-viewport below an exact pixel size.
    A max-width or max-height limit alone is not enough.
    A ResizeObserver on *this* element keeps the size current.
@@ -179,14 +179,14 @@
     pointer-events: none;
 }
 
-/* #35: the palette is light and made for dark digits on cream. In the dark theme the
+/* The palette is light and made for dark digits on cream. In the dark theme the
    digits are cream, so the marks are muted there (you can still see them, but they are darker).
    This prevents light text on light pastels. */
 :root[data-theme="dark"] .board .cell-mark {
     opacity: 0.4;
 }
 
-/* #73: translucent so it layers over a violated/invalid tone instead of hiding it. */
+/* Translucent so it layers over a violated/invalid tone instead of hiding it. */
 .board .cell-same {
     fill: var(--chrome-moss);
     fill-opacity: 0.28;
@@ -220,7 +220,7 @@
     fill: var(--entered);
     font-weight: 500;
 }
-/* checkAgainstSolution (#52): a placed value is legal so far (no rule is broken yet),
+/* checkAgainstSolution: a placed value is legal so far (no rule is broken yet),
    but it does not match the known solution.
    This differs from .cell-violated and .cell-invalid. They show a broken rule, not a "wrong" value.
    A horizontal line-through is hard to read on digits that already have horizontal strokes (for example 4, 7).
@@ -257,7 +257,7 @@
     stroke-linejoin: round;
 }
 
-/* The board is a Tab stop (#64). Keep a visible ring for keyboard focus. It is ink, not the blue brand
+/* The board is a Tab stop. Keep a visible ring for keyboard focus. It is ink, not the blue brand
    colour: it sits on the grid's edge, and the edge must never turn blue. */
 .board:focus-visible {
     outline: 3px solid var(--ink);
@@ -270,7 +270,7 @@
     min-width: 0;
 }
 
-/* Pen tool (#45): the stroke in progress, and the surface that receives the pointer input of the pen. */
+/* Pen tool: the stroke in progress, and the surface that receives the pointer input of the pen. */
 .board .pen-draft {
     fill: none;
     stroke: var(--pen);

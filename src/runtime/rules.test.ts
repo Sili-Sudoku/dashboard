@@ -26,7 +26,7 @@ const compile = (def: PuzzleDefinition) => {
     return c;
 };
 
-describe("dynamic rules (#72)", () => {
+describe("dynamic rules", () => {
     it("holds only when `when` is definitely true, not while it is undecided", () => {
         const c = compile({ ...base, rules: [{ when: [...topRowDone], then: { show: ["badge"] } }] });
         const rule = c.rules[0]!;

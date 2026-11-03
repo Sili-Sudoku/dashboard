@@ -1,5 +1,5 @@
 /**
- * The one mechanism for short feedback to an action the user just did (#122).
+ * The one mechanism for short feedback to an action the user just did.
  * Examples are a check result, an import/export outcome, and a solve result.
  * A toast floats over the page and takes no layout space, so it cannot shift anything.
  * Persistent *state* is not a toast. Examples are a JSON parse error, "Solved!", and a missing puzzle.

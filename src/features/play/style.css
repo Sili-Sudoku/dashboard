@@ -97,7 +97,7 @@
     padding: 1.5rem 0;
 }
 
-/* Let .puzzle-player flex-fill the rest of the page height, not size to its content (#48/#49).
+/* Let .puzzle-player flex-fill the rest of the page height, not size to its content.
    This is part of the chain completed in player.css, board.css, and the app shell style.css.
    Every puzzle (not only large ones) uses this layout, so the rule applies always. The Play
    route always renders a board below. */

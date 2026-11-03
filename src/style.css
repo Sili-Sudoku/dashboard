@@ -1,4 +1,4 @@
-/* One warm "ink & paper" palette for the whole app (#139), including the board and solving
+/* One warm "ink & paper" palette for the whole app, including the board and solving
    surfaces. The constraint-graphic and state colors below are tuned against cream paper. They do
    not come from the old cool theme. See docs/DESIGN.md for the reasons and the contrast figures. */
 :root[data-theme="light"] {
@@ -51,7 +51,7 @@
     --code-bg: #1b170f;
     --code-ink: #f1e8d3;
 
-    /* Names that the landing page, header, and /puzzles cards use (#67). Where a name means the
+    /* Names that the landing page, header, and /puzzles cards use. Where a name means the
        same as an app token above, it is an alias of that token. */
     --chrome-paper: var(--bg);
     --chrome-paper-edge: #e4d6b4;
@@ -208,7 +208,7 @@
     box-shadow: none;
 }
 
-/* Theme-independent scales that the .btn primitive below shares (#136). */
+/* Theme-independent scales that the .btn primitive below shares. */
 :root {
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -264,8 +264,7 @@ code, pre {
    scrollbar gutter always reserved. Every page then has the same width, so the header does not
    shift sideways between pages. On a board page the definite height is also what lets the board
    size its SVG correctly (height:100% on an ancestor with indefinite height falls back to the
-   aspect ratio of the SVG). The always-reserved gutter also stops a loop on board pages (#77
-   follow-up): the scrollbar appearing narrows the box, the ResizeObserver-driven fit in Board.tsx
+   aspect ratio of the SVG). The always-reserved gutter also stops a loop on board pages: the scrollbar appearing narrows the box, the ResizeObserver-driven fit in Board.tsx
    shrinks the board, the scrollbar vanishes, and the box widens again. The sticky toolbar in
    board.css keeps the controls visible in a very short window. */
 .app {
@@ -276,7 +275,7 @@ code, pre {
     scrollbar-gutter: stable;
 }
 
-/* Shell chrome uses the same warm "ink & paper" identity as the landing page (#67/#139), not the
+/* Shell chrome uses the same warm "ink & paper" identity as the landing page, not the
    cool blue-indigo --surface/--ink tokens. It is a thin strip with no puzzle-state meaning to
    conflict with, so it was safe to change first. */
 .app-header {
@@ -366,7 +365,7 @@ code, pre {
     gap: 0.4rem;
 }
 
-/* Narrow viewports (#70): the logo, title, actions, and nav cannot shrink more. They wrap onto a
+/* Narrow viewports: the logo, title, actions, and nav cannot shrink more. They wrap onto a
    second line. They do not overflow or clip past the screen edge. */
 @media (max-width: 600px) {
     /* The tagline goes first: it pushed the nav onto a second row. */
@@ -391,7 +390,7 @@ code, pre {
     }
 }
 
-/* Board routes (#70 follow-up) need more than "do not wrap". The brand wordmark, byline, and
+/* Board routes need more than "do not wrap". The brand wordmark, byline, and
    full-text buttons wrapped onto up to 4 stacked rows. They used ~40% of the phone viewport
    height before any puzzle content showed. On a solving screen the puzzle title matters. The
    wordmark and byline do not. So this rule removes them and uses icon-only actions and nav.
@@ -493,7 +492,7 @@ code, pre {
     width: 100%;
     margin: 0 auto;
 }
-/* Pages with a puzzle board (#48/#49): the window is the bounding box, not a centered 1100px
+/* Pages with a puzzle board: the window is the bounding box, not a centered 1100px
    column. Remove the cap and margin. This completes the flex-fill chain (continued in
    play/style.css, player.css, board.css). The board gets all the height below the header, not a
    fixed vh slice. Home never renders a board, so it keeps the centered column above. Author also
@@ -528,10 +527,10 @@ button:focus-visible {
     outline-offset: 2px;
 }
 
-/* The one shared button primitive (#136). The default look is the neutral secondary. Combine it
+/* The one shared button primitive. The default look is the neutral secondary. Combine it
  * with a variant (.btn-primary), a shape (.btn-icon), or a size (.btn-sm). A selected or
  * toggled-on state is .active or, preferably, aria-pressed="true". Then the visual state cannot
- * differ from the announced state. Colors use --btn-*, so a re-theme (#139) changes only these
+ * differ from the announced state. Colors use --btn-*, so a re-theme changes only these
  * in one place. It reuses the global button:focus-visible ring above. */
 .btn {
     --btn-bg: var(--raised);
@@ -546,7 +545,7 @@ button:focus-visible {
     font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
-    /* 2rem minimum, so even .btn-sm is a usable touch target (#138). */
+    /* 2rem minimum, so even .btn-sm is a usable touch target. */
     min-height: 2rem;
     min-width: 2rem;
     touch-action: manipulation;

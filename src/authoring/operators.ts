@@ -1,7 +1,7 @@
 /**
- * What the visual builder knows about the primitive operators (#127): the label of each, what it
+ * What the visual builder knows about the primitive operators: the label of each, what it
  * produces, and the kind of value that each of its slots takes. It is the primitive-layer counterpart of the
- * `schema` of a definition (#126). It lets one generic editor build any expression the runtime
+ * `schema` of a definition. It lets one generic editor build any expression the runtime
  * accepts, without a screen for each operator. `operators.test.ts` keeps it in step with the runtime's
  * own `OPERATORS` table: when you add an operator there, the test fails until you describe it here.
  */

@@ -1,5 +1,5 @@
 /**
- * A 625-cell board that exists to be big. It exercises the viewport virtualization built for #48.
+ * A 625-cell board that exists to be big. It exercises the viewport virtualization.
  * When you scroll, only the cells near the visible area go into the DOM. The puzzle has no givens.
  * It uses the generic `sudoku` definition for structure.
  * A generated valid solution (standard band-shift construction) satisfies the contract

@@ -195,7 +195,7 @@ export const solutionViolations = (compiled: CompiledPuzzle): ReadonlySet<string
 };
 
 /**
- * Resolves the rules (#72).
+ * Resolves the rules.
  * `enable` and `disable` go directly into the constraints they name.
  * "Enforce C only while W" is `implies(W, C)`. "Enforce C except while W" is `or(W, C)`.
  * So the evaluator and the solver do not need to know about rules.
@@ -319,7 +319,7 @@ const STYLE_KEYS: Record<keyof VisualStyle, "string" | "number" | "boolean"> = {
 };
 
 /**
- * The look of one constraint instance (#132).
+ * The look of one constraint instance.
  * `color` changes the color of everything the definition drew (strokes, and fills that are not empty).
  * `style` sets single style properties on top of that.
  * This code does it once, so every definition gets it and does not need to know about it.

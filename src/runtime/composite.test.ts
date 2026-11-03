@@ -14,7 +14,7 @@ const compiled = (def = samuraiSudoku) => {
     return c;
 };
 
-describe("composite geometry end to end (#34)", () => {
+describe("composite geometry end to end", () => {
     it("`sudoku` constrains every grid on its own, with no knowledge of where they are", () => {
         const c = compiled();
         expect(c.constraints).toHaveLength(5 * 27);

@@ -109,7 +109,7 @@ export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k
     typeof spec === "object" && spec !== null && !Array.isArray(spec) && typeof (spec as { use?: unknown }).use === "string";
 
 /**
- * A dynamic rule (#72).
+ * A dynamic rule.
  * `when` is an ordinary expression over the current board (the same language as constraints).
  * `then` says what holds while `when` is definitely true.
  * The rule stores nothing. Each effect is a function of the board at that time.

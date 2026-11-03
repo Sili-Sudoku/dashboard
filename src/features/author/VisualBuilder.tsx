@@ -58,7 +58,7 @@ const summarizeRule = (r: PuzzleRule): string => {
     return `${r.id ? `${r.id}: ` : ""}when ${describeExpr(r.when)} → ${effects}`;
 };
 
-/** Visual drag-and-drop puzzle authoring (#54).
+/** Visual drag-and-drop puzzle authoring.
  *  It has a palette of definitions, a small param form for each definition,
  *  and a list of the constraints that the author already placed.
  *  It does not render its own board. The author picks a definition, then clicks or drags
@@ -68,7 +68,7 @@ const summarizeRule = (r: PuzzleRule): string => {
  *  Only one board is on screen. There is no second board for this component.
  *  It covers only the definitions that have an AUTHORING_SCHEMAS entry.
  *  The JSON tab still gives access to all other definitions.
- *  The rule is the same as for the f-puzzles importer (#66): cover the common types and never
+ *  The rule is the same as for the f-puzzles importer: cover the common types and never
  *  silently drop the rest. */
 export default function VisualBuilder({ def, state }: Props) {
     const {

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { DEFAULT_MARK_COLORS, sanitizePalette } from "@/runtime/mark_colors.ts";
 
 /**
- * The shared place for player preferences (#69). It is one localStorage blob.
+ * The shared place for player preferences. It is one localStorage blob.
  * Each toggle (check-notes-on-leave, zoom-lock, ...) does not need its own non-persistent state.
  * A new preference adds a key here and a control on the Settings page.
  * It does not need its own storage.
@@ -16,15 +16,15 @@ export interface Settings {
     /** PuzzlePlayer: flag a cell red when the cursor leaves it,
      *  if its remaining centre notes do not include the solution digit. */
     checkNotesOnLeave: boolean;
-    /** Colour-marking palette (#35): one #rrggbb for each slot, shared by all puzzles. */
+    /** Colour-marking palette: one #rrggbb for each slot, shared by all puzzles. */
     markColors: readonly string[];
-    /** Board: highlight all cells that match the value of the cursor cell (#73). */
+    /** Board: highlight all cells that match the value of the cursor cell. */
     highlightSameValue: boolean;
     /** Board: keep the lock of the zoom/pan toolbar engaged (ignore wheel/pinch/fit) across puzzles and reloads. */
     zoomLocked: boolean;
     /** Player: put the side panel (number pad and controls) at the bottom of the window, not the top. */
     dockControlsBottom: boolean;
-    /* Remembered view state (#125): the open or closed state that the user left.
+    /* Remembered view state: the open or closed state that the user left.
      * These are not preferences to configure. Unlike the two above, they have no Settings-page control.
      * These are NOT remembered on purpose: input mode, zoom/pan position, show-solution, and JSON view.
      * They are per-session by nature.

@@ -196,7 +196,7 @@ describe("Author", () => {
         expect(width.value).toBe("9");
     });
 
-    it("undoes and redoes changes to the puzzle made outside the JSON box (#116)", () => {
+    it("undoes and redoes changes to the puzzle made outside the JSON box", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
@@ -224,7 +224,7 @@ describe("Author", () => {
         expect(redo().disabled).toBe(true);
     });
 
-    it("undo/redo also covers the visual builder's toolbox, and x on a tool is one step with its cleanup (#160)", () => {
+    it("undo/redo also covers the visual builder's toolbox, and x on a tool is one step with its cleanup", () => {
         render(
             <MemoryRouter>
                 <Author />
@@ -256,7 +256,7 @@ describe("Author", () => {
         expect(screen.getAllByLabelText("Remove constraint").length).toBe(before);
     });
 
-    it("has a Code tab with runnable PuzzleBuilder code that loads the puzzle it builds, undoably (#123)", () => {
+    it("has a Code tab with runnable PuzzleBuilder code that loads the puzzle it builds, undoably", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
@@ -269,7 +269,7 @@ describe("Author", () => {
         fireEvent.click(screen.getByRole("tab", { name: "Code" }));
         const code = screen.getByLabelText("PuzzleBuilder code") as HTMLTextAreaElement;
         expect(code.value).toMatch(/PuzzleBuilder\.create/);
-        // loading an example is also available here (#164: the tab shows the live puzzle)
+        // loading an example is also available here (the tab shows the live puzzle)
         expect(screen.getByRole("button", { name: /load an example/i })).not.toBeNull();
 
         fireEvent.change(code, {
@@ -286,7 +286,7 @@ describe("Author", () => {
         expect(textarea().value).toBe(original);
     });
 
-    it("shows the loaded puzzle as code, in step with the JSON, and keeps edits as a draft until run or discarded (#164)", () => {
+    it("shows the loaded puzzle as code, in step with the JSON, and keeps edits as a draft until run or discarded", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />
@@ -317,7 +317,7 @@ describe("Author", () => {
         );
     });
 
-    it("reports a Code tab error instead of throwing, and leaves the puzzle alone (#123)", () => {
+    it("reports a Code tab error instead of throwing, and leaves the puzzle alone", () => {
         const { container } = render(
             <MemoryRouter>
                 <Author />

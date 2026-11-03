@@ -36,7 +36,7 @@ const isSolved = (solution: Readonly<Record<CellId, number>>, lookup: ValueLooku
     return answer !== undefined && lookup(cell) === answer;
 };
 
-/** All hidden cells: the progressive reveal of fog, and cells that a dynamic rule (#72) has not revealed. */
+/** All hidden cells: the progressive reveal of fog, and cells that a dynamic rule has not revealed. */
 export const hiddenCells = (puzzle: CompiledPuzzle, lookup: ValueLookup): ReadonlySet<CellId> => {
     const fog = fogHiddenCells(puzzle, lookup);
     // A cell that is not on the board yet is also hidden, so no information about it can leak.

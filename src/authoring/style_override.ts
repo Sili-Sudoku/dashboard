@@ -1,5 +1,5 @@
 /**
- * Read and write the own look of a placed constraint (#132/#165): the `color` and `style` fields that any
+ * Read and write the own look of a placed constraint: the `color` and `style` fields that any
  * definition reference can carry (see `restyle` in compile.ts). The visual builder edits only the
  * three fields that have meaning without knowledge of the definition: colour, dashed, opacity.
  * It does not change anything else already in `style` (set in JSON).

@@ -79,7 +79,7 @@ const renderBuilder = (def: PuzzleDefinition, onChange = vi.fn(), initialTools?:
     return { ...utils, onChange, onTools };
 };
 
-describe("VisualBuilder quick access (#158)", () => {
+describe("VisualBuilder quick access", () => {
     it("starts empty except for tools the puzzle already uses; everything else is behind 'Add tool'", () => {
         renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }] }, vi.fn(), []);
 
@@ -101,7 +101,7 @@ describe("VisualBuilder quick access (#158)", () => {
         expect(onTools).toHaveBeenCalledWith(["thermometer"]);
     });
 
-    it("keeps a tool in the toolbox after its last constraint is removed (#159)", () => {
+    it("keeps a tool in the toolbox after its last constraint is removed", () => {
         const { onChange, onTools } = renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }] }, vi.fn(), []);
 
         fireEvent.click(screen.getByLabelText("Remove constraint"));
@@ -109,7 +109,7 @@ describe("VisualBuilder quick access (#158)", () => {
         expect(onTools).toHaveBeenCalledWith(["antiknight"]);
     });
 
-    it("x removes a tool and cleans up its placed constraints in one step, even while it is in use (#160)", () => {
+    it("x removes a tool and cleans up its placed constraints in one step, even while it is in use", () => {
         const puzzle: PuzzleDefinition = {
             ...basePuzzle,
             constraints: [{ use: "minimum", cell: "r1c1" }, { use: "antiknight" }, { use: "minimum", cell: "r2c2" }],
@@ -145,7 +145,7 @@ describe("VisualBuilder", () => {
         expect(screen.queryByText(/Add Antiknight/)).toBeNull();
     });
 
-    it("doesn't add an already-present global rule a second time, and disables its palette button (#121)", () => {
+    it("doesn't add an already-present global rule a second time, and disables its palette button", () => {
         const { onChange } = renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }] });
 
         const button = screen.getByRole("button", { name: /^✓ Antiknight/ }) as HTMLButtonElement;
@@ -154,7 +154,7 @@ describe("VisualBuilder", () => {
         expect(onChange).not.toHaveBeenCalled();
     });
 
-    it("only offers Add for schemas that need typed input beyond a board drag (#119)", () => {
+    it("only offers Add for schemas that need typed input beyond a board drag", () => {
         renderBuilder(basePuzzle);
 
         fireEvent.click(screen.getByText("Thermometer"));
@@ -234,7 +234,7 @@ describe("VisualBuilder", () => {
         expect(next.constraints).toEqual([{ use: "arrow", bulb: ["r1c1"], cells: ["r1c2", "r1c3"] }]);
     });
 
-    it("remembers a typed param across placements and across switching schemas (#117)", () => {
+    it("remembers a typed param across placements and across switching schemas", () => {
         const { container, onChange } = renderBuilder(basePuzzle);
         const svg = container.querySelector("svg.board")!;
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
@@ -285,7 +285,7 @@ describe("VisualBuilder", () => {
     });
 });
 
-describe("VisualBuilder fog tool (#129)", () => {
+describe("VisualBuilder fog tool", () => {
     const solved = { ...basePuzzle, solution: { r1c1: 1 } };
     const drag = (container: HTMLElement, from: number, to = from) => {
         const cells = container.querySelectorAll<SVGRectElement>(".cell-bg");
@@ -365,7 +365,7 @@ describe("VisualBuilder fog tool (#129)", () => {
     });
 });
 
-describe("VisualBuilder custom rule tool (#127)", () => {
+describe("VisualBuilder custom rule tool", () => {
     const pick = (label: string | RegExp, option: string | RegExp) => {
         fireEvent.click(screen.getByRole("button", { name: label }));
         fireEvent.click(within(screen.getByRole("menu")).getByText(option));
@@ -440,7 +440,7 @@ describe("VisualBuilder custom rule tool (#127)", () => {
     });
 });
 
-describe("VisualBuilder dynamic rules (#167)", () => {
+describe("VisualBuilder dynamic rules", () => {
     const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
         onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;
     const pick = (slot: string | RegExp, item: string) => {
@@ -495,7 +495,7 @@ describe("VisualBuilder dynamic rules (#167)", () => {
     });
 });
 
-describe("VisualBuilder constraint styling (#165)", () => {
+describe("VisualBuilder constraint styling", () => {
     const thermo = { use: "thermometer", cells: ["r1c1", "r1c2", "r1c3"] };
     const lastDef = (onChange: ReturnType<typeof vi.fn>) =>
         onChange.mock.calls[onChange.mock.calls.length - 1]![0] as PuzzleDefinition;

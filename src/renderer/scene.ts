@@ -45,15 +45,15 @@ export interface SceneInput {
      *  shows a constraint that conflicts with the declared solution of the puzzle,
      *  and does not hide it. */
     invalidConstraintIds?: ReadonlySet<string>;
-    /** Flag every other cell that shows the same value as the cursor cell (#73).
+    /** Flag every other cell that shows the same value as the cursor cell.
      *  This is only visual. It does not change the real selection or cursor. */
     highlightSameValue?: boolean;
     /** The note digits that a placed digit already rules out, for each cell. They are drawn as wrong. */
     ruledOutNotes?: ReadonlyMap<CellId, ReadonlySet<number>>;
-    /** Colour marks for each cell, as palette indices (#35), resolved against `markPalette`. */
+    /** Colour marks for each cell, as palette indices, resolved against `markPalette`. */
     colorsOf?: (cell: CellId) => readonly number[];
     markPalette?: readonly string[];
-    /** The pen layer of the player (#45): freehand lines and X/O marks, drawn over the digits. */
+    /** The pen layer of the player: freehand lines and X/O marks, drawn over the digits. */
     pen?: PenState;
 }
 
@@ -81,7 +81,7 @@ export interface CellShape {
     incorrect: boolean;
     /** Still hidden by fog. The renderer paints over it, so the value under it does not leak. */
     hidden: boolean;
-    /** Shows the same value as the cursor cell (#73). It is a passive highlight, separate from tone and ring. */
+    /** Shows the same value as the cursor cell. It is a passive highlight, separate from tone and ring. */
     sameValue: boolean;
     /** Colour marks in palette order: the digit that picks each (1-9, 0 = background) and its resolved colour. */
     marks: readonly { position: number; color: string }[];
@@ -127,11 +127,11 @@ export interface Scene {
     gridLines: { points: Point[]; weight: number }[];
     /** Visual objects (constraint graphics), sorted by z. */
     shapes: Shape[];
-    /** One combined outline around the multi-cell selection (#157), in board pixels. */
+    /** One combined outline around the multi-cell selection, in board pixels. */
     selectionOutline: [Point, Point][];
     /** Where the top-left corner of the grid is in the scene (the margin kept for outside clues). */
     origin: Point;
-    /** The pen layer (#45) as shapes, drawn above everything else. */
+    /** The pen layer as shapes, drawn above everything else. */
     pen: Shape[];
 }
 

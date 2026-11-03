@@ -36,7 +36,7 @@ export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | 
     }
 
     // The clue is just outside the line, in line with it, before its first cell.
-    // For a full row/column this is beyond the grid, so the renderer adds a margin for it (#130).
+    // For a full row/column this is beyond the grid, so the renderer adds a margin for it.
     const first = ctx.geometry.center(cells[0]);
     const second = ctx.geometry.center(cells[1]);
     const length = Math.hypot(second.x - first.x, second.y - first.y) || 1;

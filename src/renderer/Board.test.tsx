@@ -77,7 +77,7 @@ describe("Board — small puzzles", () => {
     });
 });
 
-describe("Board — checkAgainstSolution's incorrect marker (#52 follow-up)", () => {
+describe("Board — checkAgainstSolution's incorrect marker", () => {
     it("draws a diagonal slash through a value flagged incorrect, not a line-through", () => {
         const scene = bigScene(1);
         scene.cells[0] = { ...scene.cells[0], value: 4, incorrect: true };
@@ -141,11 +141,11 @@ class StubResizeObserver {
     }
 }
 
-describe("Board — box sizing grows to fill available space (#77 follow-up)", () => {
+describe("Board — box sizing grows to fill available space", () => {
     // A roomy stand-in for "plenty of screen". It is big enough that the fit scale of a small puzzle
     // lands well under MAX_ZOOM, so the cap below reflects real growth and not clamping.
     // window.innerWidth/innerHeight are stubbed large too, so the safety clamp
-    // to the window bounds (#77 follow-up, see Board.tsx) never binds here.
+    // to the window bounds (see Board.tsx) never binds here.
     // It has its own test below.
     beforeAll(() => {
         mutableRect.left = 0;
@@ -174,7 +174,7 @@ describe("Board — box sizing grows to fill available space (#77 follow-up)", (
     });
 });
 
-describe("Board — box size tracks a resizing container (#77 follow-up)", () => {
+describe("Board — box size tracks a resizing container", () => {
     beforeAll(() => {
         mutableRect.left = 0;
         mutableRect.top = 0;
@@ -221,7 +221,7 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
         const { container, getByLabelText } = render(
             <Board scene={scene} onPaintStart={noop} onPaintMove={noop} onPaintEnd={noop} onClearSelection={noop} />,
         );
-        // 100% always means "whole board visible" (#77 follow-up). Fit-on-mount is
+        // 100% always means "whole board visible". Fit-on-mount is
         // exactly that, whatever the achieved physical box size (848px here).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe("100%");
 
@@ -238,7 +238,7 @@ describe("Board — box size tracks a resizing container (#77 follow-up)", () =>
     });
 });
 
-describe("Board — fit never exceeds the window's own bounds (#77 follow-up)", () => {
+describe("Board — fit never exceeds the window's own bounds", () => {
     // Reproduces the real bug found with a live-logged runaway. Something in the
     // flex chain of the real page fed the on-screen size of the measured container back
     // into itself. It compounded on every resize tick. Simulate that directly:
@@ -343,7 +343,7 @@ describe("Board — large puzzles", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         expect(svg.getAttribute("width")).toBe("100%");
         expect(readViewBox(svg)).toEqual({ left: 0, top: 0, width: 500, height: 500 });
-        // 100% always means "whole board visible" (#77 follow-up), whatever the
+        // 100% always means "whole board visible", whatever the
         // achieved physical scale (here it is a tiny 12% of native size).
         expect(container.querySelector(".board-zoom-level")?.textContent).toBe("100%");
     });
@@ -474,7 +474,7 @@ describe("Board — large puzzles", () => {
         const svg = container.querySelector("svg.board") as SVGSVGElement;
         const level = () => container.querySelector(".board-zoom-level")?.textContent;
 
-        // 100% always means "whole board visible" (#77 follow-up). Fit-on-mount is
+        // 100% always means "whole board visible". Fit-on-mount is
         // exactly that, whatever the achieved physical scale.
         expect(level()).toBe("100%");
 
@@ -484,7 +484,7 @@ describe("Board — large puzzles", () => {
 
         act(() => getByLabelText("Reset to actual size (1 board unit per pixel)").click());
         // "Actual size" sets view.width = the own pixel width of the container (100). This is a
-        // *different* zoom level from "fit", and it is useful by itself (#77 follow-up).
+        // *different* zoom level from "fit", and it is useful by itself.
         // So it no longer displays as "100%", because 100% is now reserved for "whole board
         // visible": % = scene.width/view.width*100 = 500/100*100 = 500%.
         expect(level()).toBe("500%");
@@ -511,11 +511,11 @@ describe("Board — large puzzles", () => {
 
         expect(slider.min).toBe("2"); // MIN_ZOOM * 100
         expect(slider.max).toBe("300"); // MAX_ZOOM * 100
-        expect(slider.value).toBe("100"); // fit-on-mount is always 100% (#77 follow-up)
+        expect(slider.value).toBe("100"); // fit-on-mount is always 100%
 
         act(() => fireEvent.change(slider, { target: { value: "150" } }));
         expect(level()).toBe("150%");
-        // 150% of *the board*, not of the container (#77 follow-up): targetWidth =
+        // 150% of *the board*, not of the container: targetWidth =
         // scene.width*100/150 = 333.33 board units visible.
         expect(readViewBox(svg).width).toBeCloseTo(500 / 1.5);
 
@@ -577,7 +577,7 @@ describe("Board — large puzzles", () => {
     });
 });
 
-describe("Board — pen input (#45)", () => {
+describe("Board — pen input", () => {
     // jsdom has no PointerEvent, so fireEvent.pointerX would drop the coordinates and button.
     beforeAll(() => {
         if (!("PointerEvent" in window)) {

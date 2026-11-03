@@ -282,7 +282,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     warnings.push(
                         "regions are not a uniform rectangular tiling (jigsaw sudoku). The box constraint is " +
                             "correct. The renderer always draws rectangular box lines from the " +
-                            "grid size (see kanban #55). The drawn grid lines do not match these " +
+                            "grid size. The drawn grid lines do not match these " +
                             "regions yet",
                     );
                 }

@@ -8,7 +8,7 @@ import "./style.css";
 
 interface Props {
     values: readonly number[];
-    /** Colour-marking palette (#35), shown as swatches in "color" mode. */
+    /** Colour-marking palette, shown as swatches in "color" mode. */
     palette: readonly string[];
     mode: InputMode;
     onInput: (value: number) => void;

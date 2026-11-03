@@ -1,5 +1,5 @@
 /**
- * The pen layer (#45). It holds the freehand annotations of the player: lines drawn across the grid
+ * The pen layer. It holds the freehand annotations of the player: lines drawn across the grid
  * and X / O marks. It is separate from digits, notes and colours (as in the pen tool of SudokuPad).
  * Nothing here changes the puzzle or its evaluation.
  *

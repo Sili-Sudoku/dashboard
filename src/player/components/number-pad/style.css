@@ -91,7 +91,7 @@
     min-height: 44px;
 }
 
-/* Pen mode (#45): four tiles show how the pen works. They fill the space of the digit keys,
+/* Pen mode: four tiles show how the pen works. They fill the space of the digit keys,
    so the pad keeps its size. They look like the keys but are quieter: flat and not pressable. */
 .number-pad .pad-pen-guide {
     display: grid;

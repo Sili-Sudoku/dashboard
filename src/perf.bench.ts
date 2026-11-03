@@ -1,7 +1,6 @@
-/** Baseline perf numbers for the large-puzzle work (#47 incremental eval, #48 viewport
- * virtualization, #65 patch-based undo/redo). #71 first asked for these numbers BEFORE that
- * work. When #71 started, #47/#48/#65 were already done. Each had its own one-off measurement in
- * its card comment. So this file is a committed, reusable reference. Future large-puzzle
+/** Baseline perf numbers for the large-puzzle work (incremental eval, viewport
+ * virtualization, patch-based undo/redo). Each of these had its own one-off measurement
+ * when it was built. So this file is a committed, reusable reference. Future large-puzzle
  * optimizations should compare against these numbers and not guess. Run with `npm run bench`. */
 
 import { bench, describe } from "vitest";

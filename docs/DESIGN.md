@@ -1,6 +1,6 @@
 # Visual identity
 
-The whole app uses one visual language, since #139: **ink & paper**. When you
+The whole app uses one visual language: **ink & paper**. When you
 work on a UI card, match this look.
 
 ## The look
@@ -61,7 +61,7 @@ old cool theme. No ratio is worse than before the change:
 
 Fills such as fog and violated are *tints*, and they are subtle on purpose. The
 line and text colors carry the meaning. For violations, the screen-reader
-announcement also carries the meaning (see #64). Check this table again if you
+announcement also carries the meaning. Check this table again if you
 change a state color.
 
 ## Do not

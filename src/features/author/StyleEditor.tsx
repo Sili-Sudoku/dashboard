@@ -22,7 +22,7 @@ interface Props {
     onChange: (next: { use: string; [key: string]: unknown }) => void;
 }
 
-/** Colour, dashed and opacity for one placed constraint (#165). This is the override for each instance from #132. */
+/** Colour, dashed and opacity for one placed constraint. This is the override for each instance. */
 export default function StyleEditor({ spec, onChange }: Props) {
     const { color, dashed, opacity, pattern, image } = readOverride(spec);
     const set = (patch: Parameters<typeof withOverride>[1]) => onChange(withOverride(spec, patch));

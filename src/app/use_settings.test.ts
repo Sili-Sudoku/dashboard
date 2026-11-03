@@ -33,7 +33,7 @@ describe("useSettings", () => {
         expect(JSON.parse(localStorage.getItem("cpr:settings") ?? "{}")).toMatchObject({ zoomLocked: true });
     });
 
-    it("remembers panel and editor-mode state across a remount (#125)", () => {
+    it("remembers panel and editor-mode state across a remount", () => {
         const first = renderHook(() => useSettings());
         act(() => {
             first.result.current[1]("constraintPanelOpen", false);

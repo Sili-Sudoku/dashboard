@@ -1,5 +1,5 @@
 /**
- * The expression tree behind the custom-rule editor of the visual builder (#127): a rule that the user builds,
+ * The expression tree behind the custom-rule editor of the visual builder: a rule that the user builds,
  * slot by slot, from the primitive operators of the runtime (see `operators.ts`). It is pure data and pure
  * functions. The UI is a thin recursive view over it. `toExpr` turns a finished tree into
  * exactly the `Expr` that a hand-written constraint gives.

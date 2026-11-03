@@ -20,7 +20,7 @@ const compile = (constraint: ConstraintSpec) => {
     return result;
 };
 
-describe("per-instance style override (#132)", () => {
+describe("per-instance style override", () => {
     it("leaves a definition's own look alone when there is no override", () => {
         const [path, bulb] = compile(thermo).objects;
         expect(path?.style?.stroke).toBe("var(--thermo)");

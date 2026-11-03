@@ -170,7 +170,7 @@ export function Slot({ rule, path, spec }: SlotProps) {
     }
 }
 
-/** The recursive slot editor for a custom rule (#127). The author picks an operator, then fills each of its slots. */
+/** The recursive slot editor for a custom rule. The author picks an operator, then fills each of its slots. */
 export default function RuleEditor({ rule }: { rule: RuleControls }) {
     return (
         <div className="visual-builder-form rule-editor" aria-label="Custom rule">

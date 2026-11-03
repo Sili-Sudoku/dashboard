@@ -103,7 +103,7 @@ const DIGIT_COMMIT_DELAY_MS = 500;
 const CHECK_TOAST_KEY = "check";
 
 /** A second history that Undo/Redo of the board uses when its own history (entered digits and notes) is empty.
- *  It holds the edits of the Author page to the puzzle definition (#116).
+ *  It holds the edits of the Author page to the puzzle definition.
  *  So one Undo/Redo control covers both. */
 export interface ExternalHistory {
     canUndo: boolean;
@@ -189,7 +189,7 @@ export const usePuzzleSession = (
         });
     }, [session, puzzle.metadata.id]);
 
-    // Solve timer (#68): a plain stopwatch that runs while the puzzle is not complete.
+    // Solve timer: a plain stopwatch that runs while the puzzle is not complete.
     // The interval and subscribe callbacks and the effect cleanup below drive it.
     // The render body never drives it, and no ref is read during render.
     // This project lints against both (react-hooks rules).
@@ -485,7 +485,7 @@ export const usePuzzleSession = (
                 redo();
                 return;
             }
-            // SudokuPad 'V' check (#52).
+            // SudokuPad 'V' check.
             // PuzzleSession does nothing if the puzzle has no declared solution, so no gate is needed here.
             if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "v") {
                 e.preventDefault();

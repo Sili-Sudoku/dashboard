@@ -133,7 +133,7 @@ function EffectEditor({
     );
 }
 
-/** The when/then editor for a dynamic rule (#167). The condition uses the custom-rule slot editor (#127). */
+/** The when/then editor for a dynamic rule. The condition uses the custom-rule slot editor. */
 export default function DynamicRuleEditor({ rule, constraintNames, onAdd }: Props) {
     const [targets, setTargets] = useState<Targets>({});
     const chosen = EFFECTS.filter((e) => targets[e.effect] !== undefined);

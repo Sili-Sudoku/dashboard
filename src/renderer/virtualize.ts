@@ -1,5 +1,5 @@
 /**
- * Pure viewport-culling helpers for the pan/zoom board (#48).
+ * Pure viewport-culling helpers for the pan/zoom board.
  * `buildScene()` always builds the full list of cells and shapes.
  * The geometry of a puzzle does not depend on a viewport, so culling is only a rendering task.
  * `Board.tsx` applies it just before it maps shapes to SVG elements.
@@ -37,7 +37,7 @@ export const clamp = (v: number, min: number, max: number): number => Math.min(m
  * It is scaled (and letterboxed) to fit `containerWidth` x `containerHeight`, like the "Fit" toolbar button.
  * The scale stays in the MIN_ZOOM..MAX_ZOOM range of manual zoom.
  * So the initial fit is always a zoom level that the player can also reach by hand.
- * (#77 follow-up: the scale had a cap of 1, so the board never grew past its native size.
+ * (the scale had a cap of 1, so the board never grew past its native size.
  * That cap conflicted with the box-sizing cap in Board.tsx.
  * Small puzzles stayed in a box that was too small, even on a large screen.
  * The goal is to grow to fill the available space, like SudokuPad.)

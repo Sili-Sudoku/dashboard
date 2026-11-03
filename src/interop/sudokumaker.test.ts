@@ -10,7 +10,7 @@ const id = (row: number, col: number) => col + row * 9;
 
 /** A hand-built 9x9 SudokuMaker export. It has standard 3x3 boxes, one given, a killer cage, a thermometer, an arrow,
  *  both edge-clue kinds, and odd/even marks. The field shapes follow the format spec that the user reverse-engineered
- *  from the live app. A real share link verified the spec (see the module doc comment and kanban #81).
+ *  from the live app. A real share link verified the spec (see the module doc comment).
  *  This test does not derive the spec again. */
 const sampleSudokuMaker = (): SudokuMakerExport => {
     const cells = Array.from({ length: 81 }, (_, i) => (i === 0 ? { given: true, value: 5 } : {}));

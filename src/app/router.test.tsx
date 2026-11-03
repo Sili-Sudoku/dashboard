@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 /**
- * The board needs a *definite* height from .app/.app-main down, to size its SVG correctly (#77 follow-up).
+ * The board needs a *definite* height from .app/.app-main down, to size its SVG correctly.
  * An explicit class that depends on the route gives this height.
  * A CSS :has(.board-wrap) structural match is not used.
  * Where :has() is not supported, it does nothing and gives no error.

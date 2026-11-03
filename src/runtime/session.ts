@@ -40,7 +40,7 @@ export interface CellState {
     notes: readonly number[];
     /** Centre (candidate) notes: shown as a compact list that grows. */
     centerNotes: readonly number[];
-    /** Colour marks (#35): palette indices, ascending. This layer is independent. Digits and notes never change it. */
+    /** Colour marks: palette indices, ascending. This layer is independent. Digits and notes never change it. */
     colors: readonly number[];
 }
 
@@ -83,9 +83,9 @@ export type SelectMode = "replace" | "add" | "toggle";
 export interface SessionOptions {
     onChange?: () => void;
     initialProgress?: ProgressSnapshot;
-    /** Sets the start value of `checkNotesOnLeave` (default false). The default for the player is in Settings (#69). */
+    /** Sets the start value of `checkNotesOnLeave` (default false). The default for the player is in Settings. */
     checkNotesOnLeave?: boolean;
-    /** The saved pen layer (#45). It is separate from `initialProgress`, whose keys are cells. */
+    /** The saved pen layer. It is separate from `initialProgress`, whose keys are cells. */
     initialPen?: PenState;
 }
 
@@ -101,7 +101,7 @@ const ERASE_CHAIN: readonly EraseLayer[] = ["value", "centerNotes", "notes", "co
 export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
 
 /**
- * Result of `PuzzleSession.checkAgainstSolution` (#52 follow-up):
+ * Result of `PuzzleSession.checkAgainstSolution`:
  * - "clean": the check found no mistakes.
  * - "mistake-value": a placed value does not match the solution.
  *   This is the first press since the board last changed.
@@ -125,7 +125,7 @@ export class PuzzleSession {
     checkNotesOnLeave = false;
 
     private board = new Map<CellId, CellState>();
-    /** The pen layer (#45): the lines and X/O marks of the player. It is outside the puzzle and its evaluation. */
+    /** The pen layer: the lines and X/O marks of the player. It is outside the puzzle and its evaluation. */
     private pen: PenState = EMPTY_PEN;
     private past: HistoryEntry[] = [];
     private futureStack: HistoryEntry[] = [];
@@ -272,12 +272,12 @@ export class PuzzleSession {
         return hiddenCells(this.puzzle, this.valueOf);
     }
 
-    /** Cells that no dynamic rule (#72) has made `appear` yet. They are not drawn and not selectable. */
+    /** Cells that no dynamic rule has made `appear` yet. They are not drawn and not selectable. */
     getAbsentCells(): ReadonlySet<CellId> {
         return ruleAbsentCells(this.puzzle, this.valueOf);
     }
 
-    /** The visual objects to draw now. Dynamic rules (#72) can show or hide some of them. */
+    /** The visual objects to draw now. Dynamic rules can show or hide some of them. */
     getVisibleObjects(): readonly VisualObject[] {
         return visibleObjects(this.puzzle, this.valueOf);
     }
@@ -429,7 +429,7 @@ export class PuzzleSession {
     /**
      * Manual "check" (the 'V' key of SudokuPad). It checks the whole board against the known solution,
      * once, on request.
-     * It is not live or continuous on purpose. A live check would turn the puzzle into trial and error (#52).
+     * It is not live or continuous on purpose. A live check would turn the puzzle into trial and error.
      * It does nothing if the puzzle has no declared solution.
      *
      * It has two stages on purpose.
@@ -499,12 +499,12 @@ export class PuzzleSession {
         return this.pen;
     }
 
-    /** Draws one pen stroke along the given lattice points (#45). It is one undo step. */
+    /** Draws one pen stroke along the given lattice points. It is one undo step. */
     penStroke(points: readonly PenPoint[]): void {
         this.setPen(applyStroke(this.pen, points));
     }
 
-    /** A click at a lattice point (#45). The mark there cycles nothing -> X -> O -> nothing. It is one undo step. */
+    /** A click at a lattice point. The mark there cycles nothing -> X -> O -> nothing. It is one undo step. */
     penMark(point: PenPoint): void {
         this.setPen(cycleMark(this.pen, point));
     }
@@ -604,7 +604,7 @@ export class PuzzleSession {
     }
 
     /**
-     * Toggles palette colour `index` on the selection (#35).
+     * Toggles palette colour `index` on the selection.
      * Unlike digits and notes, it applies to givens too. To mark a clue is a main use of colours.
      * It does not change the value and notes of the cell.
      * If all targets have the colour, it removes the colour from all of them.
@@ -891,8 +891,8 @@ export const penStorageKey = (puzzleId: string): string => `cpr:pen:${puzzleId}`
 
 export const progressStorageKey = (puzzleId: string): string => `cpr:progress:${puzzleId}`;
 
-/** Local solve-timer stats for each puzzle (#68). They are not community
- *  leaderboards (#58, which need accounts and a backend).
+/** Local solve-timer stats for each puzzle. They are not community
+ *  leaderboards (those need accounts and a backend).
  *  They only show how long a solve took on this device. */
 export interface PuzzleStats {
     /** The total active solve time of the current attempt, in ms. */

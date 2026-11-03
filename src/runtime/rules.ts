@@ -1,5 +1,5 @@
 /**
- * What the dynamic rules (#72) of the puzzle do now.
+ * What the dynamic rules of the puzzle do now.
  * The `when` of a rule is evaluated on the current board with the same three-valued logic as a constraint.
  * It counts only when it is *definitely* true.
  * While it is undecided (cells are still empty), the rule has not happened.

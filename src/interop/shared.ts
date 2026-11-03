@@ -2,7 +2,7 @@ import { GridGeometry, type CellId } from "@/runtime/geometry.ts";
 
 /** Helpers that both interop formats need.
  *  They are in one place.
- *  A fix from a real case of one format (e.g. #80, the box-size regression) then reaches the other. */
+ *  A fix from a real case of one format (e.g. the box-size regression) then reaches the other. */
 
 export const slugify = (s: string): string => {
     const slug = s

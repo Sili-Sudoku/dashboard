@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { NOT_OFFERED, OPERATOR_SIGNATURES, operatorsFor, signatureOf } from "@/authoring/operators.ts";
 import { operatorNames } from "@/runtime/operators.ts";
 
-describe("operator signatures (#127)", () => {
+describe("operator signatures", () => {
     it("describe exactly the runtime's operators, bar the few the builder expresses another way", () => {
         const described = new Set(OPERATOR_SIGNATURES.map((s) => s.name));
         const runtime = new Set(operatorNames());

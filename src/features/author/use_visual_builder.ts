@@ -30,13 +30,13 @@ export interface Toolbox {
     onChange: (tools: readonly string[], def?: PuzzleDefinition) => void;
 }
 
-/** Fog (#129) is a tool like the others. It edits a field of the puzzle and does not add a constraint. */
+/** Fog is a tool like the others. It edits a field of the puzzle and does not add a constraint. */
 export const FOG_TOOL = "fog";
 
-/** The custom-rule editor (#127) is also a tool. It builds one constraint from primitive operators. */
+/** The custom-rule editor is also a tool. It builds one constraint from primitive operators. */
 export const RULE_TOOL = "rule";
 
-/** Dynamic rules (#72/#167): "when this holds, then …". The condition uses the custom-rule editor. */
+/** Dynamic rules: "when this holds, then …". The condition uses the custom-rule editor. */
 export const DYNAMIC_TOOL = "dynamic";
 
 const withoutRules = (def: PuzzleDefinition): PuzzleDefinition => {
@@ -70,7 +70,7 @@ export interface FogControls {
 
 export interface RuleControls {
     active: boolean;
-    /** The tree becomes a constraint (#127) or the condition of a dynamic rule (#167). */
+    /** The tree becomes a constraint or the condition of a dynamic rule. */
     kind: "constraint" | "dynamic";
     start: (kind?: "constraint" | "dynamic") => void;
     /** The rule so far. The live selection of the board is already in the slot that the author fills. */
@@ -83,7 +83,7 @@ export interface RuleControls {
     /** Replace the whole tree (to add or remove the slots of a variadic operator). */
     replace: (tree: RuleNode | null) => void;
     complete: boolean;
-    /** The cells that are selected on the board now, for effects that name cells (#167). */
+    /** The cells that are selected on the board now, for effects that name cells. */
     selected: readonly CellId[];
     /** The name of the rule in the list of the puzzle. If it is blank, the list shows the expression. */
     name: string;
@@ -138,7 +138,7 @@ const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<Cel
     return field.kind === "cells" && field.max !== undefined ? cells.slice(0, field.max) : cells;
 };
 
-/** All the state and logic of the visual builder (#54).
+/** All the state and logic of the visual builder.
  *  The author picks a definition from the palette. Then the author clicks or drags on the board
  *  to place it. The board is the one ordinary PuzzlePlayer of the Author page (see `onSelectionChange`
  *  of PuzzlePlayer). The gesture is the same as the selection of cells for digit entry.
@@ -177,7 +177,7 @@ export const useVisualBuilder = (
     // Every commit or cancel clears them. The cells of a placed constraint never carry over to the next one.
     const [cellValues, setCellValues] = useState<Record<string, FieldValue>>({});
     // Typed params (a sum, a "strict" checkbox, ...) for each schema name. The hook keeps them across
-    // placements, cancels, and a switch to another schema and back (#117) until the author changes them.
+    // placements, cancels, and a switch to another schema and back until the author changes them.
     const [paramMemory, setParamMemory] = useState<Readonly<Record<string, Readonly<Record<string, FieldValue>>>>>({});
 
     const activeCellFields = activeSchema ? cellFieldsOf(activeSchema) : [];
@@ -218,7 +218,7 @@ export const useVisualBuilder = (
               ]
             : toolPreview;
 
-    // Fog (#129): when the author picks the tool, a drag on the board hides cells (or reveals them).
+    // Fog: when the author picks the tool, a drag on the board hides cells (or reveals them).
     // It does not fill the fields of a constraint. Like all tools, it counts only while
     // it is in the toolbox or the puzzle has fog.
     const [fogPlacing, setFogPlacing] = useState(false);
@@ -270,7 +270,7 @@ export const useVisualBuilder = (
         clear: () => setFog([]),
     };
 
-    // Custom rule (#127): the tree in progress and the slot that receives the selection of the board.
+    // Custom rule: the tree in progress and the slot that receives the selection of the board.
     const [rulePlacing, setRulePlacing] = useState(false);
     const [ruleTree, setRuleTree] = useState<RuleNode | null>(null);
     const [rulePath, setRulePathState] = useState<Path>([]);
@@ -344,7 +344,7 @@ export const useVisualBuilder = (
         setCellValues({});
         if (schema.fields.length === 0) {
             setActiveSchema(undefined);
-            // A global rule is on or off. A second identical copy only multiplies its violations (#121).
+            // A global rule is on or off. A second identical copy only multiplies its violations.
             if (!isGlobalPlaced(def, schema)) commit(schema, {});
             return;
         }
@@ -401,7 +401,7 @@ export const useVisualBuilder = (
         if (!toolbox.tools.includes(name)) toolbox.onChange([...toolbox.tools, name]);
     };
 
-    // A tool that the puzzle used stays in the toolbox after the author removes its constraint (#159).
+    // A tool that the puzzle used stays in the toolbox after the author removes its constraint.
     const removeConstraint = (index: number) => {
         if (!def) return;
         const removed = def.constraints[index];

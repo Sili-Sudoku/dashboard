@@ -755,7 +755,7 @@
     }
 }
 
-/* Custom rule editor (#127): a nested list with one indent per operator. */
+/* Custom rule editor: a nested list with one indent per operator. */
 .rule-editor input[type="number"],
 .rule-editor input[type="text"] {
     min-width: 0;
@@ -858,7 +858,7 @@
     font-size: 0.85em;
 }
 
-/* Panel for colour, dash, and opacity under a placed constraint (#165). */
+/* Panel for colour, dash, and opacity under a placed constraint. */
 .visual-builder-list li > span:first-child {
     flex: 1;
     min-width: 0;

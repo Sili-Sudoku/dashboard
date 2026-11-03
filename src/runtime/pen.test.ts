@@ -10,7 +10,7 @@ import {
     strokeSegments,
 } from "@/runtime/pen.ts";
 
-describe("pen layer (#45)", () => {
+describe("pen layer", () => {
     it("snaps a pixel position to the nearest half-cell point, relative to the grid origin", () => {
         const origin = { x: 10, y: 20 };
         // Cell size is 64. The centre of the first cell is half a cell in = lattice (1,1).

@@ -44,7 +44,7 @@ interface Props {
     puzzle: CompiledPuzzle;
     /** Reports the selection of the board on each change.
      *  It is the same Set that the click, drag and shift-click digit-entry flow maintains.
-     *  A caller, such as the visual builder of the Author page (#54), can read the selected cells
+     *  A caller, such as the visual builder of the Author page, can read the selected cells
      *  without a second board only to pick cells.
      *  Selection and typing behavior are not affected. This is a read-only mirror. */
     onSelectionChange?: (selection: ReadonlySet<CellId>) => void;
@@ -52,7 +52,7 @@ interface Props {
      *  The visual builder uses it to commit a constraint when a drag places it, with no separate "Add" click. */
     onSelectionEnd?: () => void;
     /** Extra visual objects that the board draws as part of the puzzle, without a change to the puzzle or session.
-     *  The visual builder (#54) uses them to show the graphics of a constraint that is in progress
+     *  The visual builder uses them to show the graphics of a constraint that is in progress
      *  (for example the line of a thermometer) while cells are dragged, before the constraint is committed. */
     previewObjects?: readonly VisualObject[];
     /** Compiled constraint ids to draw in red, instead of a hidden preview.
@@ -106,13 +106,13 @@ export default function PuzzlePlayer({
     }, [session, session.revision, onSelectionChange]);
     const boardColRef = useRef<HTMLDivElement>(null);
 
-    // Large boards (#49 follow-up): the sidebar is pinned with position:fixed, so it never moves when the page scrolls.
+    // Large boards: the sidebar is pinned with position:fixed, so it never moves when the page scrolls.
     // A sticky sidebar must first "catch up" past the header and title above it, and that looks like the panel moves.
     // Fixed needs a concrete top offset.
     // A hardcoded offset is wrong when the height of the header or title changes.
     // So measure where the board column starts and pin the sidebar there.
     //
-    // "Where it starts" means the *grid*, not the column (#77 follow-up).
+    // "Where it starts" means the *grid*, not the column.
     // The top of the column is the top of the zoom toolbar, one row above the grid.
     // A pin there put the number pad of the sidebar noticeably higher than the puzzle.
     // .board-viewport is the grid itself.
@@ -153,7 +153,7 @@ export default function PuzzlePlayer({
         () =>
             buildScene({
                 puzzle: (() => {
-                    // Dynamic rules (#72) can show or hide objects when the board changes.
+                    // Dynamic rules can show or hide objects when the board changes.
                     const objects = session.getVisibleObjects();
                     return previewObjects?.length
                         ? { ...puzzle, objects: [...objects, ...previewObjects] }

@@ -23,7 +23,7 @@ import type { Expr } from "@/runtime/expression.ts";
 const cells = (...ids: string[]): RuleNode => ({ k: "cells", cells: ids, selector: "" });
 const num = (value: number): RuleNode => ({ k: "num", value });
 
-describe("rule tree (#127)", () => {
+describe("rule tree", () => {
     it("starts an operator with an empty slot per argument, and its minimum for a variadic one", () => {
         expect(newOp("==")).toEqual({ k: "op", name: "==", args: [null, null] });
         expect((newOp("and") as unknown as { args: unknown[] }).args).toHaveLength(2);

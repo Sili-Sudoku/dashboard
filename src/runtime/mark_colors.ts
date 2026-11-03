@@ -1,5 +1,5 @@
 /**
- * The colour-marking palette (#35). The "color" input mode paints cells with it.
+ * The colour-marking palette. The "color" input mode paints cells with it.
  * Cells store a *palette index*, not a colour.
  * Thus a changed palette (kept in Settings, shared by all puzzles) recolours existing marks.
  * The marks do not become orphaned.

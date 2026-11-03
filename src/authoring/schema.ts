@@ -1,5 +1,5 @@
 /**
- * What the visual puzzle builder (#54) knows about each definition: a small set of field kinds that a
+ * What the visual puzzle builder knows about each definition: a small set of field kinds that a
  * generic palette/form can render. Each definition declares its own (`definition.schema`, see
  * src/definitions/types.ts), so one place adds a variant. This module gathers the schemas
  * from a registry and holds the helper functions that work on them.
@@ -86,7 +86,7 @@ export const buildConstraintParams = (
 export const summarizeConstraint = (spec: ConstraintSpec): string => {
     if (isNamedRule(spec)) return spec.name?.trim() || describeExpr(spec.rule);
     if (!isDefinitionRef(spec)) return describeExpr(spec as Expr);
-    // The look of each instance (#132) shows on the board, not in the one-line summary.
+    // The look of each instance shows on the board, not in the one-line summary.
     const { use, color: _color, style: _style, ...rest } = spec;
     void _color;
     void _style;

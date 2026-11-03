@@ -131,7 +131,7 @@ describe("buildScene", () => {
         expect(scene.shapes.length).toBeGreaterThan(0);
     });
 
-    it("grows a margin for clues placed outside the grid and shifts everything to keep the origin at 0,0 (#130)", () => {
+    it("grows a margin for clues placed outside the grid and shifts everything to keep the origin at 0,0", () => {
         const base = {
             valueOf: () => null,
             notesOf: () => [],
@@ -197,7 +197,7 @@ describe("buildScene", () => {
         expect(cell?.ring).toBe("cursor");
     });
 
-    describe("same-value highlight (#73)", () => {
+    describe("same-value highlight", () => {
         // r1c1=5, r1c5=7, r2c1=6 ... come from the givens of the demo. Fill the extra 5s by hand.
         const values: Record<string, number> = { r1c1: 5, r4c4: 5, r7c9: 5, r2c2: 3 };
         const at = (c: string): number | null => values[c] ?? null;
@@ -243,7 +243,7 @@ describe("buildScene", () => {
             expect(same(build({ hiddenCells: new Set(["r1c1"]) }, (c) => (c === "r1c1" ? null : at(c))))).toEqual([]);
         });
 
-        it("outlines a multi-cell selection once, and leaves a lone cursor cell to its ring (#157)", () => {
+        it("outlines a multi-cell selection once, and leaves a lone cursor cell to its ring", () => {
             const size = build().cellSize;
             expect(build({ selection: new Set(["r1c1"]) }).selectionOutline).toEqual([]);
             // two adjacent cells: 6 boundary edges, none of them the shared one
@@ -260,7 +260,7 @@ describe("buildScene", () => {
         });
     });
 
-    it("resolves colour marks to palette colours, keeping each mark's 1-based position (#35)", () => {
+    it("resolves colour marks to palette colours, keeping each mark's 1-based position", () => {
         const scene = buildScene({
             puzzle,
             valueOf: () => null,
@@ -284,7 +284,7 @@ describe("buildScene", () => {
         expect(scene.cells.find((c) => c.cell === "r1c3")?.marks).toEqual([]);
     });
 
-    it("resolves the background mark to the theme surface, reported as digit 0 (#35)", () => {
+    it("resolves the background mark to the theme surface, reported as digit 0", () => {
         const scene = buildScene({
             puzzle,
             valueOf: () => null,
@@ -435,7 +435,7 @@ describe("grid line draw order", () => {
     });
 });
 
-describe("cells that are not on the board yet (#72)", () => {
+describe("cells that are not on the board yet", () => {
     const grown = compilePuzzle(
         {
             version: 1,
@@ -485,7 +485,7 @@ describe("cells that are not on the board yet (#72)", () => {
     });
 });
 
-describe("pen layer shapes (#45)", () => {
+describe("pen layer shapes", () => {
     const puzzle = (() => {
         const r = compilePuzzle({
             version: 1,

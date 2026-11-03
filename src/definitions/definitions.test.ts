@@ -371,7 +371,7 @@ describe("sandwich definition", () => {
         expect(evalPredicate(out.constraints[0].expr, evalCtx)).toBe(true);
     });
 
-    it("draws its sum just outside the line, before the first cell (#131)", () => {
+    it("draws its sum just outside the line, before the first cell", () => {
         const row = ctx(3, 3);
         const rowOut = sandwich({ cells: ["r2c1", "r2c2", "r2c3"], sum: 5 }, { ...row, domain: [1, 2, 3] });
         if (rowOut instanceof Error) throw rowOut;

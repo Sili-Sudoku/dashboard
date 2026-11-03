@@ -1,6 +1,6 @@
 /**
  * `large_demo.ts` at realistic clue densities. A seeded PRNG carves the clues from its own known
- * `solution`. These are the same fixtures that benchmark the solver (src/runtime/solver.ts) against #46.
+ * `solution`. These are the same fixtures that benchmark the solver (src/runtime/solver.ts).
  * They stay here as viewable puzzles, not as throwaway test fixtures.
  * At 0%, 30% and 50%, the solver stops with "unknown" after the default time budget.
  * This is the classic CSP easy-hard-easy phase transition (see the solver's own comment).

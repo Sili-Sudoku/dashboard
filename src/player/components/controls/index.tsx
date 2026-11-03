@@ -10,7 +10,7 @@ interface Props {
     onUndo: () => void;
     onRedo: () => void;
     onReset: () => void;
-    /** Omitted when the puzzle has no declared solution to check against (#52). */
+    /** Omitted when the puzzle has no declared solution to check against. */
     onCheck?: () => void;
     /** Items above Reset in the menu (on a phone: the timer and the zoom controls). */
     extraItems?: readonly MenuItem[];

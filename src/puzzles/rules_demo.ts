@@ -1,5 +1,5 @@
 /**
- * Dynamic rules (#72) in a 4x4 Sudoku that starts as a 4x3 board.
+ * Dynamic rules in a 4x4 Sudoku that starts as a 4x3 board.
  * The bottom row does not exist (not drawn, not selectable) until the three rows above it
  * are filled with distinct digits. Then a green line lights the left column.
  * Each `when` is an ordinary expression over the board. The same language that writes constraints

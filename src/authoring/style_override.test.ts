@@ -12,7 +12,7 @@ const def: PuzzleDefinition = {
 };
 const thermo = { use: "thermometer", cells: ["r1c1", "r1c2", "r1c3"] };
 
-describe("style override helpers (#165)", () => {
+describe("style override helpers", () => {
     it("reads what is set, and nothing for a bare expression", () => {
         expect(readOverride(thermo)).toEqual({ color: undefined, dashed: undefined, opacity: undefined });
         expect(readOverride({ ...thermo, color: "#fff", style: { dashed: true, opacity: 0.5 } })).toEqual({

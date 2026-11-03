@@ -61,7 +61,7 @@ describe("NumberPad colour count", () => {
     });
 });
 
-describe("NumberPad pen mode (#45)", () => {
+describe("NumberPad pen mode", () => {
     it("shows how the pen works in the digit keys' place, and Erase becomes Clear pen", () => {
         const { container } = render(
             <NumberPad

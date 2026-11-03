@@ -395,8 +395,8 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             regions = named;
             warnings.push(
                 "regions are not a uniform rectangular tiling (jigsaw sudoku). The box constraint is correct. " +
-                    "The renderer always draws rectangular box lines from the grid size " +
-                    "(see kanban #55). The drawn grid lines do not match these regions yet",
+                    "The renderer always draws rectangular box lines from the grid size. " +
+                    "The drawn grid lines do not match these regions yet",
             );
             sudokuRef = { use: "sudoku", boxes: false, extraRegions: Object.keys(named).sort() };
         }
@@ -428,7 +428,7 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     if (src.disjointgroups) {
         // disjointgroups reads the own box:N selectors of the geometry.
         // So it is valid only when those selectors match the real boxes of the puzzle
-        // (not jigsaw, and not degenerate or disabled - see kanban #80).
+        // (not jigsaw, and not degenerate or disabled).
         const boxesUsable = !regions || Object.keys(regions).every((name) => name.startsWith("diagonal:"));
         const probeGeometry = boxesUsable ? new GridGeometry(geometry) : undefined;
         if (probeGeometry?.resolveRegion("box:0")) {

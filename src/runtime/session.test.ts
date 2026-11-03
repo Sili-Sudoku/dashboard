@@ -753,7 +753,7 @@ describe("PuzzleSession — fog", () => {
     });
 });
 
-describe("PuzzleSession colour marks (#35)", () => {
+describe("PuzzleSession colour marks", () => {
     let session: PuzzleSession;
     const colorsAt = (cell: string) => session.cellState(cell).colors;
 
@@ -877,7 +877,7 @@ describe("PuzzleSession colour marks (#35)", () => {
     });
 });
 
-describe("pen layer (#45)", () => {
+describe("pen layer", () => {
     const line = [
         { x: 1, y: 1 },
         { x: 3, y: 1 },
