@@ -137,6 +137,8 @@ export default function Author() {
     const [codeError, setCodeError] = useState<string>();
     const runCode = () => {
         try {
+            // Running the code of the author is the purpose of the Code tab (see docs/ARCHITECTURE.md).
+            // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
             const built: unknown = new Function("PuzzleBuilder", code)(PuzzleBuilder);
             // A missing final .build() is an easy mistake, so call it here.
             const artifact = built instanceof PuzzleBuilder ? built.build() : built;
@@ -557,20 +559,22 @@ export default function Author() {
                     {liveError && <pre className="author-error">{liveError}</pre>}
                     <div className="author-actions">
                         {"compiled" in result && result.compiled && (
-                            <button className="btn btn-primary" onClick={runSolve} disabled={solving}>
+                            <button className="btn btn-primary" onClick={() => void runSolve()} disabled={solving}>
                                 {solving ? "Checking…" : "Check uniqueness"}
                             </button>
                         )}
                         {shareLink && (
                             <button
                                 className="btn btn-sm btn-ghost"
-                                onClick={async () => {
-                                    try {
-                                        await navigator.clipboard.writeText(shareLink);
-                                    } catch {
-                                        window.prompt("Share link:", shareLink);
-                                    }
-                                }}
+                                onClick={() =>
+                                    void (async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(shareLink);
+                                        } catch {
+                                            window.prompt("Share link:", shareLink);
+                                        }
+                                    })()
+                                }
                             >
                                 Copy share link
                             </button>

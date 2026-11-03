@@ -351,7 +351,9 @@ export class CompositeGeometry implements Geometry {
     private readonly extent: Bounds;
 
     constructor(spec: CompositeGeometrySpec) {
-        if (!Array.isArray(spec.grids) || spec.grids.length === 0) {
+        // Data from outside can break the type, so check it. The flag keeps `spec.grids` typed as it is declared.
+        const hasGrids = Array.isArray(spec.grids) && spec.grids.length > 0;
+        if (!hasGrids) {
             throw new Error("a composite geometry needs at least one grid");
         }
         const present = new Set<CellId>();
@@ -471,9 +473,9 @@ export class CompositeGeometry implements Geometry {
         const lines: BoardLine[] = [];
         for (const { horizontal, fixed, major, at } of runs.values()) {
             at.sort((x, y) => x - y);
-            let start = at[0] as number;
+            let start = at[0];
             for (let i = 0; i < at.length; i++) {
-                const last = at[i] as number;
+                const last = at[i];
                 if (i + 1 < at.length && at[i + 1] === last + 1) continue;
                 const [p, q] = horizontal
                     ? [
@@ -485,7 +487,7 @@ export class CompositeGeometry implements Geometry {
                           { x: fixed, y: last + 1 },
                       ];
                 lines.push({ points: [p, q], major });
-                start = at[i + 1] as number;
+                start = at[i + 1];
             }
         }
         return lines;

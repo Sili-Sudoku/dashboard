@@ -290,7 +290,7 @@ const expandSpec = (spec: ConstraintSpec, registry: DefinitionRegistry, ctx: Com
         return { source: name || "primitive", constraints: [{ expr: spec.rule }] };
     }
     if (!isDefinitionRef(spec)) {
-        return { source: "primitive", constraints: [{ expr: spec as Expr }] };
+        return { source: "primitive", constraints: [{ expr: spec }] };
     }
 
     const definition = registry[spec.use];
@@ -363,7 +363,7 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
                       ...(base.fill !== undefined && base.fill !== "none" ? { fill: color } : {}),
                   }
                 : base;
-        return { ...o, style: { ...recoloured, ...(style as VisualStyle | undefined) } } as VisualObject;
+        return { ...o, style: { ...recoloured, ...(style as VisualStyle | undefined) } };
     });
 };
 
@@ -413,7 +413,7 @@ const pointRefCells = (ref: PointRef): readonly CellId[] => {
 
 const validateObjects = (objects: readonly VisualObject[], geometry: Geometry): Error | undefined => {
     for (const obj of objects) {
-        const { image, pattern } = (obj.style ?? {}) as VisualStyle;
+        const { image, pattern } = obj.style ?? {};
         if (image !== undefined && (typeof image !== "string" || !isSafeImageUrl(image))) {
             return new Error(
                 `visual object "${obj.kind}": style "image" must be a data:image/ URL or a site-relative URL`,

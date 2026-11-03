@@ -54,7 +54,7 @@ const DYNAMIC_ENTRY: PaletteTool = { name: DYNAMIC_TOOL, label: "Dynamic rule" }
 const summarizeRule = (r: PuzzleRule): string => {
     const effects = Object.entries(r.then)
         .filter(([, v]) => v && v.length > 0)
-        .map(([k, v]) => `${k} ${(v as readonly string[]).join(", ")}`)
+        .map(([k, v]) => `${k} ${v.join(", ")}`)
         .join("; ");
     return `${r.id ? `${r.id}: ` : ""}when ${describeExpr(r.when)} → ${effects}`;
 };

@@ -713,7 +713,7 @@ const withoutAbsent = (geometry: Geometry, absent: ReadonlySet<CellId>): readonl
     const lines: BoardLine[] = [...other];
     for (const { horizontal, fixed, major, at } of runs.values()) {
         at.sort((x, y) => x - y);
-        let start = at[0] as number;
+        let start = at[0];
         at.forEach((last, i) => {
             if (at[i + 1] === last + 1) return;
             lines.push({
@@ -728,7 +728,7 @@ const withoutAbsent = (geometry: Geometry, absent: ReadonlySet<CellId>): readonl
                       ],
                 major,
             });
-            start = at[i + 1] as number;
+            start = at[i + 1];
         });
     }
     return lines;

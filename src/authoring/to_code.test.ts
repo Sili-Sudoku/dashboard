@@ -15,7 +15,7 @@ const run = (code: string): PuzzleDefinition => new Function("PuzzleBuilder", co
 const json = (def: PuzzleDefinition): unknown => {
     const copy = JSON.parse(JSON.stringify(def)) as Record<string, unknown>;
     for (const key of ["givens", "regions"]) {
-        if (copy[key] && Object.keys(copy[key] as object).length === 0) delete copy[key];
+        if (copy[key] && Object.keys(copy[key]).length === 0) delete copy[key];
     }
     return copy;
 };

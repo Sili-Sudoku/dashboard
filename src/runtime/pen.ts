@@ -64,8 +64,8 @@ export const snapToLattice = (px: number, py: number, origin: PenPoint, cellSize
 export const strokeSegments = (points: readonly PenPoint[]): string[] => {
     const out: string[] = [];
     for (let i = 1; i < points.length; i++) {
-        let at = points[i - 1] as PenPoint;
-        const to = points[i] as PenPoint;
+        let at = points[i - 1];
+        const to = points[i];
         while (at.x !== to.x || at.y !== to.y) {
             const next = { x: at.x + Math.sign(to.x - at.x), y: at.y + Math.sign(to.y - at.y) };
             out.push(segmentKey(at, next));
@@ -143,7 +143,7 @@ export const sanitizePen = (raw: unknown): PenState => {
     }
     const keptMarks: Record<string, PenMarkKind> = {};
     if (marks && typeof marks === "object") {
-        for (const [key, kind] of Object.entries(marks)) {
+        for (const [key, kind] of Object.entries(marks as Record<string, unknown>)) {
             if ((kind === "x" || kind === "o") && /^-?\d+,-?\d+$/.test(key) && validPoint(parsePointKey(key))) {
                 keptMarks[key] = kind;
             }

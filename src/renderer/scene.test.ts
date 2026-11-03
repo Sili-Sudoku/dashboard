@@ -517,22 +517,22 @@ describe("cells that are not on the board yet", () => {
     it("leaves them out, and ends the board where the present cells end", () => {
         const scene = buildScene(input(bottomRow));
         expect(scene.cells).toHaveLength(12);
-        const size = scene.cells[0]!.size;
-        const horizontals = scene.gridLines.filter((l) => l.points[0]!.y === l.points[1]!.y);
+        const size = scene.cells[0].size;
+        const horizontals = scene.gridLines.filter((l) => l.points[0].y === l.points[1].y);
         // no line below the bottom edge of the third row, which is now the heavy outline
-        expect(Math.max(...horizontals.map((l) => l.points[0]!.y))).toBe(3 * size);
-        const bottom = horizontals.find((l) => l.points[0]!.y === 3 * size)!;
+        expect(Math.max(...horizontals.map((l) => l.points[0].y))).toBe(3 * size);
+        const bottom = horizontals.find((l) => l.points[0].y === 3 * size)!;
         expect(bottom.weight).toBe(3);
-        expect(Math.abs(bottom.points[1]!.x - bottom.points[0]!.x)).toBe(4 * size);
+        expect(Math.abs(bottom.points[1].x - bottom.points[0].x)).toBe(4 * size);
         // the verticals stop there too
-        const verticals = scene.gridLines.filter((l) => l.points[0]!.x === l.points[1]!.x);
+        const verticals = scene.gridLines.filter((l) => l.points[0].x === l.points[1].x);
         expect(Math.max(...verticals.flatMap((l) => l.points.map((p) => p.y)))).toBe(3 * size);
     });
 
     it("draws the whole board again once nothing is absent", () => {
         const scene = buildScene(input(new Set()));
         expect(scene.cells).toHaveLength(16);
-        expect(Math.max(...scene.gridLines.flatMap((l) => l.points.map((p) => p.y)))).toBe(4 * scene.cells[0]!.size);
+        expect(Math.max(...scene.gridLines.flatMap((l) => l.points.map((p) => p.y)))).toBe(4 * scene.cells[0].size);
     });
 });
 

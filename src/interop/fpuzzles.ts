@@ -646,12 +646,12 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
     let solution: Record<CellId, number> | undefined;
     const rawSolution = src.solution;
     if (Array.isArray(rawSolution) && rawSolution.length === size * size) {
-        const parsed = rawSolution.map((v) => (typeof v === "string" ? Number(v) : v));
+        const parsed = (rawSolution as unknown[]).map((v) => (typeof v === "string" ? Number(v) : v));
         if (parsed.every((v): v is number => typeof v === "number" && Number.isFinite(v) && domain.includes(v))) {
             solution = {};
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
-                    solution[`r${r + 1}c${c + 1}`] = parsed[r * size + c] as number;
+                    solution[`r${r + 1}c${c + 1}`] = parsed[r * size + c];
                 }
             }
         } else {
@@ -827,7 +827,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 typeof params.cell === "string"
                     ? params.cell
                     : Array.isArray(params.cells)
-                      ? params.cells[0]
+                      ? (params.cells as unknown[])[0]
                       : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {
@@ -840,7 +840,7 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                 typeof params.cell === "string"
                     ? params.cell
                     : Array.isArray(params.cells)
-                      ? params.cells[0]
+                      ? (params.cells as unknown[])[0]
                       : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {

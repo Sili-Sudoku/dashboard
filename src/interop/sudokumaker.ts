@@ -346,7 +346,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     }
                     constraints.push({
                         use: "thermometer",
-                        cells: (line as number[]).map((id) => idToCell(id, width)),
+                        cells: line.map((id) => idToCell(id, width)),
                     });
                 }
                 break;
@@ -364,7 +364,7 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                     const sum = (cage as { value?: unknown })?.value;
                     constraints.push({
                         use: "killer",
-                        cells: (cellIds as number[]).map((id) => idToCell(id, width)),
+                        cells: cellIds.map((id) => idToCell(id, width)),
                         ...(typeof sum === "number" ? { sum } : {}),
                     });
                 }
@@ -381,14 +381,14 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                         warnings.push("the importer skipped an arrow with an unknown bulb");
                         continue;
                     }
-                    const bulb = (bulbIds as number[]).map((id) => idToCell(id, width));
+                    const bulb = bulbIds.map((id) => idToCell(id, width));
                     const arrows = (group as { arrows?: unknown })?.arrows;
                     for (const line of Array.isArray(arrows) ? (arrows as unknown[]) : []) {
                         if (!Array.isArray(line) || line.length === 0 || !line.every((id) => typeof id === "number")) {
                             warnings.push("the importer skipped an arrow line with an unknown shape");
                             continue;
                         }
-                        const cells = (line as number[]).map((id) => idToCell(id, width));
+                        const cells = line.map((id) => idToCell(id, width));
                         // Assumption: the line includes the bulb cell(s) as leading entries.
                         // This is not verified against a real exported arrow (the sample used to build this has none).
                         // It matches the own Thermometer convention of this format ("bulb -> tip", bulb included).
@@ -427,10 +427,10 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
     const exportBlock = (root.puzzle as { export?: { sudokuPad?: { solution?: unknown } } })?.export;
     const rawSolution = exportBlock?.sudokuPad?.solution;
     if (Array.isArray(rawSolution) && rawSolution.length === width * height) {
-        const parsed = rawSolution.map((v) => (typeof v === "string" ? Number(v) : v));
+        const parsed = (rawSolution as unknown[]).map((v) => (typeof v === "string" ? Number(v) : v));
         if (parsed.every((v): v is number => typeof v === "number" && Number.isFinite(v) && domain.includes(v))) {
             solution = {};
-            for (let i = 0; i < parsed.length; i++) solution[idToCell(i, width)] = parsed[i] as number;
+            for (let i = 0; i < parsed.length; i++) solution[idToCell(i, width)] = parsed[i];
         } else {
             warnings.push('"export.sudokuPad.solution" is present but not valid. The importer ignores it');
         }
@@ -574,7 +574,7 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
                 typeof params.cell === "string"
                     ? params.cell
                     : Array.isArray(params.cells)
-                      ? params.cells[0]
+                      ? (params.cells as unknown[])[0]
                       : undefined;
             const id = typeof raw === "string" ? cellToId(raw, width) : undefined;
             if (id === undefined) {

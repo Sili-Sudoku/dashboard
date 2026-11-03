@@ -130,14 +130,14 @@ export const resolveCellArgs = (args: readonly Expr[], ctx: EvalContext): readon
         const only = args[0];
         if (typeof only === "string") return resolveSelector(only, ctx);
         if (isCall(only) && only.every((e) => typeof e === "string")) {
-            return validateCells(only as readonly string[], ctx);
+            return validateCells(only, ctx);
         }
     }
     // An explicit list passed as multiple string args: ["cells", "r1c1", "r1c2"]
     if (args.length > 1 && args.every((a) => typeof a === "string")) {
-        return validateCells(args as readonly string[], ctx);
+        return validateCells(args, ctx);
     }
-    throw new ExpressionError("expected a cell id, selector, or cell list", args as unknown as Expr);
+    throw new ExpressionError("expected a cell id, selector, or cell list", args);
 };
 
 export const resolveSelector = (selector: string, ctx: EvalContext): readonly CellId[] => {

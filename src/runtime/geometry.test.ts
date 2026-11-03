@@ -169,14 +169,14 @@ describe("CompositeGeometry", () => {
                 (l) =>
                     l.major === major &&
                     (horizontal
-                        ? l.points[0]!.y === fixed &&
-                          l.points[1]!.y === fixed &&
-                          l.points[0]!.x <= from &&
-                          l.points[1]!.x >= to
-                        : l.points[0]!.x === fixed &&
-                          l.points[1]!.x === fixed &&
-                          l.points[0]!.y <= from &&
-                          l.points[1]!.y >= to),
+                        ? l.points[0].y === fixed &&
+                          l.points[1].y === fixed &&
+                          l.points[0].x <= from &&
+                          l.points[1].x >= to
+                        : l.points[0].x === fixed &&
+                          l.points[1].x === fixed &&
+                          l.points[0].y <= from &&
+                          l.points[1].y >= to),
             );
         expect(covers(true, 6, 6, 9, true)).toBe(true);
         expect(covers(false, 4, 0, 6, false)).toBe(true); // a plain divider in nw only

@@ -19,7 +19,7 @@ const seededGivens = (cluePercent: number): Record<CellId, number> => {
     };
     const givens: Record<CellId, number> = {};
     for (const [cell, value] of Object.entries(largeDemo.solution ?? {})) {
-        if (rand() < cluePercent) givens[cell as CellId] = value;
+        if (rand() < cluePercent) givens[cell] = value;
     }
     return givens;
 };

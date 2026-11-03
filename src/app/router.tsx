@@ -106,7 +106,7 @@ export default function AppRouter() {
                                     className="btn btn-sm"
                                     aria-current="page"
                                     aria-label="Close settings"
-                                    onClick={() => (key === "default" ? navigate("/") : navigate(-1))}
+                                    onClick={() => void (key === "default" ? navigate("/") : navigate(-1))}
                                 >
                                     <SettingsIcon size={16} />
                                 </button>

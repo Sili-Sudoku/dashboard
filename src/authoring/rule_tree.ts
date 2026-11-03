@@ -72,7 +72,7 @@ export const specAt = (root: RuleNode | null, path: Path): SlotSpec | undefined 
     const parent = getAt(root, path.slice(0, -1));
     if (!parent || parent.k !== "op") return undefined;
     const sig = signatureOf(parent.name);
-    const index = path[path.length - 1] as number;
+    const index = path[path.length - 1];
     return sig && index < parent.args.length ? argSpec(sig, index) : undefined;
 };
 
@@ -144,7 +144,7 @@ export const bindsEachAt = (root: RuleNode | null, path: Path): boolean => {
         const parent = getAt(root, path.slice(0, depth));
         if (parent?.k !== "op") return false;
         const sig = signatureOf(parent.name);
-        if (sig && argSpec(sig, path[depth] as number).bindsEach) return true;
+        if (sig && argSpec(sig, path[depth]).bindsEach) return true;
     }
     return false;
 };
@@ -154,7 +154,9 @@ export const bindsEachAt = (root: RuleNode | null, path: Path): boolean => {
 const SYMBOLS: Record<string, string> = { "==": "=", "!=": "≠", "<=": "≤", ">=": "≥", "*": "×", "-": "−" };
 
 const cellList = (cells: readonly unknown[]): string =>
-    cells.length <= 4 ? cells.join(", ") : `${cells[0]}…${cells[cells.length - 1]} (${cells.length} cells)`;
+    cells.length <= 4
+        ? cells.join(", ")
+        : `${String(cells[0])}…${String(cells[cells.length - 1])} (${cells.length} cells)`;
 
 /** A short human reading of an expression, for the list of what is in the puzzle. */
 export const describeExpr = (expr: Expr): string => {

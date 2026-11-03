@@ -18,7 +18,6 @@ import {
 import { signatureOf } from "@/authoring/operators.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { definitions } from "@/definitions/index.ts";
-import type { Expr } from "@/runtime/expression.ts";
 
 const cells = (...ids: string[]): RuleNode => ({ k: "cells", cells: ids, selector: "" });
 const num = (value: number): RuleNode => ({ k: "num", value });
@@ -97,7 +96,7 @@ describe("describeExpr", () => {
     });
 
     it("never throws on odd input", () => {
-        expect(() => describeExpr([] as unknown as Expr)).not.toThrow();
+        expect(() => describeExpr([])).not.toThrow();
         expect(describeExpr(true)).toBe("true");
     });
 });

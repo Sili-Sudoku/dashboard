@@ -37,7 +37,7 @@ export default function StyleEditor({ spec, onChange }: Props) {
         const reader = new FileReader();
         reader.onload = () => {
             setProblem(null);
-            set({ image: reader.result as string });
+            set({ image: reader.result });
         };
         reader.readAsDataURL(file);
     };

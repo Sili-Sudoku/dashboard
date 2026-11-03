@@ -137,7 +137,7 @@ class StubResizeObserver {
     observe() {}
     disconnect() {}
     trigger() {
-        this.callback([] as unknown as ResizeObserverEntry[], this as unknown as ResizeObserver);
+        this.callback([], this as unknown as ResizeObserver);
     }
 }
 
@@ -612,7 +612,7 @@ describe("Board — pen input", () => {
         fireEvent.pointerMove(surface, { clientX: 30, clientY: 10 });
         fireEvent.pointerUp(surface, { clientX: 30, clientY: 10 });
         expect(onStroke).toHaveBeenCalledTimes(1);
-        const points = onStroke.mock.calls[0]![0] as { x: number; y: number }[];
+        const points = onStroke.mock.calls[0][0] as { x: number; y: number }[];
         expect(points[0]).toEqual({ x: 1, y: 1 });
         expect(points[points.length - 1]).toEqual({ x: 3, y: 1 });
     });

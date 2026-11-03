@@ -29,7 +29,7 @@ const compile = (def: PuzzleDefinition) => {
 describe("dynamic rules", () => {
     it("holds only when `when` is definitely true, not while it is undecided", () => {
         const c = compile({ ...base, rules: [{ when: [...topRowDone], then: { show: ["badge"] } }] });
-        const rule = c.rules[0]!;
+        const rule = c.rules[0];
         expect(holdingRules(c, lookupFromRecord({ r1c1: 1, r1c2: 2 })).has(rule)).toBe(false);
         expect(holdingRules(c, lookupFromRecord({ r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4 })).has(rule)).toBe(true);
         expect(holdingRules(c, lookupFromRecord({ r1c1: 1, r1c2: 1, r1c3: 3, r1c4: 4 })).has(rule)).toBe(false);
@@ -92,19 +92,19 @@ describe("dynamic rules", () => {
             rules: [{ when: ["==", ["value", "r1c1"], 1], then: { enable: ["ordered"] } }],
         });
         const violated = (values: Record<string, number>) =>
-            evaluate(gated, lookupFromRecord(values)).constraints[0]!.status;
+            evaluate(gated, lookupFromRecord(values)).constraints[0].status;
         expect(violated({ r2c1: 3, r2c2: 2 })).toBe("incomplete"); // condition undecided
         expect(violated({ r1c1: 2, r2c1: 3, r2c2: 2 })).toBe("satisfied"); // condition false: rule not enforced
         expect(violated({ r1c1: 1, r2c1: 3, r2c2: 2 })).toBe("violated"); // rule enforced and broken
-        expect(gated.constraints[0]!.cells).toEqual(expect.arrayContaining(["r1c1", "r2c1", "r2c2"]));
+        expect(gated.constraints[0].cells).toEqual(expect.arrayContaining(["r1c1", "r2c1", "r2c2"]));
 
         const off = compile({
             ...base,
             constraints: [{ rule: ["<", ["value", "r2c1"], ["value", "r2c2"]], name: "ordered" }],
             rules: [{ when: ["==", ["value", "r1c1"], 1], then: { disable: ["ordered"] } }],
         });
-        expect(evaluate(off, lookupFromRecord({ r1c1: 1, r2c1: 3, r2c2: 2 })).constraints[0]!.status).toBe("satisfied");
-        expect(evaluate(off, lookupFromRecord({ r1c1: 2, r2c1: 3, r2c2: 2 })).constraints[0]!.status).toBe("violated");
+        expect(evaluate(off, lookupFromRecord({ r1c1: 1, r2c1: 3, r2c2: 2 })).constraints[0].status).toBe("satisfied");
+        expect(evaluate(off, lookupFromRecord({ r1c1: 2, r2c1: 3, r2c2: 2 })).constraints[0].status).toBe("violated");
 
         // the solver obeys it with no extra support: if r1c1=1, "ordered" is binding
         const found = await solve(
@@ -116,7 +116,7 @@ describe("dynamic rules", () => {
             }),
         );
         expect(found.solution).toBeDefined();
-        expect((found.solution!.r2c1 as number) < (found.solution!.r2c2 as number)).toBe(true);
+        expect(found.solution!.r2c1 < found.solution!.r2c2).toBe(true);
     });
 
     it("reaches constraints by compiled id as well as by name", () => {
@@ -124,8 +124,8 @@ describe("dynamic rules", () => {
             ...base,
             rules: [{ when: ["==", ["value", "r1c1"], 1], then: { disable: ["sudoku#1"] } }],
         });
-        expect((c.constraints[0]!.expr as unknown[])[0]).toBe("or");
-        expect((c.constraints[1]!.expr as unknown[])[0]).toBe("allDifferent");
+        expect((c.constraints[0].expr as unknown[])[0]).toBe("or");
+        expect((c.constraints[1].expr as unknown[])[0]).toBe("allDifferent");
     });
 
     it("rejects rules that point at nothing", () => {

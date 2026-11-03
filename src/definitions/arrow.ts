@@ -18,13 +18,17 @@ export const arrow: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
     if (path instanceof Error) return new Error(`arrow: ${path.message}`);
 
     const rawBulb = params.bulb;
-    const bulbCells: string[] = Array.isArray(rawBulb) ? rawBulb : typeof rawBulb === "string" ? [rawBulb] : [];
+    const bulbCells: string[] = Array.isArray(rawBulb)
+        ? (rawBulb as string[])
+        : typeof rawBulb === "string"
+          ? [rawBulb]
+          : [];
     if (bulbCells.length === 0) return new Error('arrow: "bulb" must be a cell id or an array of cell ids');
     for (const c of bulbCells) {
         if (!ctx.geometry.has(c)) return new Error(`arrow: bulb cell is not valid: ${JSON.stringify(c)}`);
     }
 
-    const bulbValue: Expr = bulbNumberExpr(bulbCells as CellId[], ctx.domain);
+    const bulbValue: Expr = bulbNumberExpr(bulbCells, ctx.domain);
     const shaftSum: Expr = ["sum", ["cells", [...path]]];
 
     const objects: VisualObject[] = [

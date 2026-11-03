@@ -73,7 +73,7 @@ export default function Play() {
         <OverflowMenu
             label="Puzzle actions"
             items={[
-                { label: "Share link", icon: <Share2 size={16} />, onSelect: share },
+                { label: "Share link", icon: <Share2 size={16} />, onSelect: () => void share() },
                 {
                     label: jsonView === "off" ? "View JSON" : "Hide JSON",
                     icon: <Braces size={16} />,
@@ -111,7 +111,7 @@ export default function Play() {
                             <div className="pj-bar-right">
                                 <button
                                     className="btn btn-sm"
-                                    onClick={() => copyText(jsonText, setCopied)}
+                                    onClick={() => void copyText(jsonText, setCopied)}
                                     title="Copy JSON"
                                 >
                                     <Copy size={14} /> {copied ? "Copied" : "Copy"}

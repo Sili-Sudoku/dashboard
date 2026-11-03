@@ -60,7 +60,7 @@ export const getSettings = (): Settings => {
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (!raw) return DEFAULT_SETTINGS;
-        const stored = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        const stored = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
         // A hand-edited or older blob must never give the board a malformed palette.
         const tools: unknown = stored.builderTools;
         return {

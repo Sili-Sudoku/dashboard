@@ -13,7 +13,9 @@ const base: PuzzleDefinition = {
 
 const fakeRegistry: DefinitionRegistry = {
     demo: (params) => ({
-        constraints: [{ expr: ["allDifferent", ["cells", "row:0"]], label: String(params.tag ?? "demo") }],
+        constraints: [
+            { expr: ["allDifferent", ["cells", "row:0"]], label: typeof params.tag === "string" ? params.tag : "demo" },
+        ],
         objects: [{ kind: "region", cells: ["r1c1"] }],
     }),
     broken: () => new Error("boom"),
@@ -246,7 +248,7 @@ describe("pattern and image styles", () => {
     });
     it("checks the style of objects that the puzzle lists itself", () => {
         const puzzle = (style: Record<string, unknown>) =>
-            compilePuzzle({ ...base, objects: [{ kind: "region", cells: ["r1c1"], style }] } as PuzzleDefinition, defs);
+            compilePuzzle({ ...base, objects: [{ kind: "region", cells: ["r1c1"], style }] }, defs);
         expect(puzzle({ fill: "url(//evil.test/p.svg#a)" })).toBeInstanceOf(Error);
         expect(puzzle({ image: "https://x.test/a.png" })).toBeInstanceOf(Error);
         expect(puzzle({ fill: "#fff", image: "/a.png" })).not.toBeInstanceOf(Error);
