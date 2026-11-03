@@ -106,17 +106,13 @@ export default function PuzzlePlayer({
     }, [session, session.revision, onSelectionChange]);
     const boardColRef = useRef<HTMLDivElement>(null);
 
-    // Large boards: the sidebar is pinned with position:fixed, so it never moves when the page scrolls.
-    // A sticky sidebar must first "catch up" past the header and title above it, and that looks like the panel moves.
-    // Fixed needs a concrete top offset.
-    // A hardcoded offset is wrong when the height of the header or title changes.
-    // So measure where the board column starts and pin the sidebar there.
-    //
-    // "Where it starts" means the *grid*, not the column.
-    // The top of the column is the top of the zoom toolbar, one row above the grid.
-    // A pin there put the number pad of the sidebar noticeably higher than the puzzle.
-    // .board-viewport is the grid itself.
-    // If it is not yet in the DOM, use the top of the column.
+    // Large boards: the sidebar is position:fixed, so it never moves when the page scrolls.
+    // (A sticky sidebar first has to catch up past the header and title, and that looks like the panel moves.)
+    // Fixed needs a concrete top offset, and a hardcoded one breaks when the header or title height changes.
+    // So measure where the board starts and pin the sidebar there.
+    // "Where it starts" is the *grid* (.board-viewport), not the column: the column starts one row higher,
+    // at the zoom toolbar, and a pin there put the number pad above the puzzle.
+    // If the grid is not in the DOM yet, use the top of the column.
     useLayoutEffect(() => {
         const root = rootRef.current;
         const boardCol = boardColRef.current;

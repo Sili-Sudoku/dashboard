@@ -1,29 +1,19 @@
 /**
- * f-puzzles JSON interop (import/export).
+ * f-puzzles JSON interop (import/export). SudokuPad, Logic Mines and Crack The Cuber use the same JSON.
+ * This adapter is isolated: nothing in `src/runtime` or `src/definitions` knows the format exists.
  *
- * f-puzzles is the common exchange format for hand-made variant sudokus.
- * SudokuPad, Logic Mines and Crack The Cuber also use its JSON export.
- * This module is a separate adapter. It is isolated from the generic runtime, like `runtime/serialization.ts`.
- * Nothing in `src/runtime` or `src/definitions` knows this format exists.
+ * The shape comes from community documentation. The sandbox has no route to f-puzzles.com,
+ * so the live spec is not checked. Test an import with a real exported file.
  *
- * The shape below is rebuilt from community documentation of the public f-puzzles export.
- * The sandbox has no network route to f-puzzles.com, so the live spec is not checked.
- * The shape can differ from some exporters or versions.
- * Check a real exported file before you rely on an import.
- * Covers: classic sudoku (including jigsaw regions and diagonals), givens,
- * killer cages (and little killer sums), thermometers, arrows, kropki dots (difference/ratio), xv,
- * odd/even and minimum/maximum markers, palindrome/between lines, clones, quadruples, sandwich sums,
- * the antiknight/antiking/nonconsecutive/disjointgroups global flags,
- * and the "negative" global ratio/difference/xv exclusion flags.
- * The importer reports any other data in the source as a warning. It never drops data silently.
- * It also reports a supported clue whose cells do not resolve.
+ * Covers: classic sudoku (jigsaw regions, diagonals), givens, killer cages and little killer sums, thermometers,
+ * arrows, kropki dots, xv, odd/even and minimum/maximum markers, palindrome/between lines, clones, quadruples,
+ * sandwich sums, the antiknight/antiking/nonconsecutive/disjointgroups flags, and the "negative" flags.
+ * The importer warns about any other data, or a clue whose cells do not resolve. It never drops data silently.
  *
- * sandwichsum and littlekillersum are NOT a resolved-cells list like the other clue types.
- * A real f-puzzles.com import crash (`currentSandwich.set is null`) showed this on our first guess.
- * Each has one anchor cell just *outside* the grid edge or corner (e.g. "R0C4" is above column 4).
- * littlekillersum also has a `direction` ("UL"/"UR"/"DL"/"DR").
- * The direction gives the diagonal that runs back into the grid from that corner.
- * See `outsideCellCoords`/`sandwichAnchor`/`littleKillerAnchor` below.
+ * sandwichsum and littlekillersum are not a list of resolved cells. Each has one anchor cell just
+ * *outside* the grid (for example "R0C4" is above column 4), and littlekillersum has a `direction`
+ * ("UL"/"UR"/"DL"/"DR") for the diagonal that runs back in. A real f-puzzles crash showed this.
+ * See `outsideCellCoords`, `sandwichAnchor` and `littleKillerAnchor`.
  */
 
 import { compressToBase64, decompressFromBase64 } from "lz-string";

@@ -59,18 +59,12 @@ const summarizeRule = (r: PuzzleRule): string => {
     return `${r.id ? `${r.id}: ` : ""}when ${describeExpr(r.when)} → ${effects}`;
 };
 
-/** Visual drag-and-drop puzzle authoring.
- *  It has a palette of definitions, a small param form for each definition,
- *  and a list of the constraints that the author already placed.
- *  It does not render its own board. The author picks a definition, then clicks or drags
- *  on the one PuzzlePlayer board of the Author page to place it.
- *  The board uses its normal click, drag and shift-click selection.
- *  The highlighted field below mirrors that selection live (see use_visual_builder.ts).
- *  Only one board is on screen. There is no second board for this component.
- *  It covers only the definitions that have an AUTHORING_SCHEMAS entry.
- *  The JSON tab still gives access to all other definitions.
- *  The rule is the same as for the f-puzzles importer: cover the common types and never
- *  silently drop the rest. */
+/** Visual drag-and-drop puzzle authoring: a palette of definitions, a param form for each, and the list of
+ *  constraints already placed. It has no board of its own. The author picks a definition, then clicks or drags
+ *  on the one PuzzlePlayer board of the Author page, and the highlighted field mirrors that selection
+ *  (see use_visual_builder.ts).
+ *  It covers only the definitions that have an authoring schema. The JSON tab reaches all others
+ *  (the same rule as the f-puzzles importer: cover the common types and never silently drop the rest). */
 export default function VisualBuilder({ def, state }: Props) {
     const {
         fog,

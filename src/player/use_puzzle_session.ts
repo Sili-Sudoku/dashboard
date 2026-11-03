@@ -189,18 +189,13 @@ export const usePuzzleSession = (
         });
     }, [session, puzzle.metadata.id]);
 
-    // Solve timer: a plain stopwatch that runs while the puzzle is not complete.
-    // The interval and subscribe callbacks and the effect cleanup below drive it.
-    // The render body never drives it, and no ref is read during render.
-    // This project lints against both (react-hooks rules).
-    // `elapsedBase` and `runningTimer` are plain mutable bookkeeping, not render input.
-    // `elapsedBase` is the running total at the last pause (tick stop, completion, or manual reset).
-    // `runningTimer` tells a stale cleanup that it must not add a leftover delta to the fresh zero.
-    // A stale cleanup is one that fires after `resetTimer` zeroed everything.
-    // Completion is detected with `session.subscribe`,
-    // not by a poll of `evaluation.complete` in the interval tick.
-    // A poll lets the clock run up to one second past the real solve before it notices.
-    // That inflates the recorded time by the same amount.
+    // Solve timer: a stopwatch that runs while the puzzle is not complete.
+    // Only the interval and subscribe callbacks and the effect cleanup drive it. The render body does not,
+    // and no ref is read during render (react-hooks lint rules).
+    // `elapsedBase` is the running total at the last pause (tick stop, completion, manual reset).
+    // `runningTimer` stops a stale cleanup, one that fires after `resetTimer`, from adding a leftover delta to the new zero.
+    // Completion comes from `session.subscribe`, not from polling `evaluation.complete` in the tick.
+    // A poll would run the clock up to a second past the real solve and inflate the recorded time.
     const initialStats = useMemo(() => readStats(puzzle.metadata.id), [puzzle.metadata.id]);
     const [elapsedMs, setElapsedMs] = useState(() => initialStats?.elapsedMs ?? 0);
     const [bestElapsedMs, setBestElapsedMs] = useState(() => initialStats?.bestElapsedMs);

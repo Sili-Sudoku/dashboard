@@ -138,25 +138,22 @@ const applySelectionToField = (field: AuthoringField, selection: ReadonlySet<Cel
     return field.kind === "cells" && field.max !== undefined ? cells.slice(0, field.max) : cells;
 };
 
-/** All the state and logic of the visual builder.
- *  The author picks a definition from the palette. Then the author clicks or drags on the board
- *  to place it. The board is the one ordinary PuzzlePlayer of the Author page (see `onSelectionChange`
- *  of PuzzlePlayer). The gesture is the same as the selection of cells for digit entry.
- *  The "active" cell field mirrors the live selection of the board.
- *  The hook derives it from the selection on every render and does not copy it into state.
- *  Thus a drag has an immediate effect.
- *  `setActiveField` switches to a different field. Schemas with more than one cell field need it,
- *  for example the bulb and shaft of arrow, or the cells and cloneCells of clone.
- *  It first freezes the current value of the old field, so the value stays after the switch.
- *  `onBoardSelectionEnd` commits the constraint when the drag supplied the last missing value.
- *  This gives no separate "Add" click for a definition that needs only cells
- *  (and maybe optional params that have defaults).
- *  A definition with no fields (for example antiknight) commits when the author picks it.
- *  Picking it is the same as placing it. Nothing is left to draw on the board. */
 /** True when `schema` takes no parameters and the puzzle already has it. */
 export const isGlobalPlaced = (def: PuzzleDefinition | undefined, schema: AuthoringSchema): boolean =>
     schema.fields.length === 0 && !!def?.constraints.some((c) => isDefinitionRef(c) && c.use === schema.name);
 
+/**
+ * All the state and logic of the visual builder. The author picks a definition, then clicks or drags on the board
+ * to place it. The board is the ordinary PuzzlePlayer of the Author page, and the gesture is the same as selecting
+ * cells for digit entry (see `onSelectionChange` of PuzzlePlayer).
+ *
+ * The "active" cell field mirrors the live selection. The hook derives it on every render and does not copy it
+ * into state, so a drag has an immediate effect.
+ * `setActiveField` switches fields, for schemas with more than one cell field (the bulb and shaft of arrow,
+ * the cells and cloneCells of clone). It first freezes the value of the old field.
+ * `onBoardSelectionEnd` commits the constraint when the drag supplied the last missing value, so a definition
+ * that needs only cells has no "Add" click. A definition with no fields (antiknight) commits when picked.
+ */
 export const useVisualBuilder = (
     def: PuzzleDefinition | undefined,
     selection: ReadonlySet<CellId>,

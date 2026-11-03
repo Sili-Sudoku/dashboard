@@ -1,21 +1,15 @@
 /**
  * SudokuMaker (sudokumaker.app) JSON interop (import/export).
+ * This adapter is isolated, like `interop/fpuzzles.ts`: nothing in `src/runtime` or `src/definitions` knows the
+ * format exists.
  *
- * This is a separate adapter. It is isolated from the generic runtime,
- * like `interop/fpuzzles.ts` and `runtime/serialization.ts`.
- * Nothing in `src/runtime` or `src/definitions` knows this format exists.
+ * The shape was reconstructed from the build of the live app (the sandbox has no route to sudokumaker.app),
+ * and one real share link verified it: base64url-decode the payload, drop the leading "D", raw-inflate it.
+ * A leading "N" marks a legacy lz-string payload (`compressToEncodedURIComponent`).
  *
- * The user reconstructed the shape from the build of the live app.
- * The sandbox has no network route to sudokumaker.app.
- * One real share link verified the shape before it was trusted:
- * base64url-decode the payload, drop the leading "D", and raw-inflate it.
- * The result is the documented JSON shape.
- * A leading "N" instead of "D" marks a legacy lz-string-compressed payload (`compressToEncodedURIComponent`).
- * The scope is deliberately partial, like the "common types first" cut of the f-puzzles adapter:
- * classic sudoku (including jigsaw regions), givens, killer cages, thermometers, arrows,
+ * The scope is partial: classic sudoku (jigsaw regions), givens, killer cages, thermometers, arrows,
  * kropki-equivalent dots (the Difference/Ratio edge clues), and odd/even markers.
- * The importer reports any other data in the source as a warning.
- * It does the same for a puzzle constraint that this module cannot represent on export.
+ * The importer warns about any other data, and so does the exporter for a constraint it cannot represent.
  * It never drops data silently.
  */
 

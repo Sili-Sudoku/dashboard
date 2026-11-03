@@ -47,16 +47,12 @@ export interface CellState {
 const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [], colors: [] };
 
 /**
- * One undo/redo step. Edits to single cells (typing, notes, erase) happen often:
- * one for each keystroke.
- * So the code records them as a `patch`. A `patch` holds only the prior state of the changed cells.
- * It does not hold the whole board.
- * `undefined` means that the cell had no entry.
- * To restore it, delete the entry. Do not set an empty `CellState`.
- * This is the same as the cleanup in `erase()`.
- * `reset` and `loadProgress` replace the whole board. They are rare and happen once per action.
- * So a `full` snapshot is simplest there.
- * A diff would not save work, because these operations are already O(board size).
+ * One undo/redo step. Single-cell edits (typing, notes, erase) are frequent, so they are a `patch`:
+ * the prior state of the changed cells only, not the whole board.
+ * `undefined` means the cell had no entry. Restore it by deleting the entry, not by setting an empty
+ * `CellState` (the same cleanup as in `erase()`).
+ * `reset` and `loadProgress` replace the whole board. They are rare and already O(board size),
+ * so a `full` snapshot is the simplest.
  */
 type HistoryEntry =
     | { kind: "patch"; patch: ReadonlyMap<CellId, CellState | undefined> }
@@ -102,18 +98,12 @@ export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
 
 /**
  * Result of `PuzzleSession.checkAgainstSolution`:
- * - "clean": the check found no mistakes.
- * - "mistake-value": a placed value does not match the solution.
- *   This is the first press since the board last changed.
- *   It does not say where the mistake is.
- *   It tells the player if they are on the right track. It does not show exactly what is wrong.
- *   It has priority over "mistake-notes" when both are present.
- *   A wrong digit is the more useful problem to show.
- * - "mistake-notes": no placed value is wrong, but a centre note has
- *   removed the correct digit somewhere.
- *   Like "mistake-value", it is the first press and does not say where.
- * - "revealed": a second press in a row (no edit between) found the
- *   same mistakes again. Now `incorrectCells` and `flaggedCells` highlight them.
+ * - "clean": no mistakes.
+ * - "mistake-value": a placed value does not match the solution. This is the first press since the board changed,
+ *   so it does not say where. It has priority over "mistake-notes", because a wrong digit is the more useful problem.
+ * - "mistake-notes": no placed value is wrong, but a centre note removed the correct digit somewhere.
+ *   It does not say where either.
+ * - "revealed": a second press in a row (no edit between). `incorrectCells` and `flaggedCells` now highlight them.
  */
 export type CheckOutcome = "clean" | "mistake-value" | "mistake-notes" | "revealed";
 
@@ -390,14 +380,10 @@ export class PuzzleSession {
     }
 
     /**
-     * True if the centre notes of `state` included `answer` before, but do not include it now.
-     * This is a bad elimination.
-     * The function does not check corner notes.
-     * By convention, a centre note says that this cell *is* one of these digits.
-     * So a centre note that excludes the answer is a real mistake.
-     * A corner note is more like scratch work: "this digit goes in here or here" across several cells.
-     * It is not a candidate list for one cell.
-     * So a check of it against the solution digit of this cell has no meaning.
+     * True if the centre notes of `state` do not include `answer` (a bad elimination).
+     * Only centre notes count. By convention a centre note says that this cell *is* one of these digits,
+     * so one that excludes the answer is a mistake. A corner note is scratch work across several cells
+     * ("this digit goes here or here"), not a candidate list for one cell.
      */
     private notesExcludeAnswer(state: CellState, answer: number): boolean {
         return state.centerNotes.length > 0 && !state.centerNotes.includes(answer);
@@ -427,20 +413,13 @@ export class PuzzleSession {
     }
 
     /**
-     * Manual "check" (the 'V' key of SudokuPad). It checks the whole board against the known solution,
-     * once, on request.
-     * It is not live or continuous on purpose. A live check would turn the puzzle into trial and error.
+     * Manual "check" (the 'V' key of SudokuPad) of the whole board against the known solution, on request.
+     * It is not live on purpose: a live check, or one that shows every mistake at once, turns the puzzle into
+     * trial and error. So the first press only reports "mistake" and highlights nothing.
+     * A second press in a row (no edit between) shows the cells: `incorrectCells` for a placed value that is legal
+     * so far but wrong, `flaggedCells` for notes that removed the correct digit
+     * (the check that `checkNotesOnLeave` does for one cell, run on all cells).
      * It does nothing if the puzzle has no declared solution.
-     *
-     * It has two stages on purpose.
-     * Usually the player only wants to know if they are on the right track.
-     * They do not want to see every mistake at once.
-     * That would also turn the puzzle into trial and error, as a live check does.
-     * So the first press only reports "mistake". It highlights nothing.
-     * Only a second press in a row (no edit between) shows which cells are wrong.
-     * It uses `incorrectCells` for a placed value that does not match the solution ("legal so far, but wrong").
-     * It uses `flaggedCells` for notes that removed the correct digit.
-     * This is the same check that `checkNotesOnLeave` does for one cell, run on all cells at once.
      */
     checkAgainstSolution(): CheckOutcome {
         const solution = this.puzzle.solution;

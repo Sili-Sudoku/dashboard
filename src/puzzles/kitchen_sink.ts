@@ -1,32 +1,18 @@
 /**
- * Variant-coverage showcase: one instance of every registered constraint
- * definition on a single 9x9 board. It also covers diagonal regions (via `extraRegions` of `sudoku`)
- * and littlekillersum (via `distinct: false` of `killer`).
+ * Variant-coverage showcase: one instance of every registered constraint definition on a single 9x9 board,
+ * plus diagonal regions (`extraRegions` of `sudoku`) and littlekillersum (`distinct: false` of `killer`).
+ * It is a reference for what each `ConstraintSpec` looks like. `kitchen_sink.test.ts` checks that it compiles.
  *
- * This is NOT a playable puzzle. It has no `solution` and no `givens`.
- * Several variants here are global, whole-grid rules (`antiknight`, `antiking`, `nonconsecutive`,
- * `disjointgroups`, both diagonals, on top of classic Sudoku).
- * Each rule is reasonable alone. Stacked together with everything else on this board,
- * they are not known to share a completed grid.
- * To find out, you must run the solver of the project as an oracle and iterate.
- * That task is heavier than the purpose of this file, and different from it.
- * This file exercises the parameter *shape* of every definition against the compiler at once.
- * It is a reference for what each `ConstraintSpec` looks like in practice.
- * See `src/puzzles/kitchen_sink.test.ts`. It checks structural validity and
- * successful compilation, not solvability. For a playable composite
- * puzzle, see `demo_mixed.ts`.
+ * This is NOT a playable puzzle: it has no `solution` and no `givens`.
+ * The global rules (antiknight, antiking, nonconsecutive, disjointgroups, both diagonals) are each reasonable,
+ * but nobody knows that they share a completed grid, and finding out would need the solver as an oracle.
+ * For a playable composite puzzle, see `demo_mixed.ts`.
  *
- * Placement care, although the board needs no real solution:
- * The two equality-type variants (`palindrome`, `clone`) are placed so that their forced-equal
- * cell pairs never share a row, column, box, diagonal or disjoint-group position.
- * The pairs are also never a knight's or king's move apart.
- * Otherwise they contradict a global allDifferent/inequality rule by construction,
- * for any values (sloppy even if the board is never solved).
- * Also, `kropkiDifference` has value 3, not the conventional default of 1.
- * A default-1 difference dot between two orthogonally-adjacent cells
- * always contradicts the global `nonconsecutive` rule that is also present.
- * One rule requires a difference of exactly 1 for that pair and the other forbids it.
- * This is a real logical impossibility, not just an unsolved board.
+ * Placement still avoids contradictions that exist by construction:
+ *   - The forced-equal pairs of `palindrome` and `clone` never share a row, column, box, diagonal or
+ *     disjoint-group position, and are never a knight's or king's move apart.
+ *   - `kropkiDifference` has value 3. A difference of 1 between orthogonal neighbors always
+ *     contradicts the global `nonconsecutive` rule.
  */
 
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";

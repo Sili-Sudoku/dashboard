@@ -17,21 +17,14 @@ import { evalExpr } from "@/runtime/operators.ts";
 import type { CompiledPuzzle } from "@/runtime/puzzle.ts";
 
 /**
- * A constraint is "incomplete", not "violated", while any cell in its footprint is empty.
- * But some incomplete constraints are already dead.
- * No assignment of the remaining empty cells can satisfy them.
- * Examples: a thermometer head too high to leave room for the rest of the climb,
- * or a cage target that the domain cannot reach.
- * This function finds such constraints early, before a literal rule break exists.
- * It works for every operator without extra code.
- * It runs the existing evaluator on every possible completion of the empty cells of the constraint.
- * Then it checks if any completion avoids `false`.
- * It has no bounds logic for each operator.
- * This works because the operators are pure functions over `valueOf`.
+ * A constraint is "incomplete", not "violated", while a cell in its footprint is empty. But some incomplete
+ * constraints are already dead: no completion of the empty cells can satisfy them (a thermometer head too high
+ * to leave room for the climb, a cage target that the domain cannot reach).
+ * This finds them early. It runs the evaluator on every completion and checks that one avoids `false`.
+ * That works for every operator with no bounds logic for each, because operators are pure functions of `valueOf`.
  *
- * The search is exhaustive, so it has a cap.
- * Above the cap, the function makes no claim and the status stays "incomplete".
- * It does not guess, because it must never report a violation that it cannot prove.
+ * The search is exhaustive, so it has a cap. Above the cap the status stays "incomplete":
+ * the function must never report a violation that it cannot prove.
  */
 const INFEASIBILITY_SEARCH_CAP = 20_000;
 

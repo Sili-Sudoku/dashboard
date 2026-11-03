@@ -1,44 +1,22 @@
 /**
- * Generic existence and uniqueness solver. It does a backtracking search over any compiled puzzle.
- * It uses `evaluate.ts` as the oracle for constraint legality, with one narrow exception (see below).
+ * Existence and uniqueness solver: backtracking search over any compiled puzzle.
+ * `evaluate.ts` is the oracle for constraint legality, with one exception (below).
  *
- * The team tried three designs before this one and measured each:
- *   - Forward checking through the generic oracle only. For each assignment, the solver re-checks
- *     every candidate of every constraint neighbor with `evaluateIncremental`. This is correct.
- *     On a large board, one assignment causes thousands of oracle calls.
- *     The lookahead cost more than it saved.
- *   - Plain backtracking through the generic oracle. It makes one call per assignment and has no lookahead.
- *     Each node is cheap, but the search tree grows too large.
- *     This is the known failure of backtracking without propagation on Sudoku-shaped problems.
- *     A test confirmed it: a plain row-major fill on an empty 25x25 filled 45 of 625 cells in 3 seconds.
- *   - Plain backtracking with a cheap direct check in place of the oracle (see below), but no lookahead.
- *     Each node is much cheaper, but the search tree can still grow too large.
- *     This happens on a large board with few constraints, even when every node is nearly free.
- *     A 25x25 board with fewer than about 70% of cells given still ran for seconds.
+ * Why forward checking with a cheap direct check: large Sudoku-shaped boards need lookahead to avoid dead ends,
+ * and the lookahead must cost less than it saves. Measured on a 25x25 board:
+ *   - Lookahead through the generic oracle only: thousands of oracle calls per assignment. Too slow.
+ *   - Plain backtracking, with or without a cheap check: the tree grows too large
+ *     (a row-major fill of an empty 25x25 filled 45 of 625 cells in 3 seconds).
  *
- * All three designs show the same lesson.
- * A large Sudoku-shaped board needs lookahead, to avoid dead ends.
- * The lookahead must also be cheap, so that it costs less than it saves.
- * Therefore forward checking is back, but it does not always probe the generic oracle:
+ * A plain `allDifferent` over a region is the common rule. A value is legal if no filled peer has it.
+ * `isSimpleAllDifferent` finds this shape, and the solver checks it directly with no expression evaluation.
+ * Every other shape (thermometers, cages, whisper lines, bespoke rules) goes through the oracle.
+ * This is the only place in the file that knows what an operator means.
  *
- * A plain `allDifferent` over a region is the most common rule in a Sudoku-shaped puzzle.
- * For this rule, a value is legal if no filled peer in the group has it.
- * This is an O(group size) membership check and needs no expression evaluation.
- * The function `isSimpleAllDifferent` (below) finds this shape.
- * The direct check makes the lookahead nearly free for ordinary rules.
- * Each constraint with a different shape still goes through the full generic oracle.
- * These are the true variants: thermometers, cages, whisper lines, and any bespoke constraint.
- * This is the only place in this file that knows what an operator means.
- * All other code stays generic.
+ * The search stops at a second solution. It has a budget of oracle calls and of wall-clock time,
+ * and the time check is in the search loop itself. If a budget runs out, the result is "unknown", not a guess.
  *
- * The search stops when it finds a second solution, because it only tests existence and uniqueness.
- * The search has a budget of oracle calls and a budget of wall-clock time.
- * If it exceeds one of them, it reports "unknown" and does not guess.
- * The wall-clock check is in the search loop itself, not only in the oracle call.
- * A puzzle that has only plain allDifferent rules can finish without one oracle call.
- *
- * Out of scope: difficulty rating and solving with human techniques only.
- * This file proves existence and uniqueness for authoring, and nothing more.
+ * Out of scope: difficulty rating, and solving with human techniques only.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";
@@ -208,28 +186,20 @@ const checkLegal = (
 };
 
 /**
- * The search changes this map in place and never copies it.
- * A cell in the map is still open. Its value is the current candidate list of that cell.
- * An earlier design rebuilt this map (`new Map(domains)`) at every node.
- * That cost O(total open cells) at every node, even when the propagation of the node touched few cells.
- * On a large board this cost dominated everything.
- * Measurement: a 25x25 board used its whole budget on copies and reached very little depth.
- * Now the search changes the map in place and logs each changed entry.
- * It restores the entries from `undoLog` when it goes back up.
- * So the cost of a node depends on its actual fan-out, not on the board size.
+ * A cell in the map is still open. Its value is its current candidate list.
+ * The search changes the map in place and logs each changed entry in `undoLog`, then restores from it on
+ * backtrack. Copying the map at every node cost O(open cells) even when the node touched few cells:
+ * on a 25x25 board the copies used the whole budget. Now a node costs its actual fan-out.
  */
 type Domains = Map<CellId, readonly number[]>;
 type UndoLog = (readonly [CellId, readonly number[]])[];
 
 /**
- * Forward checking. The `changed` cells were just fixed on top of `board`.
- * `baseline` is the evaluation after the solver fixed them.
- * This function narrows, in place, the candidate domains of their open constraint neighbors with `checkLegal`.
- * The check is cheap for plain allDifferent neighbors.
- * It uses the oracle only for neighbors that a genuine variant constraint touches.
- * It appends each changed domain (the previous value) to `undoLog`,
- * so the caller can restore it exactly on backtrack.
- * It returns false if the domain of a neighbor becomes empty (a dead branch) or if the budget ends.
+ * Forward checking. The `changed` cells were just fixed on top of `board`, and `baseline` is the evaluation
+ * after that. This narrows, in place, the candidate domains of their open constraint neighbors with `checkLegal`
+ * (cheap for plain allDifferent, the oracle only for genuine variant constraints).
+ * It appends each previous domain to `undoLog` for exact restore on backtrack.
+ * It returns false if a neighbor's domain becomes empty (a dead branch) or the budget ends.
  */
 const narrowNeighbors = (
     state: SearchState,

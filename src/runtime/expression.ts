@@ -1,23 +1,19 @@
 /**
- * The constraint language.
- *
- * A constraint is a small S-expression encoded as JSON.
- * The first element of an array is an operator name.
- * The other elements are arguments: expressions, or bare strings used as cell ids / region selectors.
+ * The constraint language: small S-expressions encoded as JSON.
+ * The first element of an array is an operator name. The others are arguments:
+ * expressions, or bare strings used as cell ids or region selectors.
  *
  *   ["allDifferent", ["cells", "row:0"]]
  *   ["==", ["sum", ["cells", "cage:A"]], 15]
  *   ["<", ["value", "r1c1"], ["value", "r1c2"]]
  *   ["strictIncreasing", ["cells", ["r1c8", "r2c8", "r3c8"]]]
  *
- * The runtime evaluates any expression built from the operators in `operators.ts`.
- * It has no notion of "thermometer" or "killer".
- * Definitions make those as compositions (see `src/definitions`).
+ * The runtime evaluates any expression built from the operators in `operators.ts`. It has no notion of
+ * "thermometer" or "killer": definitions build those from operators (see `src/definitions`).
  *
- * Bare JSON scalars are literals: `5` is a number and `true` is a boolean.
- * A bare string has a meaning only where an operator expects a cell id or selector
- * (the arguments of `value`, `cells`, `region`, `adjacent`).
- * The one exception is the special token `"$"`, which binds to the current value inside a `count` predicate.
+ * Bare JSON scalars are literals (`5`, `true`). A bare string means something only where an operator expects a
+ * cell id or selector (the arguments of `value`, `cells`, `region`, `adjacent`).
+ * The one exception is the token `"$"`, which is the current value inside a `count` predicate.
  */
 
 import type { CellId, Geometry } from "@/runtime/geometry.ts";

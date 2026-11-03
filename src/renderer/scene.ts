@@ -560,15 +560,13 @@ const trimPolyline = (points: Point[], start: number, end: number): Point[] => {
 const INSET = 0.08;
 
 /**
- * The dashed outline of a set of cells: one inset segment for each cell edge that faces a
- * cell *outside* the set. Each segment runs corner to corner, so neighbouring segments meet
- * exactly (no overshoot past a corner, no gap). It is generic to any geometry that reports
- * cell corners.
+ * The dashed outline of a set of cells: one inset segment for each cell edge that faces a cell *outside* the set.
+ * Segments run corner to corner, so neighbors meet exactly (no overshoot, no gap). It works for any geometry that
+ * reports cell corners.
  *
- * Every boundary edge is walked clockwise (interior on its right). So the edge that
- * continues it at a vertex is the one that starts there. A corner point sits INSET along
- * the inward normals of both edges that meet at it. This is a mitre. For the right angles
- * of a grid, it is the true inset corner whether the outline turns convex or concave.
+ * Every boundary edge is walked clockwise (interior on its right), so the next edge at a vertex is the one that
+ * starts there. A corner point sits INSET along the inward normals of both edges that meet at it (a mitre).
+ * For the right angles of a grid, that is the true inset corner, convex or concave.
  */
 export const cageOutline = (cells: readonly CellId[], geometry: Geometry): [Point, Point][] => {
     const set = new Set(cells);

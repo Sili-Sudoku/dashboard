@@ -1,28 +1,15 @@
 /**
  * Fog reveal rule: which declared-hidden cells are still hidden now.
+ * It is a pure function of the board, like `evaluate()`, so no extra state needs syncing when the player types.
+ * It is a flood fill over the declared hidden set, so its cost does not depend on the board size.
  *
- * Only the *progress of the player* can cause a reveal.
- * A given is always "correct" by definition.
- * If its correctness alone counted, the puzzle would reveal hidden givens
- * (and, by propagation, their neighbors) when it loads, with no action by the player.
- * So a visible (non-hidden) cell is a reveal source only if it is non-given *and* holds its correct value.
- * That means the player filled it in correctly.
- * A hidden cell can reveal itself in the same way
- * (a hidden non-given cell that the player fills in correctly).
- * A hidden cell can also reveal by propagation from a neighboring source.
+ * Only the player's progress can reveal. A given is "correct" by definition, so counting it as a source would
+ * reveal hidden givens and their neighbors on load. A cell is a source only if it is non-given and holds its
+ * correct value, or it is a hidden given that has been revealed.
  *
- * To reveal (unfog) a cell and to make that cell a source are two different things.
- * Propagation alone can unfog a hidden non-given cell.
- * Then the player can see an empty cell there, but the cell has no value.
- * An empty cell cannot vouch for its neighbors.
- * So a declared cell becomes a source only when it is revealed *and* solved.
- * A hidden given satisfies both when it is revealed (its value is never in question).
- * So a chain of hidden givens peels back together as the player gets close.
- *
- * This is a small flood-fill over the declared hidden set, not a single neighbor check.
- * It is cheap: the cost depends on the number of declared hidden cells, not the board size.
- * It is a pure function of the current board state, like `evaluate()`.
- * There is no extra mutable state to keep in sync when the player types.
+ * Revealing a cell and making it a source are different. Propagation can unfog a hidden non-given cell,
+ * but it is empty and cannot vouch for its neighbors. It becomes a source only when it is revealed *and* solved.
+ * A hidden given is both once revealed, so a chain of hidden givens peels back together.
  */
 
 import type { CellId } from "@/runtime/geometry.ts";

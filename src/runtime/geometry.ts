@@ -299,17 +299,13 @@ export class GridGeometry implements Geometry {
 }
 
 /**
- * Several independent grids in one shared coordinate space (linked and Samurai sudokus,
- * a pair of boards with a gap between them, and so on).
- * Cells keep the plain `rNcM` names, but N and M now count across the whole space.
- * So a constraint can address a cell in any grid and does not need to know which grid it is in.
- * Grids can overlap (a shared cell exists once).
- * Grids can leave gaps (no cells there).
+ * Several independent grids in one shared coordinate space (linked and Samurai sudokus, boards with a gap).
+ * Cells keep the plain `rNcM` names, but N and M count across the whole space, so a constraint can address
+ * a cell without knowing its grid. Grids can overlap (a shared cell exists once) and can leave gaps.
  *
- * Each grid has its own rows, columns and boxes, named `<grid id>/row:0`, `<grid id>/box:4`, and so on.
- * (`all` is every cell.)
+ * Each grid has its own regions, named `<grid id>/row:0`, `<grid id>/box:4`, and so on (`all` is every cell).
  * A definition such as `sudoku` walks the selectors, so it constrains each grid on its own.
- * A plain `row:0` does not exist here because it is ambiguous.
+ * A plain `row:0` does not exist here, because it is ambiguous.
  */
 export interface CompositeGridSpec {
     /** Prefix of the region selectors of this grid. The default is `g1`, `g2`, and so on, by position. */
