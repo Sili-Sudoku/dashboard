@@ -168,7 +168,6 @@
     --chrome-paper-edge: #1f2738;
 }
 
-
 /* sage: green-tinted paper, deep teal ink. */
 :root[data-palette="sage"][data-theme="light"] {
     --bg: #eaf0e2;
@@ -216,7 +215,6 @@
     --diagonal: #486040;
     --chrome-paper-edge: #1f2c21;
 }
-
 
 /* plum: mauve-tinted paper, blue ink. */
 :root[data-palette="plum"][data-theme="light"] {
@@ -391,7 +389,11 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
     background: var(--bg);
     color: var(--ink);
     line-height: 1.5;
@@ -401,12 +403,15 @@ a {
     color: var(--brand);
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     font-family: var(--font-display);
     line-height: 1.2;
 }
 
-code, pre {
+code,
+pre {
     font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
 }
 
@@ -707,7 +712,10 @@ button:focus-visible {
     color: var(--btn-fg);
     box-shadow: 2px 2px 0 var(--stamp-shadow);
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+    transition:
+        transform 0.1s ease,
+        box-shadow 0.1s ease,
+        background-color 0.1s ease;
 }
 
 /* Icons keep their size when a crowded row squeezes the button text. */
@@ -789,7 +797,6 @@ button:focus-visible {
 .btn-icon {
     padding: var(--space-2);
 }
-
 
 /* Touch screens: header controls get the full 44px target. Mouse layouts keep the compact bar. */
 @media (pointer: coarse) {

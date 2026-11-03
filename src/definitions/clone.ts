@@ -3,7 +3,12 @@
  * (the same shape appears again in another place on the grid).
  */
 
-import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
+import {
+    requireCellList,
+    type ConstraintDefinition,
+    type DefinitionOutput,
+    type EmittedConstraint,
+} from "@/definitions/types.ts";
 
 export const clone: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
     const cells = requireCellList(params, "cells", ctx);
@@ -11,7 +16,7 @@ export const clone: ConstraintDefinition = (params, ctx): DefinitionOutput | Err
     const cloneCells = requireCellList(params, "cloneCells", ctx);
     if (cloneCells instanceof Error) return new Error(`clone: ${cloneCells.message}`);
     if (cells.length !== cloneCells.length) {
-        return new Error("clone: \"cells\" and \"cloneCells\" must have the same length");
+        return new Error('clone: "cells" and "cloneCells" must have the same length');
     }
 
     const constraints: EmittedConstraint[] = cells.map((a, i) => {

@@ -183,7 +183,10 @@ export const useVisualBuilder = (
     const activeCellFields = activeSchema ? cellFieldsOf(activeSchema) : [];
     const activeField = activeCellFields.find((f) => f.key === activeFieldKey);
 
-    const baseValues: Record<string, FieldValue> = { ...cellValues, ...(activeSchema && paramMemory[activeSchema.name]) };
+    const baseValues: Record<string, FieldValue> = {
+        ...cellValues,
+        ...(activeSchema && paramMemory[activeSchema.name]),
+    };
     const effectiveValues: Record<string, FieldValue> = activeField
         ? { ...baseValues, [activeField.key]: applySelectionToField(activeField, selection) }
         : baseValues;
@@ -206,17 +209,16 @@ export const useVisualBuilder = (
 
     // The board tints the fogged cells during authoring. Thus the author sees where the fog is
     // before the puzzle has a solution. (The real fog needs a solution to show at all.)
-    const previewObjects: readonly VisualObject[] =
-        def?.fog?.hidden.length
-            ? [
-                  ...toolPreview,
-                  {
-                      kind: "region",
-                      cells: def.fog.hidden,
-                      style: { fill: "var(--fog-line)", stroke: "none", opacity: 0.4, z: 5 },
-                  },
-              ]
-            : toolPreview;
+    const previewObjects: readonly VisualObject[] = def?.fog?.hidden.length
+        ? [
+              ...toolPreview,
+              {
+                  kind: "region",
+                  cells: def.fog.hidden,
+                  style: { fill: "var(--fog-line)", stroke: "none", opacity: 0.4, z: 5 },
+              },
+          ]
+        : toolPreview;
 
     // Fog: when the author picks the tool, a drag on the board hides cells (or reveals them).
     // It does not fill the fields of a constraint. Like all tools, it counts only while
@@ -248,7 +250,10 @@ export const useVisualBuilder = (
         }
         onChange({ ...def, solution: found.solution });
         if (found.status === "multiple") {
-            toast("The puzzle has several solutions. The app uses the first solution that it finds.", { kind: "info", key: "fog-solution" });
+            toast("The puzzle has several solutions. The app uses the first solution that it finds.", {
+                kind: "info",
+                key: "fog-solution",
+            });
         }
     };
     const fogHidden = def?.fog?.hidden ?? [];
@@ -279,7 +284,8 @@ export const useVisualBuilder = (
     const ruleActive = rulePlacing && toolbox.tools.includes(ruleKind === "dynamic" ? DYNAMIC_TOOL : RULE_TOOL);
     const withSelection = (tree: RuleNode | null, path: Path): RuleNode | null => {
         const node = getAt(tree, path);
-        if (node?.k === "cells" && node.selector.trim() === "") return setAt(tree, path, { ...node, cells: [...selection] });
+        if (node?.k === "cells" && node.selector.trim() === "")
+            return setAt(tree, path, { ...node, cells: [...selection] });
         if (node?.k === "cell") return setAt(tree, path, { ...node, cell: [...selection][0] });
         return tree;
     };
@@ -380,11 +386,7 @@ export const useVisualBuilder = (
         }
         if (fogActive) {
             if (selection.size === 0 || !fog.hasSolution) return;
-            setFog(
-                reveal
-                    ? fogHidden.filter((c) => !selection.has(c))
-                    : [...new Set([...fogHidden, ...selection])],
-            );
+            setFog(reveal ? fogHidden.filter((c) => !selection.has(c)) : [...new Set([...fogHidden, ...selection])]);
             return;
         }
         if (!activeSchema || !activeFieldKey) return;
@@ -423,7 +425,11 @@ export const useVisualBuilder = (
     };
 
     const removeTool = (name: string) => {
-        if (activeSchema?.name === name || (name === FOG_TOOL && fogPlacing) || ((name === RULE_TOOL || name === DYNAMIC_TOOL) && rulePlacing)) {
+        if (
+            activeSchema?.name === name ||
+            (name === FOG_TOOL && fogPlacing) ||
+            ((name === RULE_TOOL || name === DYNAMIC_TOOL) && rulePlacing)
+        ) {
             cancelPlacing();
         }
         if (name === RULE_TOOL || name === DYNAMIC_TOOL) {

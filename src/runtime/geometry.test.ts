@@ -14,10 +14,28 @@ describe("GridGeometry", () => {
 
     it("resolves geometry regions", () => {
         expect(geo.resolveRegion("row:0")).toEqual([
-            "r1c1", "r1c2", "r1c3", "r1c4", "r1c5", "r1c6", "r1c7", "r1c8", "r1c9",
+            "r1c1",
+            "r1c2",
+            "r1c3",
+            "r1c4",
+            "r1c5",
+            "r1c6",
+            "r1c7",
+            "r1c8",
+            "r1c9",
         ]);
         expect(geo.resolveRegion("col:8")?.[0]).toBe("r1c9");
-        expect(geo.resolveRegion("box:0")).toEqual(["r1c1", "r1c2", "r1c3", "r2c1", "r2c2", "r2c3", "r3c1", "r3c2", "r3c3"]);
+        expect(geo.resolveRegion("box:0")).toEqual([
+            "r1c1",
+            "r1c2",
+            "r1c3",
+            "r2c1",
+            "r2c2",
+            "r2c3",
+            "r3c1",
+            "r3c2",
+            "r3c3",
+        ]);
         expect(geo.resolveRegion("box:4")).toContain("r5c5");
         expect(geo.resolveRegion("all")).toHaveLength(81);
         expect(geo.resolveRegion("row:99")).toBeUndefined();
@@ -151,8 +169,14 @@ describe("CompositeGeometry", () => {
                 (l) =>
                     l.major === major &&
                     (horizontal
-                        ? l.points[0]!.y === fixed && l.points[1]!.y === fixed && l.points[0]!.x <= from && l.points[1]!.x >= to
-                        : l.points[0]!.x === fixed && l.points[1]!.x === fixed && l.points[0]!.y <= from && l.points[1]!.y >= to),
+                        ? l.points[0]!.y === fixed &&
+                          l.points[1]!.y === fixed &&
+                          l.points[0]!.x <= from &&
+                          l.points[1]!.x >= to
+                        : l.points[0]!.x === fixed &&
+                          l.points[1]!.x === fixed &&
+                          l.points[0]!.y <= from &&
+                          l.points[1]!.y >= to),
             );
         expect(covers(true, 6, 6, 9, true)).toBe(true);
         expect(covers(false, 4, 0, 6, false)).toBe(true); // a plain divider in nw only
@@ -177,6 +201,8 @@ describe("CompositeGeometry", () => {
                 ],
             }),
         ).toThrow(/have the same id/);
-        expect(() => createGeometry({ type: "composite", grids: [{ row: -1, col: 0, width: 4, height: 4 }] })).toThrow();
+        expect(() =>
+            createGeometry({ type: "composite", grids: [{ row: -1, col: 0, width: 4, height: 4 }] }),
+        ).toThrow();
     });
 });

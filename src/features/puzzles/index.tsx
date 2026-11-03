@@ -15,8 +15,8 @@ export default function PuzzleList() {
             <section className="puzzles-intro">
                 <h1>Puzzles</h1>
                 <p>
-                    Play classic Sudoku and variants on one board. Variants include thermometers, killer cages,
-                    arrows, and kropki dots. Do you have a puzzle from f-puzzles, SudokuPad, or SudokuMaker?{" "}
+                    Play classic Sudoku and variants on one board. Variants include thermometers, killer cages, arrows,
+                    and kropki dots. Do you have a puzzle from f-puzzles, SudokuPad, or SudokuMaker?{" "}
                     <Link to="/new">Import it</Link> and solve it here.
                 </p>
             </section>
@@ -30,9 +30,7 @@ export default function PuzzleList() {
                             <div className="pc-title">{p.metadata.title}</div>
                             <p className="pc-desc">{p.metadata.description}</p>
                             <div className="pc-meta">
-                                <span>
-                                    {describeGeometry(p.geometry)}
-                                </span>
+                                <span>{describeGeometry(p.geometry)}</span>
                                 <span>{p.metadata.difficulty}</span>
                             </div>
                             <div className="pc-sources">

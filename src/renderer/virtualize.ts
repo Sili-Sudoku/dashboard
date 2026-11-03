@@ -138,7 +138,12 @@ const shapeBounds = (shape: Shape): { minX: number; minY: number; maxX: number; 
         case "polygon":
             return pointsBounds(shape.points);
         case "circle":
-            return { minX: shape.cx - shape.r, minY: shape.cy - shape.r, maxX: shape.cx + shape.r, maxY: shape.cy + shape.r };
+            return {
+                minX: shape.cx - shape.r,
+                minY: shape.cy - shape.r,
+                maxX: shape.cx + shape.r,
+                maxY: shape.cy + shape.r,
+            };
         case "rect":
             return { minX: shape.x, minY: shape.y, maxX: shape.x + shape.w, maxY: shape.y + shape.h };
         case "text":

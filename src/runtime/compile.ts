@@ -84,7 +84,9 @@ export const compilePuzzle = (
 
     if (def.fog) {
         if (!def.solution) {
-            return new Error("puzzle declares fog but has no solution. Fog needs a solution to know when the puzzle is solved");
+            return new Error(
+                "puzzle declares fog but has no solution. Fog needs a solution to know when the puzzle is solved",
+            );
         }
         for (const cell of def.fog.hidden) {
             if (!geometry.has(cell)) return new Error(`fog.hidden references unknown cell "${cell}"`);
@@ -239,7 +241,8 @@ const compileRules = (
             ["hide", rule.then.hide],
         ] as const) {
             for (const ref of refs ?? []) {
-                if (!objects.some((o) => objectIds(o).includes(ref))) return fail(`${effect}: no visual object has the id "${ref}"`);
+                if (!objects.some((o) => objectIds(o).includes(ref)))
+                    return fail(`${effect}: no visual object has the id "${ref}"`);
             }
         }
         for (const [effect, refs] of [
@@ -280,11 +283,7 @@ interface ExpandedSpec {
     objects?: readonly VisualObject[];
 }
 
-const expandSpec = (
-    spec: ConstraintSpec,
-    registry: DefinitionRegistry,
-    ctx: CompileContext,
-): ExpandedSpec | Error => {
+const expandSpec = (spec: ConstraintSpec, registry: DefinitionRegistry, ctx: CompileContext): ExpandedSpec | Error => {
     if (isNamedRule(spec)) {
         // A comma separates object ids, so a name cannot contain one.
         const name = (spec.name ?? "").trim().replace(/,/g, " ");
@@ -296,9 +295,7 @@ const expandSpec = (
 
     const definition = registry[spec.use];
     if (!definition) {
-        return new Error(
-            `unknown definition "${spec.use}" (available: ${Object.keys(registry).join(", ") || "none"})`,
-        );
+        return new Error(`unknown definition "${spec.use}" (available: ${Object.keys(registry).join(", ") || "none"})`);
     }
 
     const { use, ...params } = spec;
@@ -349,7 +346,9 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
                 return new Error(`"${spec.use}": style "image" must be a data:image/ URL or a site-relative URL`);
             }
             if ((key === "stroke" || key === "fill") && !isSafeColor(value as string)) {
-                return new Error(`"${spec.use}": style "${key}" must be a color, for example "#2c7a4b" or "var(--cage)"`);
+                return new Error(
+                    `"${spec.use}": style "${key}" must be a color, for example "#2c7a4b" or "var(--cage)"`,
+                );
             }
         }
     }
@@ -377,7 +376,9 @@ const restyle = (objects: readonly VisualObject[], spec: ConstraintSpec): readon
  */
 export const isSafeImageUrl = (url: string): boolean =>
     /^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(url) ||
-    (/^\/(?![/\\])\S*$/.test(url) && !url.includes("\\") && [...url].every((c) => c.charCodeAt(0) > 31 && c !== "\x7f"));
+    (/^\/(?![/\\])\S*$/.test(url) &&
+        !url.includes("\\") &&
+        [...url].every((c) => c.charCodeAt(0) > 31 && c !== "\x7f"));
 
 /**
  * A color for a stroke or a fill: a hex value, a color name, a color function, or a theme variable.
@@ -414,7 +415,9 @@ const validateObjects = (objects: readonly VisualObject[], geometry: Geometry): 
     for (const obj of objects) {
         const { image, pattern } = (obj.style ?? {}) as VisualStyle;
         if (image !== undefined && (typeof image !== "string" || !isSafeImageUrl(image))) {
-            return new Error(`visual object "${obj.kind}": style "image" must be a data:image/ URL or a site-relative URL`);
+            return new Error(
+                `visual object "${obj.kind}": style "image" must be a data:image/ URL or a site-relative URL`,
+            );
         }
         for (const key of ["stroke", "fill"] as const) {
             const value = obj.style?.[key];

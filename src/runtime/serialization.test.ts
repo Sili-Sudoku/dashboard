@@ -67,17 +67,18 @@ describe("encode / decode", () => {
 });
 
 describe("named rules in a puzzle file", () => {
-    const withConstraints = (constraints: unknown[]) =>
-        ({
-            version: 1,
-            metadata: { id: "n", title: "n" },
-            geometry: { type: "grid", width: 2, height: 2 },
-            domain: { values: [1, 2] },
-            constraints,
-        });
+    const withConstraints = (constraints: unknown[]) => ({
+        version: 1,
+        metadata: { id: "n", title: "n" },
+        geometry: { type: "grid", width: 2, height: 2 },
+        domain: { values: [1, 2] },
+        constraints,
+    });
 
     it("accepts { rule, name } and rejects malformed ones", () => {
-        expect(parsePuzzle(withConstraints([{ rule: ["==", 1, 1], name: "Twos" }, { rule: ["==", 1, 1] }]))).not.toBeInstanceOf(Error);
+        expect(
+            parsePuzzle(withConstraints([{ rule: ["==", 1, 1], name: "Twos" }, { rule: ["==", 1, 1] }])),
+        ).not.toBeInstanceOf(Error);
         expect(parsePuzzle(withConstraints([{ rule: "nope" }]))).toBeInstanceOf(Error);
         expect(parsePuzzle(withConstraints([{ rule: ["==", 1, 1], name: 3 }]))).toBeInstanceOf(Error);
     });

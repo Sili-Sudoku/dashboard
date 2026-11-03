@@ -439,8 +439,7 @@ const extentOf = (shapes: readonly Shape[]): { x: number; y: number; w: number; 
         else if (s.kind === "rect") {
             add(s.x, s.y);
             add(s.x + s.w, s.y + s.h);
-        }
-        else if (s.kind === "circle") {
+        } else if (s.kind === "circle") {
             add(s.cx - s.r, s.cy - s.r);
             add(s.cx + s.r, s.cy + s.r);
         }

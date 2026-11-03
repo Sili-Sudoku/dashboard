@@ -15,12 +15,18 @@ const SHORTCUTS: { keys: string; action: string }[] = [
         keys: "Backspace / Delete",
         action: "erase one layer of the cell: the active one first, then value, center, corner, color, pen on that cell",
     },
-    { keys: "Tab / Shift+Tab", action: "go to the next or previous empty cell (Tab past the last empty cell leaves the board)" },
+    {
+        keys: "Tab / Shift+Tab",
+        action: "go to the next or previous empty cell (Tab past the last empty cell leaves the board)",
+    },
     { keys: "Enter", action: "select each cell with the same value as the cursor cell" },
     { keys: "Ctrl+Z", action: "undo" },
     { keys: "Ctrl+Shift+Z / Ctrl+Y", action: "redo" },
     { keys: "V", action: "check entered values and center notes against the solution (if the puzzle has one)" },
-    { keys: "R / C / B / G", action: "read aloud the row, column, or box of the cursor, or each given (screen readers)" },
+    {
+        keys: "R / C / B / G",
+        action: "read aloud the row, column, or box of the cursor, or each given (screen readers)",
+    },
     { keys: "Escape", action: "deselect all cells. Click a cell to start again" },
 ];
 

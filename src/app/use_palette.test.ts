@@ -36,6 +36,10 @@ describe("usePalette", () => {
 
     it("has the same palettes in the pre-paint script of index.html", () => {
         const listed = /\/\^\(([a-z|]+)\)\$\/\.test\(palette\)/.exec(indexHtml)?.[1].split("|");
-        expect(listed?.sort()).toEqual(PALETTES.map((p) => p.id).filter((id) => id !== "coffee").sort());
+        expect(listed?.sort()).toEqual(
+            PALETTES.map((p) => p.id)
+                .filter((id) => id !== "coffee")
+                .sort(),
+        );
     });
 });

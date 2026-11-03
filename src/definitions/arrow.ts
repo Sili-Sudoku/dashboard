@@ -78,4 +78,5 @@ arrow.schema = {
     ],
 };
 
-arrow.rule = "The digits on an arrow must add up to the digit in its circle. If the circle has more than one cell, read the digits as one number.";
+arrow.rule =
+    "The digits on an arrow must add up to the digit in its circle. If the circle has more than one cell, read the digits as one number.";

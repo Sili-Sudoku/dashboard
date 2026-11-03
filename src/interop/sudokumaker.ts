@@ -122,7 +122,9 @@ const decodePayload = (payload: string): string | Error => {
             const bytes = fromBase64Url(payload.slice(1));
             return new TextDecoder().decode(inflateLimited(bytes));
         } catch (err) {
-            return new Error(`cannot inflate the SudokuMaker data:  ${err instanceof Error ? err.message : String(err)}`);
+            return new Error(
+                `cannot inflate the SudokuMaker data:  ${err instanceof Error ? err.message : String(err)}`,
+            );
         }
     }
     if (payload.startsWith("N")) {
@@ -141,7 +143,7 @@ const idToCell = (id: number, width: number): CellId => `r${Math.floor(id / widt
 const cellToId = (cell: CellId, width: number): number | undefined => {
     const m = /^r(\d+)c(\d+)$/.exec(cell);
     if (!m) return undefined;
-    return (Number(m[2]) - 1) + (Number(m[1]) - 1) * width;
+    return Number(m[2]) - 1 + (Number(m[1]) - 1) * width;
 };
 
 /** Edge ids address the gap between two orthogonally adjacent cells. Difference/Ratio/XV clues use them.
@@ -157,7 +159,7 @@ const edgeToCells = (edge: number, width: number, height: number): [CellId, Cell
     if (block < width) {
         const col = block + 1;
         if (col < 1 || col >= width || row >= height) return undefined;
-        return [idToCell((col - 1) + row * width, width), idToCell(col + row * width, width)];
+        return [idToCell(col - 1 + row * width, width), idToCell(col + row * width, width)];
     }
     const col = block - width;
     if (col < 0 || col >= width || row + 1 >= height) return undefined;
@@ -258,7 +260,8 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 sawGivensMarker = true;
                 break;
 
-            case 1: { // Regions: the box shape (and possibly jigsaw)
+            case 1: {
+                // Regions: the box shape (and possibly jigsaw)
                 sawRegionsConstraint = true;
                 const regionsArr = Array.isArray(c.regions) ? (c.regions as unknown[]) : [];
                 const byRegion = new Map<number, CellId[]>();
@@ -290,7 +293,8 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
             }
 
             case 100: // Even
-            case 101: { // Odd
+            case 101: {
+                // Odd
                 const use = c.type === 100 ? "even" : "odd";
                 const cellIds = Array.isArray(c.cells) ? (c.cells as unknown[]) : [];
                 for (const id of cellIds) {
@@ -304,7 +308,8 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
             }
 
             case 200: // Difference
-            case 201: { // Ratio
+            case 201: {
+                // Ratio
                 const use = c.type === 200 ? "kropkiDifference" : "kropkiRatio";
                 const negative = Array.isArray(c.negative) ? (c.negative as unknown[]) : [];
                 if (negative.length > 0) {
@@ -331,19 +336,24 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 break;
             }
 
-            case 300: { // Thermometer
+            case 300: {
+                // Thermometer
                 const thermos = Array.isArray(c.thermometers) ? (c.thermometers as unknown[]) : [];
                 for (const line of thermos) {
                     if (!Array.isArray(line) || line.length < 2 || !line.every((id) => typeof id === "number")) {
                         warnings.push("the importer skipped a thermometer with an unknown shape");
                         continue;
                     }
-                    constraints.push({ use: "thermometer", cells: (line as number[]).map((id) => idToCell(id, width)) });
+                    constraints.push({
+                        use: "thermometer",
+                        cells: (line as number[]).map((id) => idToCell(id, width)),
+                    });
                 }
                 break;
             }
 
-            case 301: { // KillerCages
+            case 301: {
+                // KillerCages
                 const cages = Array.isArray(c.cages) ? (c.cages as unknown[]) : [];
                 for (const cage of cages) {
                     const cellIds = (cage as { cells?: unknown })?.cells;
@@ -361,7 +371,8 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
                 break;
             }
 
-            case 408: { // Arrow
+            case 408: {
+                // Arrow
                 const groups = Array.isArray(c.bulbsWithArrows) ? (c.bulbsWithArrows as unknown[]) : [];
                 for (const group of groups) {
                     const bulbIdsRaw = (group as { bulbCells?: unknown })?.bulbCells;
@@ -406,7 +417,9 @@ export const importSudokuMaker = (input: unknown): ImportResult | Error => {
 
     if (sawGivensMarker) constraints.unshift(sudokuRef);
     else if (sawRegionsConstraint) {
-        warnings.push('the puzzle has a Regions constraint but no "normal sudoku rules" marker. The importer applies it as a box-only constraint');
+        warnings.push(
+            'the puzzle has a Regions constraint but no "normal sudoku rules" marker. The importer applies it as a box-only constraint',
+        );
         constraints.unshift(sudokuRef);
     }
 
@@ -511,7 +524,9 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
 
     for (const spec of def.constraints) {
         if (!isDefinitionRef(spec)) {
-            warnings.push("SudokuMaker export cannot represent a hand-written primitive constraint. The exporter drops it");
+            warnings.push(
+                "SudokuMaker export cannot represent a hand-written primitive constraint. The exporter drops it",
+            );
             continue;
         }
         const { use, ...params } = spec;
@@ -533,7 +548,11 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             thermometers.push(ids);
         } else if (use === "arrow") {
             const bulbRaw = params.bulb;
-            const bulbCells = Array.isArray(bulbRaw) ? (bulbRaw as CellId[]) : typeof bulbRaw === "string" ? [bulbRaw] : [];
+            const bulbCells = Array.isArray(bulbRaw)
+                ? (bulbRaw as CellId[])
+                : typeof bulbRaw === "string"
+                  ? [bulbRaw]
+                  : [];
             const bulbIds = exportIds(bulbCells);
             const shaftIds = exportIds(params.cells as CellId[]);
             if (!bulbIds || !shaftIds) {
@@ -551,7 +570,12 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             const clue = { edge, ...(typeof params.value === "number" ? { value: params.value } : {}) };
             (use === "kropkiDifference" ? difference : ratio).push(clue);
         } else if (use === "odd" || use === "even") {
-            const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
+            const raw =
+                typeof params.cell === "string"
+                    ? params.cell
+                    : Array.isArray(params.cells)
+                      ? params.cells[0]
+                      : undefined;
             const id = typeof raw === "string" ? cellToId(raw, width) : undefined;
             if (id === undefined) {
                 warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
@@ -559,7 +583,9 @@ export const exportSudokuMaker = (def: PuzzleDefinition): ExportResult | Error =
             }
             (use === "odd" ? odd : even).push(id);
         } else {
-            warnings.push(`SudokuMaker export cannot represent the constraint that uses definition "${use}". The exporter drops it`);
+            warnings.push(
+                `SudokuMaker export cannot represent the constraint that uses definition "${use}". The exporter drops it`,
+            );
         }
     }
 

@@ -11,7 +11,12 @@
  * and its wings are further back (">", point at the smaller neighbor).
  */
 
-import { requireCell, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
+import {
+    requireCell,
+    type ConstraintDefinition,
+    type DefinitionOutput,
+    type EmittedConstraint,
+} from "@/definitions/types.ts";
 import type { Point } from "@/runtime/geometry.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
@@ -41,7 +46,8 @@ const chevron = (cellCenter: Point, neighborCenter: Point, tipOffset: number, wi
     return { kind: "line", points: [end1, tip, end2], style: { stroke: "var(--ink-soft)", strokeWidth: 0.05, z: 2 } };
 };
 
-const minmaxDefinition = (kind: "minimum" | "maximum"): ConstraintDefinition =>
+const minmaxDefinition =
+    (kind: "minimum" | "maximum"): ConstraintDefinition =>
     (params, ctx): DefinitionOutput | Error => {
         const cell = requireCell(params, "cell", ctx);
         if (cell instanceof Error) return new Error(`${kind}: ${cell.message}`);
@@ -71,17 +77,15 @@ export const maximum = minmaxDefinition("maximum");
 
 minimum.schema = {
     label: "Minimum marker",
-    fields: [
-        { kind: "cell", key: "cell", label: "Cell" },
-    ],
+    fields: [{ kind: "cell", key: "cell", label: "Cell" }],
 };
 
 maximum.schema = {
     label: "Maximum marker",
-    fields: [
-        { kind: "cell", key: "cell", label: "Cell" },
-    ],
+    fields: [{ kind: "cell", key: "cell", label: "Cell" }],
 };
 
-minimum.rule = "A cell with a minimum marker must contain a digit that is smaller than the digits in all adjacent cells.";
-maximum.rule = "A cell with a maximum marker must contain a digit that is larger than the digits in all adjacent cells.";
+minimum.rule =
+    "A cell with a minimum marker must contain a digit that is smaller than the digits in all adjacent cells.";
+maximum.rule =
+    "A cell with a maximum marker must contain a digit that is larger than the digits in all adjacent cells.";

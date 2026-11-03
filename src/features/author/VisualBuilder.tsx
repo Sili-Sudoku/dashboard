@@ -20,7 +20,8 @@ import {
     DYNAMIC_TOOL,
     FOG_TOOL,
     RULE_TOOL,
-    isGlobalPlaced, type VisualBuilderState,
+    isGlobalPlaced,
+    type VisualBuilderState,
 } from "@/features/author/use_visual_builder.ts";
 
 interface Props {
@@ -92,11 +93,7 @@ export default function VisualBuilder({ def, state }: Props) {
     const [styling, setStyling] = useState<number | null>(null);
 
     if (!def) {
-        return (
-            <p className="author-notice">
-                Fix the JSON errors in the JSON tab to use the visual builder.
-            </p>
-        );
+        return <p className="author-notice">Fix the JSON errors in the JSON tab to use the visual builder.</p>;
     }
 
     // Quick access has the tools that the author pinned and the tools that the JSON of the puzzle already uses.
@@ -127,8 +124,8 @@ export default function VisualBuilder({ def, state }: Props) {
             : tool.name === DYNAMIC_TOOL
               ? (def.rules?.length ?? 0)
               : def.constraints.filter((c) =>
-                  tool.name === RULE_TOOL ? !isDefinitionRef(c) : isDefinitionRef(c) && c.use === tool.name,
-              ).length;
+                    tool.name === RULE_TOOL ? !isDefinitionRef(c) : isDefinitionRef(c) && c.use === tool.name,
+                ).length;
         const what = isFog(tool) ? "hidden cell" : tool.name === DYNAMIC_TOOL ? "rule" : "placed constraint";
         return count > 0
             ? `Remove from quick access. This deletes its ${count} ${what}${count === 1 ? "" : "s"}. Undo restores them.`
@@ -175,7 +172,7 @@ export default function VisualBuilder({ def, state }: Props) {
                                                       ? rule.active && rule.kind === "constraint"
                                                       : tool.name === DYNAMIC_TOOL
                                                         ? rule.active && rule.kind === "dynamic"
-                                                      : activeSchema?.name === tool.name
+                                                        : activeSchema?.name === tool.name
                                             }
                                             disabled={placed}
                                             title={
@@ -275,7 +272,11 @@ export default function VisualBuilder({ def, state }: Props) {
                 <DynamicRuleEditor
                     rule={rule}
                     constraintNames={def.constraints.flatMap((c) =>
-                        isDefinitionRef(c) ? [c.use] : "name" in (c as object) ? [String((c as { name: unknown }).name)] : [],
+                        isDefinitionRef(c)
+                            ? [c.use]
+                            : "name" in (c as object)
+                              ? [String((c as { name: unknown }).name)]
+                              : [],
                     )}
                     onAdd={rule.addDynamic}
                 />

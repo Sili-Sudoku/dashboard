@@ -61,7 +61,16 @@ describe("importFPuzzles", () => {
         const sources = puzzle.constraints
             .filter((s): s is { use: string } => typeof s === "object" && s !== null && !Array.isArray(s))
             .map((s) => s.use);
-        expect(sources).toEqual(["sudoku", "killer", "thermometer", "arrow", "kropkiDifference", "kropkiRatio", "odd", "even"]);
+        expect(sources).toEqual([
+            "sudoku",
+            "killer",
+            "thermometer",
+            "arrow",
+            "kropkiDifference",
+            "kropkiRatio",
+            "odd",
+            "even",
+        ]);
 
         const compiled = compilePuzzle(puzzle, definitions);
         if (compiled instanceof Error) throw compiled;
@@ -88,12 +97,10 @@ describe("importFPuzzles", () => {
             'the importer ignored "negative" entry "not-a-real-kind" because it is not a known kind',
         ]);
 
-        const negativeRatioRef = result.puzzle.constraints.find(
-            (s) => isDefinitionRef(s) && s.use === "negativeRatio",
-        );
-        expect(negativeRatioRef && isDefinitionRef(negativeRatioRef) ? negativeRatioRef.excludePairs : undefined).toEqual([
-            ["r6c1", "r6c2"],
-        ]);
+        const negativeRatioRef = result.puzzle.constraints.find((s) => isDefinitionRef(s) && s.use === "negativeRatio");
+        expect(
+            negativeRatioRef && isDefinitionRef(negativeRatioRef) ? negativeRatioRef.excludePairs : undefined,
+        ).toEqual([["r6c1", "r6c2"]]);
         const negativeXVRef = result.puzzle.constraints.find((s) => isDefinitionRef(s) && s.use === "negativeXV");
         expect(negativeXVRef && isDefinitionRef(negativeXVRef) ? negativeXVRef.excludePairs : undefined).toEqual([]);
 
@@ -246,7 +253,11 @@ describe("exportFPuzzles", () => {
             metadata: { id: "p", title: "Unsupported" },
             geometry: { type: "grid", width: 4, height: 4 },
             domain: { values: [1, 2, 3, 4] },
-            constraints: [{ use: "sudoku" }, ["allDifferent", ["cells", "row:0"]], { use: "someFutureVariant", foo: 1 }],
+            constraints: [
+                { use: "sudoku" },
+                ["allDifferent", ["cells", "row:0"]],
+                { use: "someFutureVariant", foo: 1 },
+            ],
         };
         const exported = exportFPuzzles(puzzle);
         if (exported instanceof Error) throw exported;
@@ -367,9 +378,26 @@ describe("importFPuzzles: extended clue types", () => {
         if (compiled instanceof Error) throw compiled;
         const sources = new Set(compiled.constraints.map((c) => c.source));
         for (const expected of [
-            "sudoku", "killer", "thermometer", "arrow", "kropkiDifference", "kropkiRatio", "odd", "even",
-            "antiknight", "antiking", "nonconsecutive", "disjointgroups",
-            "palindrome", "clone", "quadruple", "minimum", "maximum", "xv", "sandwich", "betweenline",
+            "sudoku",
+            "killer",
+            "thermometer",
+            "arrow",
+            "kropkiDifference",
+            "kropkiRatio",
+            "odd",
+            "even",
+            "antiknight",
+            "antiking",
+            "nonconsecutive",
+            "disjointgroups",
+            "palindrome",
+            "clone",
+            "quadruple",
+            "minimum",
+            "maximum",
+            "xv",
+            "sandwich",
+            "betweenline",
         ]) {
             expect(sources.has(expected)).toBe(true);
         }
@@ -389,7 +417,16 @@ describe("importFPuzzles: extended clue types", () => {
         const result = importFPuzzles(data);
         if (result instanceof Error) throw result;
         const joined = result.warnings.join(" | ");
-        for (const expected of ["palindrome", "clone", "quadruple", "minimum", "xv", "littlekillersum", "sandwichsum", "betweenline"]) {
+        for (const expected of [
+            "palindrome",
+            "clone",
+            "quadruple",
+            "minimum",
+            "xv",
+            "littlekillersum",
+            "sandwichsum",
+            "betweenline",
+        ]) {
             expect(joined).toContain(expected);
         }
     });
@@ -465,9 +502,23 @@ describe("exportFPuzzles: extended clue types", () => {
         if (compiled instanceof Error) throw compiled;
         const sources = new Set(compiled.constraints.map((c) => c.source));
         for (const expected of [
-            "sudoku", "antiknight", "antiking", "nonconsecutive", "disjointgroups",
-            "palindrome", "clone", "quadruple", "minimum", "maximum", "xv", "killer", "sandwich", "betweenline",
-            "negativeDifference", "negativeRatio", "negativeXV",
+            "sudoku",
+            "antiknight",
+            "antiking",
+            "nonconsecutive",
+            "disjointgroups",
+            "palindrome",
+            "clone",
+            "quadruple",
+            "minimum",
+            "maximum",
+            "xv",
+            "killer",
+            "sandwich",
+            "betweenline",
+            "negativeDifference",
+            "negativeRatio",
+            "negativeXV",
         ]) {
             expect(sources.has(expected)).toBe(true);
         }
@@ -481,7 +532,10 @@ describe("exportFPuzzles: extended clue types", () => {
             domain: { values: [1, 2, 3, 4] },
         };
 
-        const noSum = exportFPuzzles({ ...base, constraints: [{ use: "killer", cells: ["r1c1", "r1c2"], distinct: false }] });
+        const noSum = exportFPuzzles({
+            ...base,
+            constraints: [{ use: "killer", cells: ["r1c1", "r1c2"], distinct: false }],
+        });
         if (noSum instanceof Error) throw noSum;
         expect(noSum.warnings.some((w) => w.includes("littlekillersum"))).toBe(true);
 

@@ -7,7 +7,13 @@
 
 import { definitions } from "@/definitions/index.ts";
 import { createGeometry } from "@/runtime/geometry.ts";
-import { isDefinitionRef, PATTERNS, type ConstraintSpec, type PatternName, type PuzzleDefinition } from "@/runtime/puzzle.ts";
+import {
+    isDefinitionRef,
+    PATTERNS,
+    type ConstraintSpec,
+    type PatternName,
+    type PuzzleDefinition,
+} from "@/runtime/puzzle.ts";
 
 export interface StyleOverride {
     color?: string;

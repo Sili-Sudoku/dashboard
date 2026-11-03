@@ -109,9 +109,9 @@ describe("summarizeConstraint", () => {
     it("flags a raw primitive expression distinctly", () => {
         expect(summarizeConstraint(["==", 1, 1])).toBe("1 = 1");
         expect(summarizeConstraint({ rule: ["==", 1, 1], name: "Twos" })).toBe("Twos");
-        expect(
-            summarizeConstraint({ use: "minimum", cell: "r1c1", color: "#fff", style: { dashed: true } }),
-        ).toBe(summarizeConstraint({ use: "minimum", cell: "r1c1" }));
+        expect(summarizeConstraint({ use: "minimum", cell: "r1c1", color: "#fff", style: { dashed: true } })).toBe(
+            summarizeConstraint({ use: "minimum", cell: "r1c1" }),
+        );
         expect(summarizeConstraint({ rule: ["==", 1, 1] })).toBe("1 = 1");
     });
 });

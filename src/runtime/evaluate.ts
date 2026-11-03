@@ -99,9 +99,7 @@ export interface EvaluationResult {
 /** How the evaluator reads the board: the entered value of a cell, or null. */
 export type ValueLookup = (cell: CellId) => number | null;
 
-export const lookupFromRecord = (
-    values: Readonly<Record<CellId, number | null | undefined>>,
-): ValueLookup => {
+export const lookupFromRecord = (values: Readonly<Record<CellId, number | null | undefined>>): ValueLookup => {
     return (cell) => {
         const v = values[cell];
         return v === undefined || v === null ? null : v;
@@ -279,14 +277,9 @@ const duplicateValueCells = (cells: readonly CellId[], lookup: ValueLookup): rea
  * The constraints with a footprint that includes any of the changed cells.
  * These constraints need a new check after an edit, for callers that want incremental updates.
  */
-export const affectedConstraints = (
-    puzzle: CompiledPuzzle,
-    changed: Iterable<CellId>,
-): readonly string[] => {
+export const affectedConstraints = (puzzle: CompiledPuzzle, changed: Iterable<CellId>): readonly string[] => {
     const changedSet = new Set(changed);
-    return puzzle.constraints
-        .filter((c) => c.cells.some((cell) => changedSet.has(cell)))
-        .map((c) => c.id);
+    return puzzle.constraints.filter((c) => c.cells.some((cell) => changedSet.has(cell))).map((c) => c.id);
 };
 
 /**

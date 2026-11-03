@@ -9,7 +9,8 @@ import { requireCellList, type ConstraintDefinition, type DefinitionOutput } fro
 import type { Expr } from "@/runtime/expression.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
-const dotDefinition = (kind: "difference" | "ratio", defaultValue: number): ConstraintDefinition =>
+const dotDefinition =
+    (kind: "difference" | "ratio", defaultValue: number): ConstraintDefinition =>
     (params, ctx): DefinitionOutput | Error => {
         const cells = requireCellList(params, "cells", ctx);
         if (cells instanceof Error) return new Error(`kropki ${kind}: ${cells.message}`);
@@ -82,5 +83,7 @@ kropkiRatio.schema = {
     ],
 };
 
-kropkiDifference.rule = "Two cells with a white dot between them must have digits that differ by the number on the dot. If the dot has no number, the difference is 1.";
-kropkiRatio.rule = "Two cells with a black dot between them must have digits where the larger digit is the smaller digit times the number on the dot. If the dot has no number, use 2.";
+kropkiDifference.rule =
+    "Two cells with a white dot between them must have digits that differ by the number on the dot. If the dot has no number, the difference is 1.";
+kropkiRatio.rule =
+    "Two cells with a black dot between them must have digits where the larger digit is the smaller digit times the number on the dot. If the dot has no number, use 2.";

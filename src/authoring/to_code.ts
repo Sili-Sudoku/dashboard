@@ -70,7 +70,9 @@ export const puzzleToCode = (def: PuzzleDefinition): string => {
     const cellMap = (method: string, rowsMethod: string, map: Readonly<Record<CellId, number>>) => {
         const rows = grid && asRows(map, grid.width, grid.height);
         if (rows) calls.push(`.${rowsMethod}(${literal(rows)})`);
-        else for (const [cell, value] of Object.entries(map)) calls.push(`.${method}(${literal(cell)}, ${literal(value)})`);
+        else
+            for (const [cell, value] of Object.entries(map))
+                calls.push(`.${method}(${literal(cell)}, ${literal(value)})`);
     };
     if (def.givens && Object.keys(def.givens).length > 0) cellMap("given", "givensFromRows", def.givens);
 

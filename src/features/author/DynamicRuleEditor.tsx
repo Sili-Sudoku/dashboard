@@ -16,7 +16,11 @@ const EFFECTS: { effect: Effect; label: string; hint: string }[] = [
     { effect: "show", label: "Show objects", hint: "Objects show only while the rule holds (object ids)." },
     { effect: "hide", label: "Hide objects", hint: "Objects are hidden while the rule holds (object ids)." },
     { effect: "enable", label: "Enforce constraints", hint: "Constraints are not enforced until the rule holds." },
-    { effect: "disable", label: "Stop enforcing constraints", hint: "Constraints are not enforced while the rule holds." },
+    {
+        effect: "disable",
+        label: "Stop enforcing constraints",
+        hint: "Constraints are not enforced while the rule holds.",
+    },
 ];
 
 const CELL_EFFECTS: readonly Effect[] = ["reveal", "appear"];

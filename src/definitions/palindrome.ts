@@ -4,7 +4,12 @@
  * like a thermometer, but the path has no order.
  */
 
-import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
+import {
+    requireCellList,
+    type ConstraintDefinition,
+    type DefinitionOutput,
+    type EmittedConstraint,
+} from "@/definitions/types.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
 export const palindrome: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
@@ -29,9 +34,7 @@ export const palindrome: ConstraintDefinition = (params, ctx): DefinitionOutput 
 
 palindrome.schema = {
     label: "Palindrome",
-    fields: [
-        { kind: "cells", key: "cells", label: "Path", min: 2 },
-    ],
+    fields: [{ kind: "cells", key: "cells", label: "Path", min: 2 }],
 };
 
 palindrome.rule = "The digits on a palindrome line must be the same when you read the line from each end.";

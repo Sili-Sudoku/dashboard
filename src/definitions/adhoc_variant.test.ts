@@ -22,10 +22,7 @@ const puzzle: PuzzleDefinition = {
     geometry: { type: "grid", width: 4, height: 4, boxWidth: 2, boxHeight: 2 },
     domain: { values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
     objects: [{ kind: "path", cells: ["r1c1", "r2c1", "r3c1"], style: { stroke: "green" } }],
-    constraints: [
-        whisperPair("r1c1", "r2c1"),
-        whisperPair("r2c1", "r3c1"),
-    ],
+    constraints: [whisperPair("r1c1", "r2c1"), whisperPair("r2c1", "r3c1")],
 };
 
 describe("a brand-new variant, expressed only in the puzzle file", () => {

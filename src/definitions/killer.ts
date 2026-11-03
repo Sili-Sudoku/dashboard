@@ -67,4 +67,5 @@ killer.schema = {
     ],
 };
 
-killer.rule = "The digits in a cage must add up to the small number in its corner. The digits in a cage cannot be the same, unless the puzzle says they can.";
+killer.rule =
+    "The digits in a cage must add up to the small number in its corner. The digits in a cage cannot be the same, unless the puzzle says they can.";

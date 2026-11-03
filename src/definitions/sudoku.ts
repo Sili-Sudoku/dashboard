@@ -33,7 +33,11 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
         // Draw the line in the same way as the path of a thermometer/palindrome.
         // Without it, nothing shows this region on the board.
         if (sel.startsWith("diagonal:")) {
-            objects.push({ kind: "path", cells: [...cells], style: { stroke: "var(--diagonal)", strokeWidth: 0.12, z: 1 } });
+            objects.push({
+                kind: "path",
+                cells: [...cells],
+                style: { stroke: "var(--diagonal)", strokeWidth: 0.12, z: 1 },
+            });
         }
     }
 
@@ -48,9 +52,7 @@ export const sudoku: ConstraintDefinition = (params, ctx): DefinitionOutput | Er
 
 sudoku.schema = {
     label: "Sudoku (rows, columns, boxes)",
-    fields: [
-        { kind: "boolean", key: "boxes", label: "Include boxes", default: true },
-    ],
+    fields: [{ kind: "boolean", key: "boxes", label: "Include boxes", default: true }],
 };
 
 sudoku.rule = "Each row, column, and box must contain each digit one time.";

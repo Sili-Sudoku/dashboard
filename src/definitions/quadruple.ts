@@ -8,7 +8,12 @@
  * that otherwise cross that point.
  */
 
-import { requireCellList, type ConstraintDefinition, type DefinitionOutput, type EmittedConstraint } from "@/definitions/types.ts";
+import {
+    requireCellList,
+    type ConstraintDefinition,
+    type DefinitionOutput,
+    type EmittedConstraint,
+} from "@/definitions/types.ts";
 import type { VisualObject } from "@/runtime/puzzle.ts";
 
 export const quadruple: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
@@ -37,7 +42,12 @@ export const quadruple: ConstraintDefinition = (params, ctx): DefinitionOutput |
 
     const corner = ctx.geometry.anchor(cells[0], "br");
     const objects: VisualObject[] = [
-        { kind: "circle", at: corner, r: 0.2, style: { fill: "var(--surface)", stroke: "var(--ink)", strokeWidth: 0.02, z: 2 } },
+        {
+            kind: "circle",
+            at: corner,
+            r: 0.2,
+            style: { fill: "var(--surface)", stroke: "var(--ink)", strokeWidth: 0.02, z: 2 },
+        },
         { kind: "text", at: corner, text: values.join(""), style: { fontSize: 0.22, z: 3 } },
     ];
 
@@ -52,4 +62,5 @@ quadruple.schema = {
     ],
 };
 
-quadruple.rule = "The four cells around a circle must contain all the digits in the circle. If a digit shows two times, it must occur two times.";
+quadruple.rule =
+    "The four cells around a circle must contain all the digits in the circle. If a digit shows two times, it must occur two times.";

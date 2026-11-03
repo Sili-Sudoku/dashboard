@@ -141,7 +141,9 @@ export default function Author() {
             // A missing final .build() is an easy mistake, so call it here.
             const artifact = built instanceof PuzzleBuilder ? built.build() : built;
             if (!artifact || typeof artifact !== "object") {
-                throw new Error("The code must return the puzzle. End the code with `return PuzzleBuilder.create(…)….build();`");
+                throw new Error(
+                    "The code must return the puzzle. End the code with `return PuzzleBuilder.create(…)….build();`",
+                );
             }
             applyText(JSON.stringify(artifact, null, 2));
             setCodeDraft(undefined);
@@ -406,7 +408,8 @@ export default function Author() {
                     </span>
                     <span className="author-conflict-count">{invalidConstraintIds.size}</span>
                     <span className="author-conflict-tip">
-                        These conflict with the declared solution (shown in red): {summarizeConflicts(invalidConstraintIds)}
+                        These conflict with the declared solution (shown in red):{" "}
+                        {summarizeConflicts(invalidConstraintIds)}
                     </span>
                 </span>
             )}
@@ -459,36 +462,36 @@ export default function Author() {
                             layout in the JSON.
                         </p>
                     ) : (
-                    <div className="author-dims">
-                        <div className="author-dims-group" role="group" aria-labelledby="author-dims-grid">
-                            <span id="author-dims-grid" className="author-dims-label">
-                                Grid
-                            </span>
-                            <DimInput label="Width" value={dims.width} onCommit={(n) => setDims({ width: n })} />
-                            <span className="author-dims-x" aria-hidden="true">
-                                ×
-                            </span>
-                            <DimInput label="Height" value={dims.height} onCommit={(n) => setDims({ height: n })} />
+                        <div className="author-dims">
+                            <div className="author-dims-group" role="group" aria-labelledby="author-dims-grid">
+                                <span id="author-dims-grid" className="author-dims-label">
+                                    Grid
+                                </span>
+                                <DimInput label="Width" value={dims.width} onCommit={(n) => setDims({ width: n })} />
+                                <span className="author-dims-x" aria-hidden="true">
+                                    ×
+                                </span>
+                                <DimInput label="Height" value={dims.height} onCommit={(n) => setDims({ height: n })} />
+                            </div>
+                            <div className="author-dims-group" role="group" aria-labelledby="author-dims-box">
+                                <span id="author-dims-box" className="author-dims-label">
+                                    Box
+                                </span>
+                                <DimInput
+                                    label="Box width"
+                                    value={dims.boxWidth}
+                                    onCommit={(n) => setDims({ boxWidth: n })}
+                                />
+                                <span className="author-dims-x" aria-hidden="true">
+                                    ×
+                                </span>
+                                <DimInput
+                                    label="Box height"
+                                    value={dims.boxHeight}
+                                    onCommit={(n) => setDims({ boxHeight: n })}
+                                />
+                            </div>
                         </div>
-                        <div className="author-dims-group" role="group" aria-labelledby="author-dims-box">
-                            <span id="author-dims-box" className="author-dims-label">
-                                Box
-                            </span>
-                            <DimInput
-                                label="Box width"
-                                value={dims.boxWidth}
-                                onCommit={(n) => setDims({ boxWidth: n })}
-                            />
-                            <span className="author-dims-x" aria-hidden="true">
-                                ×
-                            </span>
-                            <DimInput
-                                label="Box height"
-                                value={dims.boxHeight}
-                                onCommit={(n) => setDims({ boxHeight: n })}
-                            />
-                        </div>
-                    </div>
                     )}
                     <div className="author-mode-bar">
                         <div className="segmented" role="tablist">

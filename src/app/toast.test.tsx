@@ -78,7 +78,8 @@ describe("toast", () => {
             toast("fine", { kind: "success" });
             toast("plain");
         });
-        const icons = (text: string) => screen.getByText(text).closest(".toast")!.querySelectorAll(".toast-icon").length;
+        const icons = (text: string) =>
+            screen.getByText(text).closest(".toast")!.querySelectorAll(".toast-icon").length;
         expect(icons("bad")).toBe(1);
         expect(icons("fine")).toBe(1);
         expect(icons("plain")).toBe(0);

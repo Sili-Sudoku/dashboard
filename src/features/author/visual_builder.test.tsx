@@ -74,7 +74,12 @@ const Harness = ({
     );
 };
 
-const renderBuilder = (def: PuzzleDefinition, onChange = vi.fn(), initialTools?: readonly string[], onTools = vi.fn()) => {
+const renderBuilder = (
+    def: PuzzleDefinition,
+    onChange = vi.fn(),
+    initialTools?: readonly string[],
+    onTools = vi.fn(),
+) => {
     const utils = render(<Harness def={def} onChange={onChange} initialTools={initialTools} onTools={onTools} />);
     return { ...utils, onChange, onTools };
 };
@@ -102,7 +107,11 @@ describe("VisualBuilder quick access", () => {
     });
 
     it("keeps a tool in the toolbox after its last constraint is removed", () => {
-        const { onChange, onTools } = renderBuilder({ ...basePuzzle, constraints: [{ use: "antiknight" }] }, vi.fn(), []);
+        const { onChange, onTools } = renderBuilder(
+            { ...basePuzzle, constraints: [{ use: "antiknight" }] },
+            vi.fn(),
+            [],
+        );
 
         fireEvent.click(screen.getByLabelText("Remove constraint"));
         expect(onChange).toHaveBeenCalledTimes(1);
@@ -319,7 +328,9 @@ describe("VisualBuilder fog tool", () => {
     });
 
     it("reveals cells instead when asked, and drops the fog field once none are left", () => {
-        const { container, onChange } = renderBuilder({ ...solved, fog: { hidden: ["r1c1", "r1c2"] } }, vi.fn(), ["fog"]);
+        const { container, onChange } = renderBuilder({ ...solved, fog: { hidden: ["r1c1", "r1c2"] } }, vi.fn(), [
+            "fog",
+        ]);
         pickFog();
         fireEvent.click(screen.getByRole("checkbox", { name: "Reveal instead of hide" }));
         drag(container, 0);
@@ -514,7 +525,6 @@ describe("VisualBuilder constraint styling", () => {
         const color = lastDef(onChange).constraints[0] as { color?: string };
         expect(color.color).toMatch(/^#[0-9a-f]{6}$/i);
         expect(lastDef(onChange).constraints[1]).toEqual(other);
-
     });
 
     it("adds dashed and opacity next to what is already there, and removes them again", () => {

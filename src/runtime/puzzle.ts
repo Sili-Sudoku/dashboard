@@ -40,10 +40,7 @@ export interface VisualStyle {
 }
 
 /** A point that a visual object references: a cell center, a cell corner, or raw grid coordinates. */
-export type PointRef =
-    | CellId
-    | { cell: CellId; corner: "tl" | "tr" | "bl" | "br" | "c" }
-    | { x: number; y: number };
+export type PointRef = CellId | { cell: CellId; corner: "tl" | "tr" | "bl" | "br" | "c" } | { x: number; y: number };
 
 /**
  * Generic visual primitives.
@@ -66,7 +63,13 @@ export type VisualObject =
     | { id?: string; kind: "polygon"; points: readonly PointRef[]; style?: VisualStyle }
     | { id?: string; kind: "circle"; at: PointRef; r: number; style?: VisualStyle }
     | { id?: string; kind: "rect"; at: PointRef; w: number; h: number; style?: VisualStyle }
-    | { id?: string; kind: "text"; at: PointRef; text: string; style?: VisualStyle & { fontSize?: number; bold?: boolean } }
+    | {
+          id?: string;
+          kind: "text";
+          at: PointRef;
+          text: string;
+          style?: VisualStyle & { fontSize?: number; bold?: boolean };
+      }
     | { id?: string; kind: "region"; cells: readonly CellId[]; style?: VisualStyle }
     | {
           id?: string;
@@ -106,7 +109,10 @@ export const isNamedRule = (spec: ConstraintSpec): spec is NamedRule =>
 export const objectIds = (o: VisualObject): readonly string[] => (o.id ? o.id.split(",") : []);
 
 export const isDefinitionRef = (spec: ConstraintSpec): spec is { use: string; [k: string]: unknown } =>
-    typeof spec === "object" && spec !== null && !Array.isArray(spec) && typeof (spec as { use?: unknown }).use === "string";
+    typeof spec === "object" &&
+    spec !== null &&
+    !Array.isArray(spec) &&
+    typeof (spec as { use?: unknown }).use === "string";
 
 /**
  * A dynamic rule.

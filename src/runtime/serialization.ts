@@ -10,10 +10,7 @@
  */
 
 import { migratePuzzle } from "@/runtime/migrations.ts";
-import {
-    type ConstraintSpec,
-    type PuzzleDefinition,
-} from "@/runtime/puzzle.ts";
+import { type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
 // --- limits ---------------------------------------------------------------
 
@@ -119,12 +116,19 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
         if (!Array.isArray(obj.rules)) return new Error("rules must be an array");
         for (const rule of obj.rules as unknown[]) {
             const r = rule as { when?: unknown; then?: Record<string, unknown> } | null;
-            if (typeof r !== "object" || r === null || !Array.isArray(r.when) || typeof r.then !== "object" || r.then === null) {
+            if (
+                typeof r !== "object" ||
+                r === null ||
+                !Array.isArray(r.when) ||
+                typeof r.then !== "object" ||
+                r.then === null
+            ) {
                 return new Error('each rule needs a "when" expression and a "then" object');
             }
             const known = ["reveal", "appear", "show", "hide", "enable", "disable"];
             for (const [key, refs] of Object.entries(r.then)) {
-                if (!known.includes(key)) return new Error(`unknown rule effect "${key}" (expected ${known.join(", ")})`);
+                if (!known.includes(key))
+                    return new Error(`unknown rule effect "${key}" (expected ${known.join(", ")})`);
                 if (!Array.isArray(refs) || !refs.every((x) => typeof x === "string")) {
                     return new Error(`rule effect "${key}" must be an array of strings`);
                 }
@@ -154,7 +158,9 @@ const checkMetadataText = (meta: Record<string, unknown>): Error | undefined => 
         if (value === undefined) continue;
         if (typeof value !== "string") return new Error(`metadata.${field} must be a string`);
         if (value.length > LIMITS[field]) {
-            return new Error(`metadata.${field} is too long (${value.length} characters, the limit is ${LIMITS[field]})`);
+            return new Error(
+                `metadata.${field} is too long (${value.length} characters, the limit is ${LIMITS[field]})`,
+            );
         }
     }
     const tags = meta.tags;

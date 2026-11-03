@@ -41,7 +41,11 @@ export const MARK_COLOR_COUNT = CUSTOM_COLOR_COUNT + 1;
 
 /** Palette index for a pad or keyboard digit in colour mode (1-9 -> 0-8, 0 -> background). Else undefined. */
 export const markIndexForDigit = (digit: number): number | undefined =>
-    digit === 0 ? BACKGROUND_MARK_INDEX : Number.isInteger(digit) && digit >= 1 && digit <= CUSTOM_COLOR_COUNT ? digit - 1 : undefined;
+    digit === 0
+        ? BACKGROUND_MARK_INDEX
+        : Number.isInteger(digit) && digit >= 1 && digit <= CUSTOM_COLOR_COUNT
+          ? digit - 1
+          : undefined;
 
 /** The colour for mark `index`. An index outside the palette gives undefined. */
 export const resolveMarkColor = (palette: readonly string[], index: number): string | undefined =>
@@ -51,6 +55,8 @@ const HEX = /^#[0-9a-f]{6}$/i;
 
 /** A saved palette is valid only if it has exactly one valid #rrggbb per slot. Else the default is used. */
 export const sanitizePalette = (value: unknown): readonly string[] =>
-    Array.isArray(value) && value.length === CUSTOM_COLOR_COUNT && value.every((c) => typeof c === "string" && HEX.test(c))
+    Array.isArray(value) &&
+    value.length === CUSTOM_COLOR_COUNT &&
+    value.every((c) => typeof c === "string" && HEX.test(c))
         ? (value as string[])
         : DEFAULT_MARK_COLORS;

@@ -92,11 +92,7 @@ describe("arrow definition", () => {
     it("compiles to sum(shaft) == value(bulb)", () => {
         const out = arrow({ bulb: "r1c1", cells: ["r1c2", "r1c3"] }, ctx());
         if (out instanceof Error) throw out;
-        expect(out.constraints[0].expr).toEqual([
-            "==",
-            ["sum", ["cells", ["r1c2", "r1c3"]]],
-            ["value", "r1c1"],
-        ]);
+        expect(out.constraints[0].expr).toEqual(["==", ["sum", ["cells", ["r1c2", "r1c3"]]], ["value", "r1c1"]]);
     });
 
     it("treats a multi-cell bulb as a multi-digit number", () => {
@@ -241,7 +237,15 @@ describe("negative definitions", () => {
     });
 
     it("negativeDifference excludes pairs already carrying an explicit kropki dot", () => {
-        const out = negativeDifference({ excludePairs: [["r1c1", "r1c2"], ["r1c2", "r1c1"]] }, ctx(2, 1));
+        const out = negativeDifference(
+            {
+                excludePairs: [
+                    ["r1c1", "r1c2"],
+                    ["r1c2", "r1c1"],
+                ],
+            },
+            ctx(2, 1),
+        );
         if (out instanceof Error) throw out;
         expect(out.constraints).toHaveLength(0);
     });
@@ -277,7 +281,9 @@ describe("palindrome definition", () => {
     it("pairs cells inward, skipping an odd middle", () => {
         const out = palindrome({ cells: ["r1c1", "r1c2", "r1c3"] }, ctx());
         if (out instanceof Error) throw out;
-        expect(out.constraints).toEqual([{ expr: ["==", ["value", "r1c1"], ["value", "r1c3"]], label: "palindrome r1c1=r1c3" }]);
+        expect(out.constraints).toEqual([
+            { expr: ["==", ["value", "r1c1"], ["value", "r1c3"]], label: "palindrome r1c1=r1c3" },
+        ]);
     });
 
     it("rejects a single-cell line", () => {
@@ -306,8 +312,12 @@ describe("quadruple definition", () => {
         if (out instanceof Error) throw out;
         expect(out.constraints).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ expr: [">=", ["countValue", ["cells", ["r1c1", "r1c2", "r2c1", "r2c2"]], 3], 2] }),
-                expect.objectContaining({ expr: [">=", ["countValue", ["cells", ["r1c1", "r1c2", "r2c1", "r2c2"]], 5], 1] }),
+                expect.objectContaining({
+                    expr: [">=", ["countValue", ["cells", ["r1c1", "r1c2", "r2c1", "r2c2"]], 3], 2],
+                }),
+                expect.objectContaining({
+                    expr: [">=", ["countValue", ["cells", ["r1c1", "r1c2", "r2c1", "r2c2"]], 5], 1],
+                }),
             ]),
         );
     });
@@ -367,7 +377,12 @@ describe("sandwich definition", () => {
         const compileCtx: CompileContext = { geometry, regions: {}, domain: [1, 2, 3] };
         const out = sandwich({ cells: ["r1c1", "r1c2", "r1c3"], sum: 2 }, compileCtx);
         if (out instanceof Error) throw out;
-        const evalCtx = { geometry, regions: {}, domain: [1, 2, 3], valueOf: lookupFromRecord({ r1c1: 1, r1c2: 2, r1c3: 3 }) };
+        const evalCtx = {
+            geometry,
+            regions: {},
+            domain: [1, 2, 3],
+            valueOf: lookupFromRecord({ r1c1: 1, r1c2: 2, r1c3: 3 }),
+        };
         expect(evalPredicate(out.constraints[0].expr, evalCtx)).toBe(true);
     });
 

@@ -107,10 +107,7 @@ const expectArgs = (name: string, args: readonly Expr[], n: number): void => {
 
 // --- ordering helpers ------------------------------------------------------
 
-const orderCheck = (
-    seq: readonly (number | null)[],
-    ok: (a: number, b: number) => boolean,
-): Ternary => {
+const orderCheck = (seq: readonly (number | null)[], ok: (a: number, b: number) => boolean): Ternary => {
     const results: Ternary[] = [];
     for (let i = 0; i + 1 < seq.length; i++) {
         const a = seq[i];
@@ -268,24 +265,14 @@ export const OPERATORS: Readonly<Record<string, OperatorFn>> = {
     },
 };
 
-const arithmetic = (
-    name: string,
-    args: readonly Expr[],
-    ctx: EvalContext,
-    combine: (xs: number[]) => number,
-): Val => {
+const arithmetic = (name: string, args: readonly Expr[], ctx: EvalContext, combine: (xs: number[]) => number): Val => {
     if (args.length === 0) throw new ExpressionError(`${name} expects at least one argument`);
     const scalars = args.map((a) => asScalar(a, ctx));
     if (scalars.some((s) => s === "unknown")) return unknownVal;
     return numVal(combine(scalars as number[]));
 };
 
-const compare = (
-    name: string,
-    args: readonly Expr[],
-    ctx: EvalContext,
-    op: (a: number, b: number) => boolean,
-): Val => {
+const compare = (name: string, args: readonly Expr[], ctx: EvalContext, op: (a: number, b: number) => boolean): Val => {
     expectArgs(name, args, 2);
     const a = asScalar(args[0], ctx);
     const b = asScalar(args[1], ctx);

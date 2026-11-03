@@ -23,7 +23,10 @@ describe("compilePuzzle", () => {
     it("compiles primitive constraints and resolves their cell footprint", () => {
         const result = compilePuzzle({
             ...base,
-            constraints: [["allDifferent", ["cells", "row:0"]], ["<", ["value", "r1c1"], ["value", "r2c1"]]],
+            constraints: [
+                ["allDifferent", ["cells", "row:0"]],
+                ["<", ["value", "r1c1"], ["value", "r2c1"]],
+            ],
         });
         expect(result).not.toBeInstanceOf(Error);
         if (result instanceof Error) return;
@@ -34,10 +37,7 @@ describe("compilePuzzle", () => {
     });
 
     it("expands definition references via the injected registry and merges objects", () => {
-        const result = compilePuzzle(
-            { ...base, constraints: [{ use: "demo", tag: "hello" }] },
-            fakeRegistry,
-        );
+        const result = compilePuzzle({ ...base, constraints: [{ use: "demo", tag: "hello" }] }, fakeRegistry);
         if (result instanceof Error) throw result;
         expect(result.constraints[0].id).toBe("demo#1");
         expect(result.constraints[0].label).toBe("hello");
@@ -71,7 +71,7 @@ describe("compilePuzzle", () => {
         expect((result as Error).message).toMatch(/has the same name as a built-in selector/);
     });
 
-    it("rejects a custom region named \"all\"", () => {
+    it('rejects a custom region named "all"', () => {
         const result = compilePuzzle({ ...base, regions: { all: ["r1c1"] } });
         expect(result).toBeInstanceOf(Error);
     });
@@ -131,10 +131,13 @@ describe("compilePuzzle", () => {
     });
 
     it("tags a constraint's visual objects with its own compiled id", () => {
-        const result = compilePuzzle({
-            ...base,
-            constraints: [{ use: "demo" }],
-        }, fakeRegistry);
+        const result = compilePuzzle(
+            {
+                ...base,
+                constraints: [{ use: "demo" }],
+            },
+            fakeRegistry,
+        );
         expect(result).not.toBeInstanceOf(Error);
         const objects = (result as Exclude<typeof result, Error>).objects;
         expect(objects).toEqual([{ kind: "region", cells: ["r1c1"], id: "demo#1" }]);
@@ -234,8 +237,12 @@ describe("pattern and image styles", () => {
         for (const style of [{ fill: "url(https://evil.test/p.svg#a)" }, { stroke: "URL(//evil.test/p.svg#a)" }]) {
             expect(compilePuzzle(withStyle(style), defs)).toBeInstanceOf(Error);
         }
-        expect(compilePuzzle({ ...base, constraints: [{ use: "demo", color: "url(//evil.test/p.svg#a)" }] }, defs)).toBeInstanceOf(Error);
-        expect(compilePuzzle({ ...base, constraints: [{ use: "demo", color: "var(--x, url(//evil.test/a))" }] }, defs)).toBeInstanceOf(Error);
+        expect(
+            compilePuzzle({ ...base, constraints: [{ use: "demo", color: "url(//evil.test/p.svg#a)" }] }, defs),
+        ).toBeInstanceOf(Error);
+        expect(
+            compilePuzzle({ ...base, constraints: [{ use: "demo", color: "var(--x, url(//evil.test/a))" }] }, defs),
+        ).toBeInstanceOf(Error);
     });
     it("checks the style of objects that the puzzle lists itself", () => {
         const puzzle = (style: Record<string, unknown>) =>

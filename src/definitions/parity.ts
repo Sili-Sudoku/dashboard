@@ -35,7 +35,8 @@ const markerFor = (parity: "odd" | "even", cell: CellId, geometry: Geometry): Vi
     return { kind: "rect", at: { x: c.x - half, y: c.y - half }, w: half * 2, h: half * 2, style: MARKER_STYLE };
 };
 
-const parityDefinition = (parity: "odd" | "even"): ConstraintDefinition =>
+const parityDefinition =
+    (parity: "odd" | "even"): ConstraintDefinition =>
     (params, ctx): DefinitionOutput | Error => {
         const cells = resolveCells(params, ctx);
         if (cells instanceof Error) return new Error(`${parity}: ${cells.message}`);
@@ -58,16 +59,12 @@ export const even = parityDefinition("even");
 
 odd.schema = {
     label: "Odd marker",
-    fields: [
-        { kind: "cells", key: "cells", label: "Cells", min: 1 },
-    ],
+    fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }],
 };
 
 even.schema = {
     label: "Even marker",
-    fields: [
-        { kind: "cells", key: "cells", label: "Cells", min: 1 },
-    ],
+    fields: [{ kind: "cells", key: "cells", label: "Cells", min: 1 }],
 };
 
 odd.rule = "A cell with a grey circle must contain an odd digit.";

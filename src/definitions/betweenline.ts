@@ -25,8 +25,18 @@ export const betweenline: ConstraintDefinition = (params, ctx): DefinitionOutput
 
     const objects: VisualObject[] = [
         { kind: "path", cells, style: { stroke: "var(--betweenline)", strokeWidth: 0.2, opacity: 0.5, z: 1 } },
-        { kind: "circle", at: end0, r: 0.4, style: { stroke: "var(--betweenline)", fill: "none", strokeWidth: 0.04, z: 2 } },
-        { kind: "circle", at: end1, r: 0.4, style: { stroke: "var(--betweenline)", fill: "none", strokeWidth: 0.04, z: 2 } },
+        {
+            kind: "circle",
+            at: end0,
+            r: 0.4,
+            style: { stroke: "var(--betweenline)", fill: "none", strokeWidth: 0.04, z: 2 },
+        },
+        {
+            kind: "circle",
+            at: end1,
+            r: 0.4,
+            style: { stroke: "var(--betweenline)", fill: "none", strokeWidth: 0.04, z: 2 },
+        },
     ];
 
     return {
@@ -39,9 +49,7 @@ export const betweenline: ConstraintDefinition = (params, ctx): DefinitionOutput
 
 betweenline.schema = {
     label: "Between line",
-    fields: [
-        { kind: "cells", key: "cells", label: "Path (endpoints first and last)", min: 3 },
-    ],
+    fields: [{ kind: "cells", key: "cells", label: "Path (endpoints first and last)", min: 3 }],
 };
 
 betweenline.rule = "The digits on a between line must be between the two digits in the circles at its ends.";

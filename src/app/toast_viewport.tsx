@@ -28,7 +28,12 @@ export function ToastViewport() {
                     {t.kind === "error" && <CircleAlert size={16} className="toast-icon" aria-hidden="true" />}
                     {t.kind === "success" && <Check size={16} className="toast-icon" aria-hidden="true" />}
                     <span className="toast-message">{t.message}</span>
-                    <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Dismiss" onClick={() => dismissToast(t.id)}>
+                    <button
+                        type="button"
+                        className="btn btn-ghost btn-icon btn-sm"
+                        aria-label="Dismiss"
+                        onClick={() => dismissToast(t.id)}
+                    >
                         <X size={14} />
                     </button>
                     {/* The countdown drains over the toast's lifetime.

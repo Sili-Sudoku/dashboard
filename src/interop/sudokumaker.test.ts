@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { deflateRaw } from "pako";
-import { encodeSudokuMakerShareLink, exportSudokuMaker, importSudokuMaker, type SudokuMakerExport } from "@/interop/sudokumaker.ts";
+import {
+    encodeSudokuMakerShareLink,
+    exportSudokuMaker,
+    importSudokuMaker,
+    type SudokuMakerExport,
+} from "@/interop/sudokumaker.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -14,7 +19,10 @@ const id = (row: number, col: number) => col + row * 9;
  *  This test does not derive the spec again. */
 const sampleSudokuMaker = (): SudokuMakerExport => {
     const cells = Array.from({ length: 81 }, (_, i) => (i === 0 ? { given: true, value: 5 } : {}));
-    const regions = Array.from({ length: 81 }, (_, i) => Math.floor(Math.floor(i / 9) / 3) * 3 + Math.floor((i % 9) / 3));
+    const regions = Array.from(
+        { length: 81 },
+        (_, i) => Math.floor(Math.floor(i / 9) / 3) * 3 + Math.floor((i % 9) / 3),
+    );
     return {
         formatVersion: "1.6.0",
         puzzle: {
@@ -56,10 +64,17 @@ describe("importSudokuMaker", () => {
         expect(puzzle.geometry).toEqual({ type: "grid", width: 9, height: 9, boxWidth: 3, boxHeight: 3 });
         expect(puzzle.givens).toEqual({ r1c1: 5 });
 
-        const sources = puzzle.constraints
-            .filter((s): s is { use: string } => isDefinitionRef(s))
-            .map((s) => s.use);
-        expect(sources).toEqual(["sudoku", "killer", "thermometer", "arrow", "kropkiDifference", "kropkiRatio", "odd", "even"]);
+        const sources = puzzle.constraints.filter((s): s is { use: string } => isDefinitionRef(s)).map((s) => s.use);
+        expect(sources).toEqual([
+            "sudoku",
+            "killer",
+            "thermometer",
+            "arrow",
+            "kropkiDifference",
+            "kropkiRatio",
+            "odd",
+            "even",
+        ]);
 
         const compiled = compilePuzzle(puzzle, definitions);
         if (compiled instanceof Error) throw compiled;
@@ -229,7 +244,8 @@ describe("a real solvable 4x4 jigsaw round-trips end to end", () => {
         if (compiled instanceof Error) throw compiled;
 
         const solutionRecord: Record<string, number> = {};
-        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) solutionRecord[`r${r + 1}c${c + 1}`] = solutionGrid[r][c];
+        for (let r = 0; r < 4; r++)
+            for (let c = 0; c < 4; c++) solutionRecord[`r${r + 1}c${c + 1}`] = solutionGrid[r][c];
         const outcome = evaluate(compiled, lookupFromRecord(solutionRecord));
         expect(outcome.status).toBe("valid");
         expect(outcome.complete).toBe(true);
@@ -238,7 +254,10 @@ describe("a real solvable 4x4 jigsaw round-trips end to end", () => {
 
 describe("limits on outside data", () => {
     const toBase64Url = (bytes: Uint8Array) =>
-        btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        btoa(String.fromCharCode(...bytes))
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
 
     it("stops a deflate bomb at the output limit", () => {
         // 50 MB of one character is about 50 KB when compressed.

@@ -39,7 +39,9 @@ export default function ConstraintPanel({ evaluation, description, selection }: 
     const matched = useMemo(() => {
         if (!open || !selection || selection.size === 0) return new Set<string>();
         return new Set(
-            evaluation.constraints.filter((c) => [...selection].every((cell) => c.cells.includes(cell))).map((c) => c.id),
+            evaluation.constraints
+                .filter((c) => [...selection].every((cell) => c.cells.includes(cell)))
+                .map((c) => c.id),
         );
     }, [open, evaluation, selection]);
     // Collapse per group, independent of the panel-level toggle above.

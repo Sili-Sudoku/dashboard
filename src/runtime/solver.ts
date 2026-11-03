@@ -168,7 +168,11 @@ const yieldToEventLoop = (): Promise<void> => {
 };
 
 /** Each oracle call goes through here, so the budgets limit the wall-clock work. */
-const probe = (state: SearchState, baseline: EvaluationResult, changed: readonly CellId[]): EvaluationResult | undefined => {
+const probe = (
+    state: SearchState,
+    baseline: EvaluationResult,
+    changed: readonly CellId[],
+): EvaluationResult | undefined => {
     if (state.truncated) return undefined;
     state.probes++;
     if (state.probes > state.maxProbes || performance.now() > state.deadline) {

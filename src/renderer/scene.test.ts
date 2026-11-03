@@ -10,7 +10,11 @@ const geo = createGeometry({ type: "grid", width: 9, height: 9 });
 
 describe("pattern and image fills", () => {
     it("carries the pattern and sizes it by the cell", () => {
-        const [shape] = describeObject({ kind: "rect", at: "r1c1", w: 1, h: 1, style: { pattern: "dots" } } as never, geo, 20);
+        const [shape] = describeObject(
+            { kind: "rect", at: "r1c1", w: 1, h: 1, style: { pattern: "dots" } } as never,
+            geo,
+            20,
+        );
         expect(shape.style).toMatchObject({ pattern: "dots", unit: 20 });
     });
     it("fits a picture to the whole object, not each shape", () => {
@@ -34,43 +38,85 @@ describe("scene geometry", () => {
 
     it("describes a path as a scaled polyline through cell centres", () => {
         const [shape] = describeObject({ kind: "path", cells: ["r1c1", "r1c2"] }, geo, 10);
-        expect(shape).toMatchObject({ kind: "polyline", points: [{ x: 5, y: 5 }, { x: 15, y: 5 }] });
+        expect(shape).toMatchObject({
+            kind: "polyline",
+            points: [
+                { x: 5, y: 5 },
+                { x: 15, y: 5 },
+            ],
+        });
     });
 
     it("trims a line's ends along its length, and puts the arrowhead on the trimmed end", () => {
         const shapes = describeObject(
-            { kind: "line", points: [{ x: 0, y: 0 }, { x: 4, y: 0 }], arrow: true, trim: { start: 1, end: 0.5 } },
+            {
+                kind: "line",
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 4, y: 0 },
+                ],
+                arrow: true,
+                trim: { start: 1, end: 0.5 },
+            },
             geo,
             10,
         );
-        expect(shapes[0]).toMatchObject({ kind: "polyline", points: [{ x: 10, y: 0 }, { x: 35, y: 0 }] });
+        expect(shapes[0]).toMatchObject({
+            kind: "polyline",
+            points: [
+                { x: 10, y: 0 },
+                { x: 35, y: 0 },
+            ],
+        });
         expect(shapes[1]).toMatchObject({ kind: "arrowhead", at: { x: 35, y: 0 } });
     });
 
     it("trims across a bend, keeping the interior vertices", () => {
         const [shape] = describeObject(
-            { kind: "line", points: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 }], trim: { start: 0.5, end: 0.5 } },
+            {
+                kind: "line",
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 2, y: 0 },
+                    { x: 2, y: 2 },
+                ],
+                trim: { start: 0.5, end: 0.5 },
+            },
             geo,
             10,
         );
-        expect(shape).toMatchObject({ points: [{ x: 5, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 15 }] });
+        expect(shape).toMatchObject({
+            points: [
+                { x: 5, y: 0 },
+                { x: 20, y: 0 },
+                { x: 20, y: 15 },
+            ],
+        });
     });
 
     it("leaves a line alone when there is not enough of it to trim", () => {
         const [shape] = describeObject(
-            { kind: "line", points: [{ x: 0, y: 0 }, { x: 0.5, y: 0 }], trim: { start: 0.4, end: 0.3 } },
+            {
+                kind: "line",
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 0.5, y: 0 },
+                ],
+                trim: { start: 0.4, end: 0.3 },
+            },
             geo,
             10,
         );
-        expect(shape).toMatchObject({ points: [{ x: 0, y: 0 }, { x: 5, y: 0 }] });
+        expect(shape).toMatchObject({
+            points: [
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+            ],
+        });
     });
 
     it("adds an arrowhead shape for an arrow line", () => {
-        const shapes = describeObject(
-            { kind: "line", points: ["r1c1", "r1c3"], arrow: true },
-            geo,
-            10,
-        );
+        const shapes = describeObject({ kind: "line", points: ["r1c1", "r1c3"], arrow: true }, geo, 10);
         expect(shapes.map((s) => s.kind)).toEqual(["polyline", "arrowhead"]);
     });
 
@@ -223,7 +269,10 @@ describe("buildScene", () => {
                 ...over,
             });
         const same = (scene: ReturnType<typeof buildScene>) =>
-            scene.cells.filter((c) => c.sameValue).map((c) => c.cell).sort();
+            scene.cells
+                .filter((c) => c.sameValue)
+                .map((c) => c.cell)
+                .sort();
 
         it("flags every other cell sharing the cursor cell's value, not the cursor itself", () => {
             expect(same(build())).toEqual(["r4c4", "r7c9"]);
@@ -239,7 +288,9 @@ describe("buildScene", () => {
         });
 
         it("never flags a fog-hidden cell, and gives nothing away when the cursor itself is hidden", () => {
-            expect(same(build({ hiddenCells: new Set(["r4c4"]) }, (c) => (c === "r4c4" ? null : at(c))))).toEqual(["r7c9"]);
+            expect(same(build({ hiddenCells: new Set(["r4c4"]) }, (c) => (c === "r4c4" ? null : at(c))))).toEqual([
+                "r7c9",
+            ]);
             expect(same(build({ hiddenCells: new Set(["r1c1"]) }, (c) => (c === "r1c1" ? null : at(c))))).toEqual([]);
         });
 
@@ -517,7 +568,13 @@ describe("pen layer shapes", () => {
         const scene = build({ segments: ["1,1|2,1"], marks: {} });
         // cell size 64: lattice (1,1) is the centre of the first cell, (2,1) the middle of its right edge
         expect(scene.pen).toHaveLength(1);
-        expect(scene.pen[0]).toMatchObject({ kind: "polyline", points: [{ x: 32, y: 32 }, { x: 64, y: 32 }] });
+        expect(scene.pen[0]).toMatchObject({
+            kind: "polyline",
+            points: [
+                { x: 32, y: 32 },
+                { x: 64, y: 32 },
+            ],
+        });
     });
 
     it("draws an X as two crossing strokes and an O as a ring", () => {
@@ -529,7 +586,10 @@ describe("pen layer shapes", () => {
         const scene = build({ segments: [], marks: { "1,1": "x", "3,1": "o" } });
         const half = 64 / 2;
         const [first, second, ring] = scene.pen;
-        const cross = [...(first as { points: { x: number; y: number }[] }).points, ...(second as { points: { x: number; y: number }[] }).points];
+        const cross = [
+            ...(first as { points: { x: number; y: number }[] }).points,
+            ...(second as { points: { x: number; y: number }[] }).points,
+        ];
         for (const p of cross) {
             expect(Math.abs(p.x - 32)).toBeLessThan(half - 5);
             expect(Math.abs(p.y - 32)).toBeLessThan(half - 5);

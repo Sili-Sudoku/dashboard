@@ -66,10 +66,7 @@ export default function Play() {
 
     if (!compiled || !definition) return null;
 
-    const jsonText =
-        jsonView === "compiled"
-            ? JSON.stringify(compiled, null, 2)
-            : JSON.stringify(definition, null, 2);
+    const jsonText = jsonView === "compiled" ? JSON.stringify(compiled, null, 2) : JSON.stringify(definition, null, 2);
 
     // Nothing here is part of solving, so the header has one menu, not two buttons.
     const actions = (
@@ -112,10 +109,19 @@ export default function Play() {
                                 </button>
                             </div>
                             <div className="pj-bar-right">
-                                <button className="btn btn-sm" onClick={() => copyText(jsonText, setCopied)} title="Copy JSON">
+                                <button
+                                    className="btn btn-sm"
+                                    onClick={() => copyText(jsonText, setCopied)}
+                                    title="Copy JSON"
+                                >
                                     <Copy size={14} /> {copied ? "Copied" : "Copy"}
                                 </button>
-                                <button className="btn btn-sm" onClick={() => setJsonView("off")} title="Close" aria-label="Close">
+                                <button
+                                    className="btn btn-sm"
+                                    onClick={() => setJsonView("off")}
+                                    title="Close"
+                                    aria-label="Close"
+                                >
                                     <X size={14} />
                                 </button>
                             </div>

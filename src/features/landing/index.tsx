@@ -12,10 +12,9 @@ export default function Landing() {
                         Every variant is <em>data.</em>
                     </h1>
                     <p className="lp-lede">
-                        Thermometers, killer cages, arrows, and kropki dots are common puzzle constraints.
-                        This engine does not build any of them in directly. Instead, each one exists as a
-                        small, swappable definition. That definition runs on the same solver and board as
-                        every other constraint.
+                        Thermometers, killer cages, arrows, and kropki dots are common puzzle constraints. This engine
+                        does not build any of them in directly. Instead, each one exists as a small, swappable
+                        definition. That definition runs on the same solver and board as every other constraint.
                     </p>
                     <div className="lp-ctas">
                         <Link to="/puzzles" className="btn btn-primary lp-btn">
@@ -33,10 +32,24 @@ export default function Landing() {
                     <svg className="lp-sheet lp-sheet-front" viewBox="0 0 240 240" role="presentation">
                         <rect x="1" y="1" width="238" height="238" rx="4" className="lp-grid-paper" />
                         {Array.from({ length: 5 }, (_, i) => (
-                            <line key={`v${i}`} x1={20 + i * 50} y1="20" x2={20 + i * 50} y2="220" className="lp-grid-line" />
+                            <line
+                                key={`v${i}`}
+                                x1={20 + i * 50}
+                                y1="20"
+                                x2={20 + i * 50}
+                                y2="220"
+                                className="lp-grid-line"
+                            />
                         ))}
                         {Array.from({ length: 5 }, (_, i) => (
-                            <line key={`h${i}`} x1="20" y1={20 + i * 50} x2="220" y2={20 + i * 50} className="lp-grid-line" />
+                            <line
+                                key={`h${i}`}
+                                x1="20"
+                                y1={20 + i * 50}
+                                x2="220"
+                                y2={20 + i * 50}
+                                className="lp-grid-line"
+                            />
                         ))}
 
                         {/* cage */}
@@ -49,11 +62,21 @@ export default function Landing() {
                         {/* kropki dot between two cells */}
                         <circle cx="120" cy="120" r="5" className="lp-kropki" />
 
-                        <text x="45" y="52" className="lp-digit">3</text>
-                        <text x="95" y="52" className="lp-digit">7</text>
-                        <text x="195" y="100" className="lp-digit">1</text>
-                        <text x="195" y="200" className="lp-digit">9</text>
-                        <text x="45" y="200" className="lp-digit">5</text>
+                        <text x="45" y="52" className="lp-digit">
+                            3
+                        </text>
+                        <text x="95" y="52" className="lp-digit">
+                            7
+                        </text>
+                        <text x="195" y="100" className="lp-digit">
+                            1
+                        </text>
+                        <text x="195" y="200" className="lp-digit">
+                            9
+                        </text>
+                        <text x="45" y="200" className="lp-digit">
+                            5
+                        </text>
                     </svg>
                 </div>
             </section>
@@ -63,29 +86,27 @@ export default function Landing() {
                     <span className="lp-num">01</span>
                     <h2>Variants are not hardcoded</h2>
                     <p>
-                        A thermometer is not a hardcoded feature. It is a constraint, defined the same way as
-                        any other variant. Because each constraint is a plain definition, you can customize one
-                        or create a new one yourself. That same definition is easy to share with other puzzle
-                        makers.
+                        A thermometer is not a hardcoded feature. It is a constraint, defined the same way as any other
+                        variant. Because each constraint is a plain definition, you can customize one or create a new
+                        one yourself. That same definition is easy to share with other puzzle makers.
                     </p>
                 </article>
                 <article>
                     <span className="lp-num">02</span>
                     <h2>Import your puzzle</h2>
                     <p>
-                        You can import a puzzle that you made in f-puzzles or SudokuMaker, and share it with
-                        the community here. The same path works in reverse: you can create a puzzle here and
-                        export it to SudokuPad. Because both directions are open, you control when to import
-                        or export your puzzle.
+                        You can import a puzzle that you made in f-puzzles or SudokuMaker, and share it with the
+                        community here. The same path works in reverse: you can create a puzzle here and export it to
+                        SudokuPad. Because both directions are open, you control when to import or export your puzzle.
                     </p>
                 </article>
                 <article>
                     <span className="lp-num">03</span>
                     <h2>Authoring options</h2>
                     <p>
-                        You can create a puzzle in three ways: edit a JSON file, use the visual drag-and-drop
-                        editor, or write code directly. Each method produces the same definition, so you can
-                        choose whichever fits your workflow.
+                        You can create a puzzle in three ways: edit a JSON file, use the visual drag-and-drop editor, or
+                        write code directly. Each method produces the same definition, so you can choose whichever fits
+                        your workflow.
                     </p>
                 </article>
             </section>

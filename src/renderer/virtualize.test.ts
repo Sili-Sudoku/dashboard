@@ -43,11 +43,27 @@ describe("cellInViewport", () => {
 
 describe("lineInViewport", () => {
     it("is true for a vertical line crossing the viewport", () => {
-        expect(lineInViewport([{ x: 150, y: 0 }, { x: 150, y: 1000 }], viewport)).toBe(true);
+        expect(
+            lineInViewport(
+                [
+                    { x: 150, y: 0 },
+                    { x: 150, y: 1000 },
+                ],
+                viewport,
+            ),
+        ).toBe(true);
     });
 
     it("is false for a vertical line entirely to the left of the viewport", () => {
-        expect(lineInViewport([{ x: 10, y: 0 }, { x: 10, y: 1000 }], viewport)).toBe(false);
+        expect(
+            lineInViewport(
+                [
+                    { x: 10, y: 0 },
+                    { x: 10, y: 1000 },
+                ],
+                viewport,
+            ),
+        ).toBe(false);
     });
 });
 
@@ -70,7 +86,11 @@ describe("shapeInViewport", () => {
     it("polyline: true when any segment crosses the viewport", () => {
         const shape: Shape = {
             kind: "polyline",
-            points: [{ x: 0, y: 0 }, { x: 150, y: 150 }, { x: 5000, y: 5000 }],
+            points: [
+                { x: 0, y: 0 },
+                { x: 150, y: 150 },
+                { x: 5000, y: 5000 },
+            ],
             style: dummyStyle(),
             rounded: false,
         };
@@ -87,7 +107,12 @@ describe("shapeInViewport", () => {
     it("cage: true when any segment endpoint falls within range", () => {
         const shape: Shape = {
             kind: "cage",
-            segments: [[{ x: 9000, y: 9000 }, { x: 150, y: 150 }]],
+            segments: [
+                [
+                    { x: 9000, y: 9000 },
+                    { x: 150, y: 150 },
+                ],
+            ],
             style: dummyStyle(),
         };
         expect(shapeInViewport(shape, viewport)).toBe(true);

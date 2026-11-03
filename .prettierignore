@@ -1,0 +1,8 @@
+dist
+coverage
+node_modules
+package-lock.json
+# Frozen puzzle files: they must stay as the app wrote them.
+src/runtime/fixtures
+# Written text: the line breaks follow the writing style, not the formatter.
+*.md

@@ -6,7 +6,12 @@
  * The line is short and fixed at compile time, so the pair count is small.
  */
 
-import { requireCellList, requireNumber, type ConstraintDefinition, type DefinitionOutput } from "@/definitions/types.ts";
+import {
+    requireCellList,
+    requireNumber,
+    type ConstraintDefinition,
+    type DefinitionOutput,
+} from "@/definitions/types.ts";
 import type { Expr } from "@/runtime/expression.ts";
 
 export const sandwich: ConstraintDefinition = (params, ctx): DefinitionOutput | Error => {
@@ -59,4 +64,5 @@ sandwich.schema = {
     ],
 };
 
-sandwich.rule = "The digits between the lowest digit and the highest digit in a row or column must add up to the number outside the grid.";
+sandwich.rule =
+    "The digits between the lowest digit and the highest digit in a row or column must add up to the number outside the grid.";

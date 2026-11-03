@@ -21,7 +21,8 @@ export default function Settings() {
                         <div className="settings-row-title">Style</div>
                         <div className="settings-row-desc">
                             The look of the app. Slate, Sage and Plum change the colors of the paper. Classic uses the
-                            fonts of your system, white and black, and plain buttons. Use the sun or moon button in the header to switch between light and dark.
+                            fonts of your system, white and black, and plain buttons. Use the sun or moon button in the
+                            header to switch between light and dark.
                         </div>
                         <div className="settings-choice" role="group" aria-label="Style">
                             {PALETTES.map((p) => (
@@ -73,8 +74,8 @@ export default function Settings() {
                     <div>
                         <div className="settings-row-title">Dock the control panel at the bottom</div>
                         <div className="settings-row-desc">
-                            Put the number pad and controls at the bottom of the window, not the top. This is
-                            closer to your thumb on a tablet. On a narrow window, the panel is always below the board.
+                            Put the number pad and controls at the bottom of the window, not the top. This is closer to
+                            your thumb on a tablet. On a narrow window, the panel is always below the board.
                         </div>
                     </div>
                     <input

@@ -94,7 +94,9 @@ export function OverflowMenu({ label, items, align = "end", up = false, text, qu
             e.stopPropagation();
             close(true);
         } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-            const entries = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled])')];
+            const entries = [
+                ...e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled])'),
+            ];
             if (entries.length === 0) return;
             e.preventDefault();
             const at = entries.indexOf(document.activeElement as HTMLElement);

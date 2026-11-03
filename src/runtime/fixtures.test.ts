@@ -54,7 +54,10 @@ describe("puzzle fixtures of every format version", () => {
         if (puzzle instanceof Error) throw puzzle;
         const used = new Set(puzzle.constraints.map((c) => (isDefinitionRef(c) ? c.use : undefined)));
         for (const name of Object.keys(definitions)) expect(used.has(name), `showcase lacks "${name}"`).toBe(true);
-        expect(puzzle.constraints.some((c) => Array.isArray(c)), "a bare primitive constraint").toBe(true);
+        expect(
+            puzzle.constraints.some((c) => Array.isArray(c)),
+            "a bare primitive constraint",
+        ).toBe(true);
         expect(puzzle.constraints.some(isNamedRule), "a named rule").toBe(true);
         for (const key of ["regions", "givens", "rules", "objects"] as const) expect(puzzle[key], key).toBeDefined();
         expect(puzzle.presentation?.theme, "presentation.theme").toBeDefined();
@@ -67,7 +70,13 @@ describe("puzzle fixtures of every format version", () => {
             .filter((e) => e.name.endsWith(".json"))
             .map((e) => parsePuzzle(e.text))
             .map((p) => (p instanceof Error ? undefined : p));
-        expect(kinds.some((p) => p?.fog && p.solution), "fog with a solution").toBe(true);
-        expect(kinds.some((p) => p?.geometry.type === "composite"), "composite geometry").toBe(true);
+        expect(
+            kinds.some((p) => p?.fog && p.solution),
+            "fog with a solution",
+        ).toBe(true);
+        expect(
+            kinds.some((p) => p?.geometry.type === "composite"),
+            "composite geometry",
+        ).toBe(true);
     });
 });

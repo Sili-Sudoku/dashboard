@@ -434,7 +434,9 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
         if (probeGeometry?.resolveRegion("box:0")) {
             constraints.push({ use: "disjointgroups" });
         } else {
-            warnings.push("disjointgroups: the grid has no uniform box layout to pair positions across. The importer omits it");
+            warnings.push(
+                "disjointgroups: the grid has no uniform box layout to pair positions across. The importer omits it",
+            );
         }
     }
 
@@ -501,7 +503,11 @@ export const importFPuzzles = (input: unknown): ImportResult | Error => {
             }
             explicitPairs.push(cells);
             const value = typeof clue.value === "string" ? Number(clue.value) : clue.value;
-            constraints.push({ use, cells, ...(typeof value === "number" && Number.isFinite(value) && value > 0 ? { value } : {}) });
+            constraints.push({
+                use,
+                cells,
+                ...(typeof value === "number" && Number.isFinite(value) && value > 0 ? { value } : {}),
+            });
         }
     };
     importDot("kropkiDifference", src.difference as FPuzzlesCellsClue[] | undefined, explicitDifferencePairs);
@@ -754,7 +760,9 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
 
     for (const spec of def.constraints) {
         if (!isDefinitionRef(spec)) {
-            warnings.push("f-puzzles export cannot represent a hand-written primitive constraint. The exporter drops it");
+            warnings.push(
+                "f-puzzles export cannot represent a hand-written primitive constraint. The exporter drops it",
+            );
             continue;
         }
         const { use, ...params } = spec;
@@ -770,7 +778,11 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
                     );
                     continue;
                 }
-                littlekillersumClues.push({ cell: anchor.cell, direction: anchor.direction, value: String(params.sum) });
+                littlekillersumClues.push({
+                    cell: anchor.cell,
+                    direction: anchor.direction,
+                    value: String(params.sum),
+                });
                 continue;
             }
             const cells = exportCells(params.cells as CellId[]);
@@ -788,7 +800,11 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             thermometer.push({ lines: [cells] });
         } else if (use === "arrow") {
             const bulbRaw = params.bulb;
-            const bulbCells = Array.isArray(bulbRaw) ? (bulbRaw as CellId[]) : typeof bulbRaw === "string" ? [bulbRaw] : [];
+            const bulbCells = Array.isArray(bulbRaw)
+                ? (bulbRaw as CellId[])
+                : typeof bulbRaw === "string"
+                  ? [bulbRaw]
+                  : [];
             const bulb = exportCells(bulbCells);
             const shaft = exportCells(params.cells as CellId[]);
             if (!bulb || !shaft) {
@@ -807,7 +823,12 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const value = typeof params.value === "number" ? String(params.value) : undefined;
             (use === "kropkiDifference" ? difference : ratio).push({ cells, ...(value ? { value } : {}) });
         } else if (use === "odd" || use === "even") {
-            const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
+            const raw =
+                typeof params.cell === "string"
+                    ? params.cell
+                    : Array.isArray(params.cells)
+                      ? params.cells[0]
+                      : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {
                 warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
@@ -815,7 +836,12 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             }
             (use === "odd" ? odd : even).push({ cell });
         } else if (use === "minimum" || use === "maximum") {
-            const raw = typeof params.cell === "string" ? params.cell : Array.isArray(params.cells) ? params.cells[0] : undefined;
+            const raw =
+                typeof params.cell === "string"
+                    ? params.cell
+                    : Array.isArray(params.cells)
+                      ? params.cells[0]
+                      : undefined;
             const cell = typeof raw === "string" ? toFPuzzlesCell(raw) : undefined;
             if (!cell) {
                 warnings.push(`the exporter skipped a ${use} marker with a non-grid cell id`);
@@ -854,7 +880,9 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cells = exportCells(params.cells as CellId[]);
             const marker = params.target === 10 ? "X" : params.target === 5 ? "V" : undefined;
             if (!cells || !marker) {
-                warnings.push("the exporter skipped an xv marker with a non-grid cell id or a target it cannot represent");
+                warnings.push(
+                    "the exporter skipped an xv marker with a non-grid cell id or a target it cannot represent",
+                );
                 continue;
             }
             xvClues.push({ cells, value: marker });
@@ -862,7 +890,9 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
             const cellsParam = params.cells as CellId[];
             const anchor = sandwichAnchor(cellsParam, size);
             if (!anchor || typeof params.sum !== "number") {
-                warnings.push("the exporter skipped a sandwich with cells that are not a full row or column, or with no sum");
+                warnings.push(
+                    "the exporter skipped a sandwich with cells that are not a full row or column, or with no sum",
+                );
                 continue;
             }
             sandwichsumClues.push({ cell: anchor, value: String(params.sum) });
@@ -876,7 +906,9 @@ export const exportFPuzzles = (def: PuzzleDefinition): ExportResult | Error => {
         } else if (use === "negativeDifference" || use === "negativeRatio" || use === "negativeXV") {
             negativeKinds.add(use === "negativeDifference" ? "difference" : use === "negativeRatio" ? "ratio" : "xv");
         } else {
-            warnings.push(`f-puzzles export cannot represent the constraint that uses definition "${use}". The exporter drops it`);
+            warnings.push(
+                `f-puzzles export cannot represent the constraint that uses definition "${use}". The exporter drops it`,
+            );
         }
     }
 

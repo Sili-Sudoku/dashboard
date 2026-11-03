@@ -61,10 +61,22 @@ describe("evaluate", () => {
 
     it("reports completion only when every cell is filled and every constraint satisfied", () => {
         const full: Record<CellId, number> = {
-            r1c1: 1, r1c2: 2, r1c3: 3, r1c4: 4,
-            r2c1: 4, r2c2: 3, r2c3: 2, r2c4: 1,
-            r3c1: 2, r3c2: 1, r3c3: 4, r3c4: 3,
-            r4c1: 3, r4c2: 4, r4c3: 1, r4c4: 2,
+            r1c1: 1,
+            r1c2: 2,
+            r1c3: 3,
+            r1c4: 4,
+            r2c1: 4,
+            r2c2: 3,
+            r2c3: 2,
+            r2c4: 1,
+            r3c1: 2,
+            r3c2: 1,
+            r3c3: 4,
+            r3c4: 3,
+            r4c1: 3,
+            r4c2: 4,
+            r4c3: 1,
+            r4c4: 2,
         };
         const result = evaluate(puzzle, lookupFromRecord(full));
         expect(result.filledCount).toBe(16);

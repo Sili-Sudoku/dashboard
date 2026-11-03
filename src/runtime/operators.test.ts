@@ -13,21 +13,26 @@ describe("primitive operators", () => {
         it("cells resolves selectors, named regions and explicit lists", () => {
             expect(run(["cells", "row:0"])).toEqual({ t: "cells", v: expect.any(Array) });
             expect(run(["cells", ["r1c1", "r1c2"]])).toEqual({ t: "cells", v: ["r1c1", "r1c2"] });
-            expect(
-                run(["cells", "cage:A"], { regions: { "cage:A": ["r5c5", "r5c6"] } }),
-            ).toEqual({ t: "cells", v: ["r5c5", "r5c6"] });
+            expect(run(["cells", "cage:A"], { regions: { "cage:A": ["r5c5", "r5c6"] } })).toEqual({
+                t: "cells",
+                v: ["r5c5", "r5c6"],
+            });
         });
 
         it("values returns a nullable list preserving empties", () => {
-            expect(
-                run(["values", ["r1c1", "r1c2", "r1c3"]], { values: { r1c1: 1, r1c3: 3 } }),
-            ).toEqual({ t: "nums", v: [1, null, 3] });
+            expect(run(["values", ["r1c1", "r1c2", "r1c3"]], { values: { r1c1: 1, r1c3: 3 } })).toEqual({
+                t: "nums",
+                v: [1, null, 3],
+            });
         });
     });
 
     describe("arithmetic", () => {
         it("sums a group, unknown until every cell is filled", () => {
-            expect(run(["sum", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 4, r1c2: 5 } })).toEqual({ t: "num", v: 9 });
+            expect(run(["sum", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 4, r1c2: 5 } })).toEqual({
+                t: "num",
+                v: 9,
+            });
             expect(run(["sum", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 4 } })).toEqual({ t: "unknown" });
         });
 
@@ -63,7 +68,9 @@ describe("primitive operators", () => {
                 t: "bool",
                 v: false,
             });
-            expect(run(["allDifferent", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 3 } })).toEqual({ t: "unknown" });
+            expect(run(["allDifferent", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 3 } })).toEqual({
+                t: "unknown",
+            });
             expect(run(["allDifferent", ["cells", ["r1c1", "r1c2"]]], { values: { r1c1: 3, r1c2: 4 } })).toEqual({
                 t: "bool",
                 v: true,
