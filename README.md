@@ -62,6 +62,7 @@ notes, undo/redo    satisfied /          (polyline, circle, cage,
 - [`docs/DESIGN.md`](docs/DESIGN.md): the visual identity. It lists which
   parts use the warm "ink & paper" look, which parts keep the original theme,
   and why.
+- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md): the rules for commits.
 
 ## URL sharing
 
