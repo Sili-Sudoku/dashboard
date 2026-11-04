@@ -20,7 +20,7 @@ describe("useSettings", () => {
             dockControlsBottom: false,
             constraintPanelOpen: true,
             hotkeyLegendOpen: false,
-            authorEditorMode: "json",
+            authorEditorMode: "visual",
             builderTools: [],
         });
     });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -7,6 +7,11 @@ import Author from "@/features/author/index.tsx";
 import { demoMixed } from "@/puzzles/index.ts";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
+
+// Most tests here work in the JSON box. A new visitor sees the Visual tab (see the test of the default below).
+beforeEach(() => {
+    localStorage.setItem("cpr:settings", JSON.stringify({ authorEditorMode: "json" }));
+});
 
 afterEach(() => {
     cleanup();
@@ -263,6 +268,17 @@ describe("Author", () => {
             </MemoryRouter>,
         );
         expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["JSON", "Visual"]);
+    });
+
+    it("opens on the Visual tab for a new visitor, not on the raw JSON", () => {
+        localStorage.clear();
+        const { container } = render(
+            <MemoryRouter>
+                <Author />
+            </MemoryRouter>,
+        );
+        expect(screen.getByRole("tab", { name: "Visual" }).getAttribute("aria-selected")).toBe("true");
+        expect(container.querySelector("textarea")).toBeNull();
     });
 
     it("opens the JSON tab when an older release saved the removed Code tab", () => {

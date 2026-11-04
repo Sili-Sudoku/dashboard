@@ -46,7 +46,7 @@ const DEFAULT_SETTINGS: Settings = {
     dockControlsBottom: false,
     constraintPanelOpen: true,
     hotkeyLegendOpen: false,
-    authorEditorMode: "json",
+    authorEditorMode: "visual",
     builderTools: [],
 };
 
@@ -66,11 +66,12 @@ export const getSettings = (): Settings => {
         const stored = { ...DEFAULT_SETTINGS, ...(saved as Partial<Settings>) };
         // A hand-edited or older blob must never give the board a malformed palette.
         const tools: unknown = stored.builderTools;
+        const editorMode: string = stored.authorEditorMode;
         return {
             ...stored,
             markColors: sanitizePalette(stored.markColors),
-            // An older release also had a "code" tab. A save may still name it.
-            authorEditorMode: stored.authorEditorMode === "visual" ? "visual" : "json",
+            // An older release also had a "code" tab. A save may still name it. It opens the JSON tab.
+            authorEditorMode: editorMode === "json" || editorMode === "code" ? "json" : "visual",
             builderTools: Array.isArray(tools) ? tools.filter((t): t is string => typeof t === "string") : [],
         };
     } catch {
