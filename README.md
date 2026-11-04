@@ -12,6 +12,8 @@ primitive constraints still load, evaluate, render, and play.
 
 ## Quickstart
 
+You need Node.js 24 or newer.
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173
@@ -22,6 +24,15 @@ npm run lint
 
 Open the **"Four Systems, One Grid"** puzzle. It has a classic Sudoku, a killer
 cage, a thermometer, and an arrow on one board. The engine knows none of them.
+
+## Known limitations
+
+- Everything is stored in your browser (localStorage). There are no accounts, no sync between devices, and no puzzle
+  sharing beyond links that contain the whole puzzle.
+- Only a few puzzles are bundled.
+- Only Chromium has been tested. Firefox, Safari, iOS, and real touch devices are not checked yet.
+- Imports from other tools cover the common rules, but how faithfully has not been measured yet. Penpa+ is not supported.
+- The solver can be slow on very hard or very large puzzles.
 
 ## How it fits together
 

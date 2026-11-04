@@ -4,6 +4,9 @@
   "license": "BUSL-1.1",
   "type": "module",
   "description": "A generic constraint runtime for Sudoku and variant-Sudoku puzzles. Puzzle types are definitions, not engine features.",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
