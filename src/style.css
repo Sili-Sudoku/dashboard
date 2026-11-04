@@ -374,6 +374,25 @@
 }
 
 /* Visible to assistive technology, invisible on screen. */
+/* Hidden until it has focus, then it drops in over the header. */
+.skip-link {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 1100;
+    transform: translateY(-300%);
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    transform: none;
+}
+
+/* The target of the skip link has no ring of its own: only the next Tab shows where focus is. */
+#main:focus {
+    outline: none;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

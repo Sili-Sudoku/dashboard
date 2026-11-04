@@ -67,6 +67,18 @@ export default function AppRouter() {
         <PageActionsContext.Provider value={actionsSlot}>
             <PageHeaderContext.Provider value={setPageHeader}>
                 <div className={`app${isBoardRoute ? " app--board" : ""}`}>
+                    {/* The first stop in the tab order. It saves a keyboard user the six stops of the header. */}
+                    <a
+                        href="#main"
+                        className="skip-link btn"
+                        onClick={(e) => {
+                            // A hash link would change the URL, and the router would treat that as navigation.
+                            e.preventDefault();
+                            document.getElementById("main")?.focus();
+                        }}
+                    >
+                        Skip to content
+                    </a>
                     <header className="app-header">
                         <div className="app-header-title">
                             <Link to="/" className="logo">
@@ -127,6 +139,8 @@ export default function AppRouter() {
                     </header>
 
                     <main
+                        id="main"
+                        tabIndex={-1}
                         className={`app-main${isBoardRoute ? " app-main--board" : ""}${
                             isLandingRoute ? " app-main--landing" : ""
                         }`}

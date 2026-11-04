@@ -68,3 +68,10 @@ describe("Play — a puzzle that cannot be opened", () => {
         expect(screen.getByRole("link", { name: /browse puzzles/i }).getAttribute("href")).toBe("/puzzles");
     });
 });
+
+describe("Play — keyboard access", () => {
+    it("focuses the board on load, so digits work without a click", () => {
+        const { container } = renderAt("/p/whisper-line");
+        expect(document.activeElement).toBe(container.querySelector(".board"));
+    });
+});

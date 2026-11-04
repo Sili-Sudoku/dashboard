@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
 import { Braces, Copy, Share2, X } from "lucide-react";
@@ -48,6 +48,13 @@ export default function Play() {
         definition?.metadata.author ? `by ${definition.metadata.author}` : undefined,
     );
     const actionsSlot = usePageActionsSlot();
+
+    // Focus the board, so the keys work at once (digits, arrows) without a click first.
+    // The Author page also shows a player, but there the user is busy in other fields, so only Play does this.
+    const hasBoard = Boolean(compiled);
+    useEffect(() => {
+        if (hasBoard) document.querySelector<SVGElement>(".play .board")?.focus({ preventScroll: true });
+    }, [hasBoard, ref]);
 
     const share = async () => {
         if (!definition) return;

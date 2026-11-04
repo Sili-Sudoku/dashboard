@@ -111,3 +111,18 @@ describe("AppRouter — document title", () => {
         expect(document.title).toBe("Author a puzzle · Constraint Puzzle Runtime");
     });
 });
+
+describe("AppRouter — skip link", () => {
+    it("is the first focusable element, and moves focus to the main region without changing the route", () => {
+        const { container } = render(
+            <MemoryRouter initialEntries={["/puzzles"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        const link = container.querySelector<HTMLAnchorElement>("a.skip-link");
+        expect(link?.textContent).toBe("Skip to content");
+        expect(container.querySelector("a, button, [tabindex='0']")).toBe(link);
+        fireEvent.click(link as HTMLElement);
+        expect(document.activeElement).toBe(container.querySelector("main#main"));
+    });
+});
