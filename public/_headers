@@ -1,0 +1,3 @@
+# Security headers for hosts that read this file (Netlify, Cloudflare Pages). See docs/ARCHITECTURE.md.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

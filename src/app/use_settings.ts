@@ -10,8 +10,8 @@ import { SETTINGS_FORMAT, decodeSaved, encodeSaved } from "@/runtime/saved.ts";
  * It does not need its own storage.
  */
 /** The left-pane tabs of the Author page.
- *  They are raw JSON, the drag-and-drop builder, or the read-only PuzzleBuilder code sample. */
-export type EditorMode = "json" | "visual" | "code";
+ *  They are raw JSON or the drag-and-drop builder. */
+export type EditorMode = "json" | "visual";
 
 export interface Settings {
     /** PuzzlePlayer: flag a cell red when the cursor leaves it,
@@ -69,6 +69,8 @@ export const getSettings = (): Settings => {
         return {
             ...stored,
             markColors: sanitizePalette(stored.markColors),
+            // An older release also had a "code" tab. A save may still name it.
+            authorEditorMode: stored.authorEditorMode === "visual" ? "visual" : "json",
             builderTools: Array.isArray(tools) ? tools.filter((t): t is string => typeof t === "string") : [],
         };
     } catch {

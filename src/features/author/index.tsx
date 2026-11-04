@@ -5,7 +5,6 @@ import { toast } from "@/app/toast.ts";
 import { useSettings, type EditorMode } from "@/app/use_settings.ts";
 import { compilePuzzle, solutionViolations } from "@/runtime/compile.ts";
 import { GridGeometry, describeGeometry } from "@/runtime/geometry.ts";
-import { puzzleToCode } from "@/authoring/to_code.ts";
 import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { solve, type SolveResult } from "@/runtime/solver.ts";
@@ -18,7 +17,6 @@ import ImportDialog from "@/features/author/import_dialog.tsx";
 import { useAuthorInterop } from "@/features/author/use_author_interop.ts";
 import { useVisualBuilder } from "@/features/author/use_visual_builder.ts";
 import type { CellId } from "@/runtime/geometry.ts";
-import { PuzzleBuilder } from "@/authoring/builder.ts";
 import { OverflowMenu, type MenuItem } from "@/app/overflow_menu.tsx";
 import { usePageHeader } from "@/app/page_header.ts";
 import sudokuMakerIcon from "./sudokumaker-icon.png";
@@ -51,19 +49,6 @@ const summarizeConflicts = (ids: ReadonlySet<string>): string => {
 /** Maximum number of snapshots for author undo. Each snapshot is a full JSON text, so the number has a limit. */
 const HISTORY_LIMIT = 100;
 
-const BUILDER_EXAMPLE = `// PuzzleBuilder is available. Return the built puzzle. Run loads it into the editor.
-return PuzzleBuilder.create("thermo-demo", "Thermo Demo")
-  .grid(9, 9)
-  .domain([1, 2, 3, 4, 5, 6, 7, 8, 9])
-  // add constraints (definitions compile to primitives)
-  .use("sudoku")
-  .use("thermometer", { cells: ["r1c1", "r1c2", "r1c3"] })
-  // or add a raw primitive (no definition)
-  .constraint(["==", ["sum", ["cells", "col:0"]], 45])
-  // add a visual object that the renderer draws
-  .visual({ kind: "text", at: "r5c5", text: "!" })
-  .build(); // -> plain PuzzleDefinition (the artifact)`;
-
 interface GridDims {
     width: number;
     height: number;
@@ -92,7 +77,6 @@ const readDims = (def: PuzzleDefinition | undefined): GridDims | undefined => {
 const EDITOR_TABS: { mode: EditorMode; label: string }[] = [
     { mode: "json", label: "JSON" },
     { mode: "visual", label: "Visual" },
-    { mode: "code", label: "Code" },
 ];
 
 /** One entry of the author undo history: the puzzle JSON and the pinned tools of the visual builder. */
@@ -129,31 +113,6 @@ export default function Author() {
     // So undo also puts back a tool that you just pinned or removed.
     const tools = settings.builderTools;
 
-    // The Code tab shows the loaded puzzle as PuzzleBuilder code.
-    // It is always in step with the JSON and Visual tabs.
-    // Typing starts a draft. The draft stays until you Run or Discard.
-    // Run replaces the puzzle, so undo steps back. This is the same as a paste of the JSON that the code builds.
-    const [codeDraft, setCodeDraft] = useState<string>();
-    const [codeError, setCodeError] = useState<string>();
-    const runCode = () => {
-        try {
-            // Running the code of the author is the purpose of the Code tab (see docs/ARCHITECTURE.md).
-            // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-            const built: unknown = new Function("PuzzleBuilder", code)(PuzzleBuilder);
-            // A missing final .build() is an easy mistake, so call it here.
-            const artifact = built instanceof PuzzleBuilder ? built.build() : built;
-            if (!artifact || typeof artifact !== "object") {
-                throw new Error(
-                    "The code must return the puzzle. End the code with `return PuzzleBuilder.create(…)….build();`",
-                );
-            }
-            applyText(JSON.stringify(artifact, null, 2));
-            setCodeDraft(undefined);
-            setCodeError(undefined);
-        } catch (e) {
-            setCodeError(e instanceof Error ? e.message : String(e));
-        }
-    };
     const [history, setHistory] = useState<{ past: readonly Snapshot[]; future: readonly Snapshot[] }>({
         past: [],
         future: [],
@@ -259,18 +218,6 @@ export default function Author() {
         return { compiled, parsed };
     }, [submitted]);
 
-    // The code that the Code tab shows: your draft, or else the loaded puzzle printed as code.
-    // The tab shows the sample while the JSON does not parse.
-    const generatedCode = useMemo(() => {
-        if (!("parsed" in result) || !result.parsed) return BUILDER_EXAMPLE;
-        try {
-            return puzzleToCode(result.parsed);
-        } catch {
-            return BUILDER_EXAMPLE;
-        }
-    }, [result]);
-    const code = codeDraft ?? generatedCode;
-
     // While the puzzle does not compile, there is no board.
     // So the player gives no Undo button and no Ctrl+Z handler.
     // But an edit that broke the puzzle (for example, a grid size it cannot satisfy) is when you need to step back.
@@ -353,10 +300,7 @@ export default function Author() {
 
     const exampleItems: MenuItem[] = listPuzzles().map((p) => ({
         label: p.metadata.title,
-        onSelect: () => {
-            setCodeDraft(undefined); // the Code tab must show the example, not an old draft
-            loadExample(p.metadata.id);
-        },
+        onSelect: () => loadExample(p.metadata.id),
     }));
     const previewBar = (
         <div className="author-preview-bar">
@@ -519,42 +463,8 @@ export default function Author() {
                             spellCheck={false}
                             className={liveError ? "invalid" : undefined}
                         />
-                    ) : editorMode === "visual" ? (
-                        <VisualBuilder def={"parsed" in result ? result.parsed : undefined} state={visualState} />
                     ) : (
-                        <div className="author-sdk">
-                            <textarea
-                                value={code}
-                                onChange={(e) => setCodeDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                                        e.preventDefault();
-                                        runCode();
-                                    }
-                                }}
-                                spellCheck={false}
-                                aria-label="PuzzleBuilder code"
-                                className={codeError ? "invalid" : undefined}
-                            />
-                            {codeError && <pre className="author-error">{codeError}</pre>}
-                            <div className="author-code-actions">
-                                <button type="button" className="btn btn-sm" onClick={runCode}>
-                                    Run
-                                </button>
-                                {codeDraft !== undefined && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-ghost btn-sm"
-                                        onClick={() => setCodeDraft(undefined)}
-                                    >
-                                        Discard edits
-                                    </button>
-                                )}
-                                <span className="author-code-hint">
-                                    {codeDraft !== undefined ? "Edited. Not run yet. " : ""}Ctrl/⌘ + Enter
-                                </span>
-                            </div>
-                        </div>
+                        <VisualBuilder def={"parsed" in result ? result.parsed : undefined} state={visualState} />
                     )}
                     {liveError && <pre className="author-error">{liveError}</pre>}
                     <div className="author-actions">

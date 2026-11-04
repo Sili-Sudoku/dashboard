@@ -45,7 +45,7 @@
     --betweenline: #4f6aa8;
     --diagonal: #d1b27a;
 
-    /* Code and JSON preview blocks (author SDK panel, play-page JSON view) keep a fixed dark
+    /* Code and JSON preview blocks (the play-page JSON view) keep a fixed dark
        "terminal" look in both themes. They do not use --ink, because --ink changes to near-white
        in dark mode. */
     --code-bg: #1b170f;

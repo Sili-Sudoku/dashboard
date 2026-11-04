@@ -121,6 +121,17 @@ and needs no server. The dev "registry" (`src/puzzles/index.ts`) is a `Record`.
 It is a deliberate stand-in for a future content service. To use a real service,
 change one function in `src/features/play/` to fetch the puzzle.
 
+## Content-Security-Policy
+
+`public/_headers` sets a strict policy for hosts that read that file (Netlify, Cloudflare Pages):
+only the own origin, no inline script or style, images from the site or `data:` only, no framing.
+It limits the damage if a hostile puzzle ever reaches the page.
+`index.html` loads `public/theme-init.js` as a file, so the policy needs no inline-script exception.
+
+The policy has no `'unsafe-eval'`: the app never runs code that comes from the author or from a link.
+The policy is not active in `npm run dev`, because the dev server needs inline scripts for hot reload.
+Test a change to it against a production build (`npm run build`), not the dev server.
+
 ## What was intentionally left out
 
 The MVP does not include:

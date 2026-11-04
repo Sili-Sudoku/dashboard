@@ -98,7 +98,7 @@
     min-height: 0;
     /* Safety valve (same pattern as .pp-side in player.css).
      * The content of the editor can be taller than the stretched height of .author-grid on a short window.
-     * The content is the dims row, the textarea, the interop controls, and the SDK example at the end.
+     * The content is the dims row, the textarea, and the interop controls.
      * An internal scroll in this column keeps the textarea and the live board from getting squeezed. */
     overflow-y: auto;
     /* The right padding separates the scrollbar of this panel from the native scrollbar of the textarea.
@@ -371,28 +371,7 @@
     gap: 0.5rem;
 }
 
-/* Collapsed by default: this is reference material, not part of the editing flow. */
-/* The Code tab: a code box that fills the pane like the JSON box, with Run below it. */
-.author-sdk {
-    flex: 1 1 auto;
-    min-height: 260px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.author-code-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.author-code-hint {
-    font-size: 0.75rem;
-    color: var(--ink-soft);
-}
-
-/* JSON / Visual / Code tabs on the left. The "Load example" menu is at the far end of the same row. */
+/* JSON / Visual tabs on the left. The "Load example" menu is at the far end of the same row. */
 .author-mode-bar {
     display: flex;
     align-items: center;

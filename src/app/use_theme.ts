@@ -17,7 +17,7 @@ const systemTheme = (): Theme => (window.matchMedia("(prefers-color-scheme: dark
 
 /**
  * Follows the OS theme until the player picks a theme explicitly.
- * This matches the synchronous check in the inline script of index.html.
+ * This matches the synchronous check in the script `public/theme-init.js`.
  * That script sets the attribute before the first paint, to prevent a flash of the wrong theme.
  * After the player picks a theme, the choice stays (localStorage) and no longer follows the OS.
  */

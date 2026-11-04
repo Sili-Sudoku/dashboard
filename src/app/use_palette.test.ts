@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
-import indexHtml from "../../index.html?raw";
+import themeInit from "../../public/theme-init.js?raw";
 import { PALETTES, usePalette } from "@/app/use_palette.ts";
 
 describe("usePalette", () => {
@@ -34,8 +34,8 @@ describe("usePalette", () => {
         expect(renderHook(() => usePalette()).result.current[0]).toBe("coffee");
     });
 
-    it("has the same palettes in the pre-paint script of index.html", () => {
-        const listed = /\/\^\(([a-z|]+)\)\$\/\.test\(palette\)/.exec(indexHtml)?.[1].split("|");
+    it("has the same palettes in the pre-paint script (public/theme-init.js)", () => {
+        const listed = /\/\^\(([a-z|]+)\)\$\/\.test\(palette\)/.exec(themeInit)?.[1].split("|");
         expect(listed?.sort()).toEqual(
             PALETTES.map((p) => p.id)
                 .filter((id) => id !== "coffee")

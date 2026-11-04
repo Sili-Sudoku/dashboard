@@ -28,7 +28,7 @@ are never primary.
 | Solve action | player sidebar: number pad, `Controls` | none |
 | View control | board toolbar (`.board-zoom-toolbar`) | same toolbar |
 | Setting | `/settings`; the header gear links there (the theme toggle is also in the header) | same |
-| Disclosure / info | sidebar toggles (`ConstraintPanel`, `HotkeyLegend`); JSON view | SDK example, solution toggle |
+| Disclosure / info | sidebar toggles (`ConstraintPanel`, `HotkeyLegend`); JSON view | solution toggle |
 | Authoring action | none | `.author-actions`, `.author-interop`, visual-builder actions |
 
 ### At phone width (≤600px)

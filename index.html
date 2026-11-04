@@ -12,7 +12,7 @@
       content="Play and author Sudoku variants (thermometers, killer cages, arrows, kropki dots) where every variant is a small swappable definition, not a built-in feature. Imports from f-puzzles and SudokuMaker."
     />
     <!-- Link-preview cards. og:image, og:url, and canonical must be absolute URLs. They are
-         omitted until a production domain exists (#150). -->
+         omitted until a production domain exists. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Constraint Puzzle Runtime" />
     <meta property="og:title" content="Constraint Puzzle Runtime" />
@@ -21,29 +21,9 @@
       content="Play and author Sudoku variants (thermometers, killer cages, arrows, kropki dots) where every variant is a small swappable definition, not a built-in feature. Imports from f-puzzles and SudokuMaker."
     />
     <meta name="twitter:card" content="summary" />
-    <!-- Sets data-theme before first paint, so the wrong theme does not flash while React
-         mounts (see src/app/use_theme.ts for the React side). -->
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("cpr:theme");
-          var theme =
-            stored === "light" || stored === "dark"
-              ? stored
-              : window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-          document.documentElement.setAttribute("data-theme", theme);
-          // Keep this list in step with PALETTES in src/app/use_palette.ts (a test checks it).
-          var palette = localStorage.getItem("cpr:palette");
-          if (/^(slate|sage|plum|classic)$/.test(palette)) {
-            document.documentElement.setAttribute("data-palette", palette);
-          }
-        } catch (e) {
-          // storage or matchMedia is not available. The "light" attribute below stands.
-        }
-      })();
-    </script>
+    <!-- Sets data-theme and data-palette before first paint, so the wrong look does not flash while React
+         mounts. It is a file, not inline, so the Content-Security-Policy needs no exception for inline scripts. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

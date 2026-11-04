@@ -6,7 +6,6 @@ import { decodePuzzle, encodePuzzle, parsePuzzle } from "@/runtime/serialization
 import { solve } from "@/runtime/solver.ts";
 import { definitions } from "@/definitions/index.ts";
 import { samuraiSudoku } from "@/puzzles/samurai.ts";
-import { puzzleToCode } from "@/authoring/to_code.ts";
 
 const compiled = (def = samuraiSudoku) => {
     const c = compilePuzzle(def, definitions);
@@ -28,11 +27,10 @@ describe("composite geometry end to end", () => {
         expect(violated.map((k) => k.label)).toEqual(["nw/row:6 all different"]);
     });
 
-    it("survives JSON, share links and the code view", () => {
+    it("survives JSON, and share links", () => {
         const text = JSON.stringify(samuraiSudoku);
         expect(parsePuzzle(JSON.parse(text))).toEqual(samuraiSudoku);
         expect(decodePuzzle(encodePuzzle(samuraiSudoku))).toEqual(samuraiSudoku);
-        expect(puzzleToCode(samuraiSudoku)).toContain('.geometry({ type: "composite"');
         expect(
             parsePuzzle({ ...samuraiSudoku, geometry: { type: "composite", grids: [{ width: 9 }] } }),
         ).toBeInstanceOf(Error);

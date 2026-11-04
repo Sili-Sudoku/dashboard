@@ -104,9 +104,8 @@ export default function Landing() {
                     <span className="lp-num">03</span>
                     <h2>Authoring options</h2>
                     <p>
-                        You can create a puzzle in three ways: edit a JSON file, use the visual drag-and-drop editor, or
-                        write code directly. Each method produces the same definition, so you can choose whichever fits
-                        your workflow.
+                        You can create a puzzle in two ways: edit a JSON file, or use the visual drag-and-drop editor.
+                        Both produce the same definition, so you can choose whichever fits your workflow.
                     </p>
                 </article>
             </section>
