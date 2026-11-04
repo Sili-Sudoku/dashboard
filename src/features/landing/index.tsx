@@ -100,6 +100,10 @@ export default function Landing() {
                     </Link>
                 </div>
             </section>
+
+            <footer className="lp-footer">
+                <Link to="/ai">AI disclaimer</Link>
+            </footer>
         </div>
     );
 }

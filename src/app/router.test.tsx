@@ -162,3 +162,16 @@ describe("AppRouter — the byline of a puzzle with a source", () => {
         expect(screen.queryByRole("button", { name: "by Ada" })).toBeNull();
     });
 });
+
+describe("AppRouter — AI disclaimer", () => {
+    it("links to the disclaimer page from the landing footer", async () => {
+        render(
+            <MemoryRouter initialEntries={["/"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        fireEvent.click(await screen.findByRole("link", { name: "AI disclaimer" }));
+        expect(await screen.findByRole("heading", { name: "AI disclaimer" })).toBeTruthy();
+        expect(screen.getByText(/never generate puzzles or art/)).toBeTruthy();
+    });
+});

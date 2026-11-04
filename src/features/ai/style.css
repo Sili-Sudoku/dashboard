@@ -1,0 +1,7 @@
+.ai-page {
+    max-width: 60ch;
+}
+
+.ai-page p {
+    color: var(--ink-soft);
+}

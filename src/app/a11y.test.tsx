@@ -40,6 +40,7 @@ const ROUTES: [string, string][] = [
     ["/p/mini-sudoku", "Mini Sudoku (primitive-only)"],
     ["/new", "Author"],
     ["/settings", "Settings"],
+    ["/ai", "AI disclaimer"],
     ["/nowhere", "Page not found"],
 ];
 
