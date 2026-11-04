@@ -267,15 +267,23 @@ export default function Author() {
     // So the author can play their own puzzle. The setting lasts for one session.
     const [testing, setTesting] = useState(false);
 
-    const runSolve = async () => {
-        if (!("compiled" in result) || !result.compiled || solving) return;
-        setSolving(true);
-        const puzzle = result.compiled;
+    /** Runs the solver on the compiled puzzle. It returns nothing when there is no compiled puzzle. */
+    const checkSolutions = async (): Promise<{ solved: SolveResult; ms: number } | undefined> => {
+        if (!("compiled" in result) || !result.compiled) return undefined;
         const t0 = performance.now();
         // solve() yields to the event loop at intervals.
         // So this await does not freeze the page, even for a search of many seconds.
-        const solved = await solve(puzzle);
-        const ms = Math.round(performance.now() - t0);
+        const solved = await solve(result.compiled);
+        return { solved, ms: Math.round(performance.now() - t0) };
+    };
+
+    const runSolve = async () => {
+        if (solving) return;
+        setSolving(true);
+        const checked = await checkSolutions();
+        setSolving(false);
+        if (!checked) return;
+        const { solved, ms } = checked;
         toast(
             `${SOLVE_STATUS_LABEL[solved.status]}\n(${ms}ms, ${solved.probes} oracle probe${solved.probes === 1 ? "" : "s"})`,
             {
@@ -283,7 +291,40 @@ export default function Author() {
                 key: "solve",
             },
         );
-        setSolving(false);
+    };
+
+    /**
+     * Copies the link first (a clipboard write must happen inside the click), then checks the puzzle and says
+     * what it found. A puzzle with more than one solution can still be shared, but the author is told before
+     * the solvers find out.
+     */
+    const copyShareLink = async () => {
+        if (!shareLink) return;
+        try {
+            await navigator.clipboard.writeText(shareLink);
+        } catch {
+            window.prompt("Share link:", shareLink);
+        }
+        if (!("compiled" in result) || !result.compiled) {
+            toast("Link copied", { kind: "success", key: "share" });
+            return;
+        }
+        toast("Link copied. Checking for a unique solution…", { kind: "info", key: "share" });
+        const checked = await checkSolutions();
+        if (!checked) return;
+        toast(`Link copied. ${SHARE_VERDICT[checked.solved.status]}`, {
+            kind:
+                checked.solved.status === "unique" ? "success" : checked.solved.status === "unknown" ? "info" : "error",
+            key: "share",
+            duration: checked.solved.status === "unique" ? undefined : 10000,
+        });
+    };
+
+    const SHARE_VERDICT: Record<SolveResult["status"], string> = {
+        unique: "The puzzle has a unique solution.",
+        multiple: "Careful: the puzzle has more than one solution.",
+        none: "Careful: the puzzle has no solution. The givens conflict.",
+        unknown: "The check for a unique solution timed out, so it is not known.",
     };
 
     const SOLVE_STATUS_LABEL: Record<SolveResult["status"], string> = {
@@ -475,18 +516,7 @@ export default function Author() {
                             </button>
                         )}
                         {shareLink && (
-                            <button
-                                className="btn btn-sm btn-ghost"
-                                onClick={() =>
-                                    void (async () => {
-                                        try {
-                                            await navigator.clipboard.writeText(shareLink);
-                                        } catch {
-                                            window.prompt("Share link:", shareLink);
-                                        }
-                                    })()
-                                }
-                            >
+                            <button className="btn btn-sm btn-ghost" onClick={() => void copyShareLink()}>
                                 Copy share link
                             </button>
                         )}

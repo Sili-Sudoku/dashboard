@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 
 import Author from "@/features/author/index.tsx";
 import { demoMixed } from "@/puzzles/index.ts";
+import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
+import { firstPuzzle } from "@/puzzles/first_puzzle.ts";
 import { ToastViewport } from "@/app/toast_viewport.tsx";
 import { clearToasts } from "@/app/toast.ts";
 
@@ -363,6 +365,45 @@ describe("Author", () => {
         );
         fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
         await vi.waitFor(() => expect(promptSpy).toHaveBeenCalled());
+    });
+
+    describe("copy share link also checks the puzzle", () => {
+        const copyWith = (def: unknown) => {
+            const writeText = vi.fn().mockResolvedValue(undefined);
+            vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+            const { container } = render(
+                <MemoryRouter>
+                    <Author />
+                    <ToastViewport />
+                </MemoryRouter>,
+            );
+            const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+            fireEvent.change(textarea, { target: { value: JSON.stringify(def) } });
+            fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
+            return writeText;
+        };
+
+        afterEach(() => vi.unstubAllGlobals());
+
+        it("copies the link, then says that a unique puzzle is unique", async () => {
+            const writeText = copyWith(firstPuzzle);
+            await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/p/")));
+            expect(await screen.findByText(/link copied\. the puzzle has a unique solution/i)).toBeTruthy();
+        });
+
+        it("still copies the link of a puzzle with several solutions, and warns about it", async () => {
+            const writeText = copyWith({ ...miniSudoku, givens: {}, solution: undefined });
+            await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+            expect(
+                await screen.findByText(/link copied\. careful: the puzzle has more than one solution/i),
+            ).toBeTruthy();
+        });
+
+        it("warns about a puzzle whose givens conflict", async () => {
+            const writeText = copyWith({ ...miniSudoku, givens: { r1c1: 1, r1c2: 1 }, solution: undefined });
+            await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+            expect(await screen.findByText(/link copied\. careful: the puzzle has no solution/i)).toBeTruthy();
+        });
     });
 
     it("imports f-puzzles JSON entered via the import dialog", () => {
