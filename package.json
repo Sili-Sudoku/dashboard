@@ -1,7 +1,7 @@
 {
   "name": "constraint-puzzle-runtime",
-  "private": true,
   "version": "0.1.0",
+  "license": "BUSL-1.1",
   "type": "module",
   "description": "A generic constraint runtime for Sudoku and variant-Sudoku puzzles. Puzzle types are definitions, not engine features.",
   "scripts": {

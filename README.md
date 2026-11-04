@@ -70,3 +70,8 @@ notes, undo/redo    satisfied /          (polyline, circle, cage,
 artifact from the URL (`<codec><base64url(JSON)>`). It needs no server and no
 account. The codec byte lets a compressed encoding be added later without a
 breaking change.
+
+## Licence
+
+[Business Source License 1.1](LICENSE). Each version converts to Apache-2.0
+four years after its first public release.
