@@ -21,7 +21,7 @@ export const firstPuzzle: PuzzleDefinition = {
     givens: givensFromRows([".2....", "...1..", ".....4", "5.....", "...6..", ".....2"]),
     constraints: [
         { use: "sudoku" },
-        { use: "thermometer", cells: ["r3c3", "r4c3", "r4c2"], color: "#bd3b28", style: { opacity: 1 } },
+        { use: "thermometer", cells: ["r3c3", "r4c3", "r4c2"], color: "var(--accent)", style: { opacity: 0.8 } },
         { use: "killer", cells: ["r1c1", "r1c2", "r2c1"], sum: 7 },
         { use: "killer", cells: ["r5c5", "r5c6"], sum: 9 },
         { use: "kropkiDifference", cells: ["r2c2", "r2c3"] },

@@ -39,6 +39,7 @@ export const THUMBNAIL_PALETTE: Readonly<Record<string, string>> = {
     fog: "#d9ceb0",
     "fog-line": "#b3a275",
     thermo: "#a89c80",
+    accent: "#bd3b28",
     cage: "#3c6e52",
     arrow: "#4a3c28",
     palindrome: "#9a4f7d",

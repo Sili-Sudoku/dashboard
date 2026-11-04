@@ -2,14 +2,15 @@
    It ignores the pointer except on the toasts, so it never blocks the board. */
 .toast-viewport {
     position: fixed;
-    left: 50%;
-    bottom: var(--space-4);
-    transform: translateX(-50%);
+    /* Bottom-left, close to the edge. The row under the board holds only the timer on the left,
+       so a toast there covers neither the board nor the sidebar (shortcuts, rules). */
+    left: var(--space-3);
+    bottom: var(--space-2);
     z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    width: min(32rem, calc(100vw - 2rem));
+    width: min(26rem, calc(100vw - 2 * var(--space-3)));
     pointer-events: none;
 }
 
