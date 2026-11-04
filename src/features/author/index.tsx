@@ -496,7 +496,7 @@ export default function Author() {
                                 </button>
                             ))}
                         </div>
-                        <OverflowMenu label="Load an example" text="Load example" quiet items={exampleItems} />
+                        <OverflowMenu label="Load example" text="Load example" quiet items={exampleItems} />
                     </div>
                     {editorMode === "json" ? (
                         <textarea

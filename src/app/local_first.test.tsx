@@ -104,7 +104,7 @@ describe("local-first: nothing needs a server", () => {
         fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
         await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/p/")));
 
-        fireEvent.click(screen.getByRole("button", { name: /load an example/i }));
+        fireEvent.click(screen.getByRole("button", { name: /load example/i }));
         fireEvent.click(screen.getByRole("menuitem", { name: /mini sudoku/i }));
         expect(JSON.parse((screen.getByRole("textbox") as HTMLTextAreaElement).value).metadata.id).toBe("mini-sudoku");
         expect(attempts).toEqual([]);

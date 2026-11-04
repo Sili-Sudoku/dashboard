@@ -40,7 +40,7 @@ export default function ZoomFooter({
                 className="btn btn-flat board-zoom-toggle"
                 aria-expanded={open}
                 aria-controls={zoomPanelId}
-                aria-label={`Zoom controls (${percent}%)`}
+                aria-label={`${percent}% zoom controls`}
                 onClick={() => setOpen((o) => !o)}
             >
                 {locked ? <Lock size={16} /> : <ZoomIn size={16} />}

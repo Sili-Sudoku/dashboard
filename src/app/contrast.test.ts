@@ -57,6 +57,7 @@ const PAIRS: [string, string, number][] = [
     ["--given", "--surface", 4.5],
     ["--accent", "--bg", 4.5],
     ["--satisfied", "--surface", 4.5],
+    ["--incomplete", "--surface", 4.5],
     ["--violated-line", "--violated", 3],
     ["--code-ink", "--code-bg", 4.5],
 ];

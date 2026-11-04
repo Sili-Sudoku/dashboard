@@ -289,7 +289,7 @@ describe("Board — zoom controls popover", () => {
             />,
         );
         const panel = container.querySelector(".board-zoom-toolbar") as HTMLElement;
-        const toggle = getByRole("button", { name: /Zoom controls/ });
+        const toggle = getByRole("button", { name: /zoom controls/i });
         expect(panel.hidden).toBe(true);
         expect(toggle.getAttribute("aria-expanded")).toBe("false");
         act(() => toggle.click());

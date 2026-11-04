@@ -415,7 +415,7 @@
 .visual-builder-chip {
     justify-content: flex-start;
     /* Room on the right for the un-pin x. */
-    padding-right: 1.7rem;
+    padding-right: 2rem;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -433,12 +433,12 @@
 .visual-builder-unpin {
     position: absolute;
     top: 50%;
-    right: 0.3rem;
+    right: 0.2rem;
     transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1.5rem;
+    height: 1.5rem;
     padding: 0;
     border: 0;
     border-radius: 50%;

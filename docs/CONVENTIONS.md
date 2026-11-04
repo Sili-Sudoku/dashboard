@@ -19,3 +19,17 @@ Short rules for everyone who changes this project.
   current choice, in one line.
 - Do not put ticket numbers in comments.
 - Write in simple technical English (ASD-STE100): short sentences, active voice.
+
+## Manual checks
+
+Run Lighthouse by hand before a release, or after a change to the look of a page. It is not part of CI. It finds
+real-browser problems that the jsdom tests cannot see, such as colour contrast, touch-target size, and load speed.
+
+```bash
+npm run build && npx vite preview --port 4199
+npx lighthouse http://localhost:4199/ --chrome-flags="--headless" --view
+```
+
+Check `/`, `/puzzles`, a puzzle such as `/p/demo-mixed`, and `/new`. The last result was 95-100 for performance and
+100 for accessibility. Ignore the audits `valid-source-maps` (the build has no source maps on purpose), `llms-txt` and
+`agentic-browsing`.

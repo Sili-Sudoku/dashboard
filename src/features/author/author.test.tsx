@@ -29,7 +29,7 @@ const openInteropItem = (name: RegExp) => {
 };
 
 const loadExample = (title: RegExp) => {
-    fireEvent.click(screen.getByRole("button", { name: /load an example/i }));
+    fireEvent.click(screen.getByRole("button", { name: /load example/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: title }));
 };
 
