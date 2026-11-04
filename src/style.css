@@ -527,6 +527,21 @@ pre {
     font-size: 0.82rem;
 }
 
+/* A byline with a link behind it (the source of a puzzle): underlined like a link, a button underneath. */
+.app-header-byline-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.app-header-byline-link:hover {
+    color: var(--brand);
+}
+
 /* The View JSON/Share buttons of Play portal in here (app/page_header.ts). They do not render
  * their own row above the board. margin-left:auto (not the margin of nav, which is removed
  * below) puts this and nav flush together at the end of the row. Two auto margins on the same

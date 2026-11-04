@@ -9,6 +9,7 @@
  * A compressed codec added later is a new leading character. It is not a breaking change.
  */
 
+import { parseSourceUrl } from "@/runtime/source_link.ts";
 import { migratePuzzle } from "@/runtime/migrations.ts";
 import { type ConstraintSpec, type PuzzleDefinition } from "@/runtime/puzzle.ts";
 
@@ -32,6 +33,7 @@ export const LIMITS = {
     id: 100,
     title: 200,
     author: 100,
+    source: 500,
     description: 10_000,
     difficulty: 50,
     tag: 50,
@@ -152,7 +154,7 @@ export const parsePuzzle = (input: unknown): PuzzleDefinition | Error => {
 const isNonNegativeInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 /** The free-text fields must be strings (the page shows them as text) and must not be longer than the limit. */
 const checkMetadataText = (meta: Record<string, unknown>): Error | undefined => {
-    const fields = ["id", "title", "author", "description", "difficulty"] as const;
+    const fields = ["id", "title", "author", "source", "description", "difficulty"] as const;
     for (const field of fields) {
         const value = meta[field];
         if (value === undefined) continue;
@@ -162,6 +164,9 @@ const checkMetadataText = (meta: Record<string, unknown>): Error | undefined => 
                 `metadata.${field} is too long (${value.length} characters, the limit is ${LIMITS[field]})`,
             );
         }
+    }
+    if (typeof meta.source === "string" && !parseSourceUrl(meta.source)) {
+        return new Error("metadata.source must be a link that starts with https://");
     }
     const tags = meta.tags;
     if (tags === undefined) return undefined;

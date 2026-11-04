@@ -4,6 +4,8 @@ export interface PageHeader {
     title: string;
     description?: string;
     byline?: string;
+    /** When set, the byline is a link-like button. It stays stable between renders, or the header is set again. */
+    onBylineClick?: () => void;
 }
 
 const noop = () => undefined;
@@ -19,13 +21,18 @@ export const PageHeaderContext = createContext<(header: PageHeader | null) => vo
  * The hook clears the header on unmount, or when `title` goes away (for example a puzzle ref that failed to resolve).
  * This way, navigation elsewhere does not leave a stale title in the navbar.
  */
-export const usePageHeader = (title: string | undefined, description?: string, byline?: string): void => {
+export const usePageHeader = (
+    title: string | undefined,
+    description?: string,
+    byline?: string,
+    onBylineClick?: () => void,
+): void => {
     const setHeader = useContext(PageHeaderContext);
     useEffect(() => {
         if (!title) return;
-        setHeader({ title, description, byline });
+        setHeader({ title, description, byline, onBylineClick });
         return () => setHeader(null);
-    }, [title, description, byline, setHeader]);
+    }, [title, description, byline, onBylineClick, setHeader]);
 };
 
 /**

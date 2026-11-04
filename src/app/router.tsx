@@ -1,3 +1,4 @@
+import { APP_TITLE } from "@/app/app_title.ts";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -18,8 +19,6 @@ const PuzzleList = lazy(() => import("@/features/puzzles"));
 const Play = lazy(() => import("@/features/play"));
 const Author = lazy(() => import("@/features/author"));
 const Settings = lazy(() => import("@/features/settings"));
-
-const APP_TITLE = "Constraint Puzzle Runtime";
 
 // Titles for routes that do not register their own title with usePageHeader.
 // Play and Author register their own, and their title has priority.
@@ -82,7 +81,7 @@ export default function AppRouter() {
                     <header className="app-header">
                         <div className="app-header-title">
                             <Link to="/" className="logo">
-                                Constraint Puzzle Runtime
+                                {APP_TITLE}
                             </Link>
                             {/* Play and Author register their own title here with usePageHeader.
                                 They do not render a big in-page h1+p.
@@ -95,9 +94,18 @@ export default function AppRouter() {
                                         ›
                                     </span>
                                     {pageHeader.title}
-                                    {pageHeader.byline && (
-                                        <span className="app-header-byline">{pageHeader.byline}</span>
-                                    )}
+                                    {pageHeader.byline &&
+                                        (pageHeader.onBylineClick ? (
+                                            <button
+                                                type="button"
+                                                className="app-header-byline app-header-byline-link"
+                                                onClick={pageHeader.onBylineClick}
+                                            >
+                                                {pageHeader.byline}
+                                            </button>
+                                        ) : (
+                                            <span className="app-header-byline">{pageHeader.byline}</span>
+                                        ))}
                                 </span>
                             ) : (
                                 <span className="tagline">

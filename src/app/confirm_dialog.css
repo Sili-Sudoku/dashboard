@@ -1,0 +1,53 @@
+.confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.confirm-dialog {
+    width: min(440px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 0.6rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-dialog h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.confirm-body {
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.confirm-body p {
+    margin: 0 0 0.5rem;
+}
+
+/* The whole address, in full, however long: this is the one place a short name in the menu is checked. */
+.confirm-body code {
+    display: block;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}

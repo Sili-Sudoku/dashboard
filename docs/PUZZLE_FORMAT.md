@@ -24,6 +24,7 @@ Never edit or delete a fixture. A change of the format must keep the old fixture
     "id": "demo-mixed",          // required, stable identifier
     "title": "Four Systems, One Grid",
     "author": "…",               // optional
+    "source": "https://…",       // optional, where it came from (https only)
     "description": "…",           // optional
     "difficulty": "medium",       // optional, free text
     "tags": ["sudoku", "killer"]  // optional

@@ -137,6 +137,17 @@ describe("free-text fields of the metadata", () => {
         expect(parsePuzzle(withMeta({ tags: ["a".repeat(LIMITS.tag + 1)] }))).toBeInstanceOf(Error);
     });
 
+    it("accepts an https source and rejects any other kind of link", () => {
+        expect(parsePuzzle(withMeta({ source: "https://example.com/p/1" }))).not.toBeInstanceOf(Error);
+        for (const bad of ["javascript:alert(1)", "data:text/html,x", "http://example.com", "example.com", ""]) {
+            const result = parsePuzzle(withMeta({ source: bad }));
+            expect((result as Error).message).toMatch(/metadata.source must be a link/);
+        }
+        expect(parsePuzzle(withMeta({ source: 5 }))).toBeInstanceOf(Error);
+        const long = "https://example.com/" + "a".repeat(LIMITS.source);
+        expect((parsePuzzle(withMeta({ source: long })) as Error).message).toMatch(/metadata.source is too long/);
+    });
+
     it("rejects a field that is not a string, which would break the page that shows it", () => {
         expect(parsePuzzle(withMeta({ description: { a: 1 } }))).toBeInstanceOf(Error);
         expect(parsePuzzle(withMeta({ author: 5 }))).toBeInstanceOf(Error);

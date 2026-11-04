@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import AppRouter from "@/app/router.tsx";
+import { encodePuzzle } from "@/runtime/serialization.ts";
+import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 
 beforeEach(() => {
     // AppRouter renders useTheme(), which reads matchMedia.
@@ -124,5 +126,39 @@ describe("AppRouter — skip link", () => {
         expect(container.querySelector("a, button, [tabindex='0']")).toBe(link);
         fireEvent.click(link as HTMLElement);
         expect(document.activeElement).toBe(container.querySelector("main#main"));
+    });
+});
+
+describe("AppRouter — the byline of a puzzle with a source", () => {
+    const route = (source?: string) =>
+        `/p/${encodePuzzle({ ...miniSudoku, metadata: { ...miniSudoku.metadata, author: "Ada", ...(source ? { source } : {}) } })}`;
+
+    const open = (path: string) =>
+        render(
+            <MemoryRouter initialEntries={[path]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+
+    it("is a link-like button that asks before leaving", async () => {
+        const win = vi.spyOn(window, "open").mockImplementation(() => null);
+        open(route("https://example.com/p/1"));
+        const byline = await screen.findByRole("button", { name: "by Ada" });
+        expect(byline.classList.contains("app-header-byline-link")).toBe(true);
+        fireEvent.click(byline);
+        expect(screen.getByRole("dialog", { name: /be careful with this link/i }).textContent).toContain(
+            "https://example.com/p/1",
+        );
+        expect(win).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole("button", { name: "Open link" }));
+        expect(win).toHaveBeenCalledWith("https://example.com/p/1", "_blank", "noopener,noreferrer");
+        win.mockRestore();
+    });
+
+    it("is plain text when the puzzle has no source", async () => {
+        open(route());
+        const byline = await screen.findByText("by Ada");
+        expect(byline.tagName).toBe("SPAN");
+        expect(screen.queryByRole("button", { name: "by Ada" })).toBeNull();
     });
 });

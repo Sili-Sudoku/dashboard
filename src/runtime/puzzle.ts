@@ -16,6 +16,8 @@ export interface PuzzleMetadata {
     id: string;
     title: string;
     author?: string;
+    /** Where the puzzle came from, as an https link (the original puzzle, or the page of its setter). */
+    source?: string;
     description?: string;
     difficulty?: string;
     tags?: readonly string[];

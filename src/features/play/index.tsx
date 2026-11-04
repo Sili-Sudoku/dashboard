@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import ConfirmDialog from "@/app/confirm_dialog.tsx";
+import { parseSourceUrl, sourceHost } from "@/runtime/source_link.ts";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
-import { Braces, Copy, Share2, X } from "lucide-react";
+import { Braces, Copy, ExternalLink, Share2, X } from "lucide-react";
 
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { decodePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
@@ -43,11 +45,20 @@ export default function Play() {
     const [settings, setSetting] = useSettings();
     const { definition, compiled, error } = useMemo(() => resolve(ref), [ref]);
     const [copied, setCopied] = useState(false);
+    const [leaving, setLeaving] = useState(false);
     const [jsonView, setJsonView] = useState<JsonView>("off");
+    const source = definition?.metadata.source ? parseSourceUrl(definition.metadata.source) : undefined;
+    const byline = definition?.metadata.author
+        ? `by ${definition.metadata.author}`
+        : source
+          ? `from ${sourceHost(source.href)}`
+          : undefined;
+    const askToLeave = useCallback(() => setLeaving(true), []);
     usePageHeader(
         definition?.metadata.title,
         definition?.metadata.description,
-        definition?.metadata.author ? `by ${definition.metadata.author}` : undefined,
+        byline,
+        source ? askToLeave : undefined,
     );
     const actionsSlot = usePageActionsSlot();
 
@@ -109,6 +120,15 @@ export default function Play() {
             label="Puzzle actions"
             items={[
                 { label: "Share link", icon: <Share2 size={16} />, onSelect: () => void share() },
+                ...(source
+                    ? [
+                          {
+                              label: `Original puzzle (${sourceHost(source.href)})`,
+                              icon: <ExternalLink size={16} />,
+                              onSelect: askToLeave,
+                          },
+                      ]
+                    : []),
                 {
                     label: jsonView === "off" ? "View JSON" : "Hide JSON",
                     icon: <Braces size={16} />,
@@ -124,6 +144,22 @@ export default function Play() {
                 rendered under AppRouter. Falls back to an inline header when no slot exists
                 (for example, the tests of this component render it standalone). */}
             {actionsSlot ? createPortal(actions, actionsSlot) : <header className="play-header">{actions}</header>}
+
+            {leaving && source && (
+                <ConfirmDialog
+                    title="Be careful with this link"
+                    confirmLabel="Open link"
+                    cancelLabel="Cancel"
+                    onCancel={() => setLeaving(false)}
+                    onConfirm={() => {
+                        window.open(source.href, "_blank", "noopener,noreferrer");
+                        setLeaving(false);
+                    }}
+                >
+                    <p>This opens another website. We have not checked it, so only continue if you trust it.</p>
+                    <code>{source.href}</code>
+                </ConfirmDialog>
+            )}
 
             <div className="play-body">
                 {jsonView !== "off" && (

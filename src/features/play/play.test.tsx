@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import Play from "@/features/play/index.tsx";
 import { clearToasts, getToasts } from "@/app/toast.ts";
+import { encodePuzzle } from "@/runtime/serialization.ts";
+import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 
 const openMenuItem = (name: RegExp) => {
     fireEvent.click(screen.getByRole("button", { name: "Puzzle actions" }));
@@ -88,5 +90,68 @@ describe("Play — first-visit hint", () => {
         cleanup();
         renderAt("/p/whisper-line");
         expect(getToasts().map((t) => t.key)).not.toContain("play-hint");
+    });
+});
+
+describe("Play — source credit", () => {
+    const withSource = (source?: string) =>
+        `/p/${encodePuzzle({ ...miniSudoku, metadata: { ...miniSudoku.metadata, ...(source ? { source } : {}) } })}`;
+
+    it("asks before leaving, shows the whole address, and opens it only after a yes", () => {
+        const open = vi.spyOn(window, "open").mockImplementation(() => null);
+        renderAt(withSource("https://www.example.com/puzzle/7?x=1"));
+        openMenuItem(/original puzzle \(example\.com\)/i);
+
+        const dialog = screen.getByRole("dialog", { name: /be careful with this link/i });
+        expect(dialog.textContent).toContain("https://www.example.com/puzzle/7?x=1");
+        expect(open).not.toHaveBeenCalled();
+
+        fireEvent.click(within(dialog).getByRole("button", { name: "Open link" }));
+        expect(open).toHaveBeenCalledWith("https://www.example.com/puzzle/7?x=1", "_blank", "noopener,noreferrer");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        open.mockRestore();
+    });
+
+    it("opens nothing when the question is cancelled, by button or by Escape", () => {
+        const open = vi.spyOn(window, "open").mockImplementation(() => null);
+        renderAt(withSource("https://example.com/p"));
+        openMenuItem(/original puzzle/i);
+        fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+        expect(screen.queryByRole("dialog")).toBeNull();
+
+        openMenuItem(/original puzzle/i);
+        fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(open).not.toHaveBeenCalled();
+        open.mockRestore();
+    });
+
+    it("puts the focus on Cancel, so Enter does not leave by accident", () => {
+        renderAt(withSource("https://example.com/p"));
+        openMenuItem(/original puzzle/i);
+        expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }));
+    });
+
+    it("shows a long site name cut short in the menu, and in full in the question", () => {
+        const host = "a-very-long-subdomain-name.another-long-label.example.com";
+        renderAt(withSource(`https://${host}/x`));
+        fireEvent.click(screen.getByRole("button", { name: "Puzzle actions" }));
+        const item = screen.getByRole("menuitem", { name: /original puzzle/i });
+        expect(item.textContent).not.toContain(host);
+        expect(item.textContent).toContain("…");
+        fireEvent.click(item);
+        expect(screen.getByRole("dialog").textContent).toContain(host);
+    });
+
+    it("has no such menu item when the puzzle names no source", () => {
+        renderAt(withSource());
+        fireEvent.click(screen.getByRole("button", { name: "Puzzle actions" }));
+        expect(screen.queryByRole("menuitem", { name: /original puzzle/i })).toBeNull();
+    });
+
+    it("ignores a source that is not https, even if it got past the loader", () => {
+        renderAt(withSource("http://example.com/p"));
+        // such a puzzle does not load at all: the error page shows instead of a board
+        expect(screen.queryByRole("button", { name: "Puzzle actions" })).toBeNull();
     });
 });
