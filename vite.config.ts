@@ -2,11 +2,52 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import * as fs from "node:fs";
 import * as path from "node:path";
+import type { Plugin } from "vite";
+
+const NOTICES_FILE = "third-party-notices.txt";
+
+/**
+ * Builds the licence notices of the shipped packages from the lockfile, so there is no second package
+ * list to maintain. MIT and ISC ask for the copyright notice to stay with the code, and the minified
+ * bundle has none. The file is served at /third-party-notices.txt.
+ */
+function thirdPartyNotices(): Plugin {
+    const build = (): string => {
+        const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8")) as {
+            packages: Record<string, { version?: string; license?: string; dev?: boolean }>;
+        };
+        const parts = Object.entries(lock.packages)
+            .filter(([key, info]) => key !== "" && !info.dev)
+            .map(([key, info]) => {
+                const dir = key;
+                const file = fs.readdirSync(dir).find((f) => /^licen[cs]e/i.test(f));
+                const text = file
+                    ? fs.readFileSync(path.join(dir, file), "utf8").trim()
+                    : "(no licence file in package)";
+                return `${dir.replace(/^node_modules\//, "")} ${info.version ?? ""} (${info.license ?? "unknown"})\n\n${text}`;
+            });
+        return `Third-party software shipped with this app\n\n${parts.join("\n\n----------------------------------------\n\n")}\n`;
+    };
+    return {
+        name: "third-party-notices",
+        generateBundle() {
+            this.emitFile({ type: "asset", fileName: NOTICES_FILE, source: build() });
+        },
+        configureServer(server) {
+            server.middlewares.use(`/${NOTICES_FILE}`, (_req, res) => {
+                res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                res.end(build());
+            });
+        },
+    };
+}
 
 export default defineConfig({
     plugins: [
         react(),
+        thirdPartyNotices(),
         // Precaches the whole build, including lazy route chunks. The app opens offline, even for
         // routes the user did not visit. The manifest is the hand-written one in public/, so the
         // plugin does not generate its own.

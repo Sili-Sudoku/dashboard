@@ -103,6 +103,8 @@ export default function Landing() {
 
             <footer className="lp-footer">
                 <Link to="/ai">AI disclaimer</Link>
+                {" · "}
+                <a href="/third-party-notices.txt">Third-party licences</a>
             </footer>
         </div>
     );

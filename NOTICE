@@ -10,3 +10,8 @@ identify the tool that an import or export action refers to:
 - src/features/author/sudokumaker-icon.png: SudokuMaker logo
   (dev.sudokumaker.app).
 - src/features/author/sudokupad-icon.png: SudokuPad logo (sudokupad.app).
+
+Third-party software
+
+The build writes the licence notices of the shipped packages to /third-party-notices.txt. The list comes from
+package-lock.json, so it is not kept by hand.
