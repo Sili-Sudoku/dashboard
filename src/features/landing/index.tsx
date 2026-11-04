@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import HeroSheet from "./hero_sheet.tsx";
+
 import "./style.css";
 
 export default function Landing() {
@@ -26,59 +28,14 @@ export default function Landing() {
                     </div>
                 </div>
 
-                <div className="lp-hero-art" aria-hidden="true">
-                    <div className="lp-sheet lp-sheet-back" />
-                    <div className="lp-sheet lp-sheet-mid" />
-                    <svg className="lp-sheet lp-sheet-front" viewBox="0 0 240 240" role="presentation">
-                        <rect x="1" y="1" width="238" height="238" rx="4" className="lp-grid-paper" />
-                        {Array.from({ length: 5 }, (_, i) => (
-                            <line
-                                key={`v${i}`}
-                                x1={20 + i * 50}
-                                y1="20"
-                                x2={20 + i * 50}
-                                y2="220"
-                                className="lp-grid-line"
-                            />
-                        ))}
-                        {Array.from({ length: 5 }, (_, i) => (
-                            <line
-                                key={`h${i}`}
-                                x1="20"
-                                y1={20 + i * 50}
-                                x2="220"
-                                y2={20 + i * 50}
-                                className="lp-grid-line"
-                            />
-                        ))}
-
-                        {/* cage */}
-                        <rect x="27" y="27" width="86" height="36" rx="4" className="lp-cage" />
-
-                        {/* thermometer */}
-                        <line x1="170" y1="170" x2="170" y2="70" className="lp-thermo-stem" />
-                        <circle cx="170" cy="170" r="12" className="lp-thermo-bulb" />
-
-                        {/* kropki dot between two cells */}
-                        <circle cx="120" cy="120" r="5" className="lp-kropki" />
-
-                        <text x="45" y="52" className="lp-digit">
-                            3
-                        </text>
-                        <text x="95" y="52" className="lp-digit">
-                            7
-                        </text>
-                        <text x="195" y="100" className="lp-digit">
-                            1
-                        </text>
-                        <text x="195" y="200" className="lp-digit">
-                            9
-                        </text>
-                        <text x="45" y="200" className="lp-digit">
-                            5
-                        </text>
-                    </svg>
-                </div>
+                <Link to="/p/first-puzzle" className="lp-hero-side">
+                    <div className="lp-hero-art" aria-hidden="true">
+                        <div className="lp-sheet lp-sheet-back" />
+                        <div className="lp-sheet lp-sheet-mid" />
+                        <HeroSheet />
+                    </div>
+                    <span className="btn btn-primary lp-btn lp-solve">Solve this puzzle</span>
+                </Link>
             </section>
 
             <section className="lp-manifesto">

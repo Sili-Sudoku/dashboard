@@ -4,6 +4,8 @@ import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { parsePuzzle } from "@/runtime/serialization.ts";
 import { definitions } from "@/definitions/index.ts";
 import { listPuzzles } from "@/puzzles/index.ts";
+import { firstPuzzle } from "@/puzzles/first_puzzle.ts";
+import { solve } from "@/runtime/solver.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 import { compilePuzzle as compile } from "@/runtime/compile.ts";
 
@@ -48,5 +50,13 @@ describe("mini sudoku uses no definitions", () => {
         expect(compiled).not.toBeInstanceOf(Error);
         if (compiled instanceof Error) return;
         expect(compiled.constraints.every((c) => c.source === "primitive")).toBe(true);
+    });
+});
+
+describe("first puzzle (linked from the landing page)", () => {
+    it("has exactly one solution", async () => {
+        const compiled = compilePuzzle(firstPuzzle, definitions);
+        if (compiled instanceof Error) throw compiled;
+        expect((await solve(compiled)).status).toBe("unique");
     });
 });
