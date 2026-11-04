@@ -20,6 +20,12 @@ Short rules for everyone who changes this project.
 - Do not put ticket numbers in comments.
 - Write in simple technical English (ASD-STE100): short sentences, active voice.
 
+## Browser smoke test
+
+`npm run test:e2e` builds the app and runs a few tests in a real Chromium (`e2e/`). CI runs it. Run `npx playwright install chromium`
+once on a new machine. The tests cover what jsdom cannot: real layout, a phone-sized screen, and offline use through the service
+worker.
+
 ## Manual checks
 
 Run Lighthouse by hand before a release, or after a change to the look of a page. It is not part of CI. It finds

@@ -34,3 +34,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Real-browser smoke test of the production build. It builds the app itself.
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        run: npm run test:e2e

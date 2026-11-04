@@ -18,3 +18,5 @@ coverage
 .idea
 .DS_Store
 *.sw?
+test-results
+playwright-report
