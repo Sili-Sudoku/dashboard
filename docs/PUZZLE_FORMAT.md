@@ -242,8 +242,25 @@ know about it:
 two, not both. Anything else is a compile error. So an imported puzzle cannot
 make the page load an arbitrary URL scheme.
 
-The built-in definitions are `sudoku`, `thermometer`, `killer`, `arrow`,
-`kropkiDifference`, `kropkiRatio`, `odd`, and `even` (`src/definitions/`).
+The built-in definitions are in `src/definitions/`. Use one of them before you write a rule by hand.
+Each row shows the fields that the reference takes. `cells` is a list of cell ids, `cell` is one cell id.
+
+| `use`                                     | Fields                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| `sudoku`                                  | `boxes` (optional, default `true`). Rows, columns, and boxes.        |
+| `thermometer`                             | `cells` (bulb first), `strict` (optional, default `true`)            |
+| `killer`                                  | `cells`, `sum` (optional number), `distinct` (optional, default `true`) |
+| `arrow`                                   | `bulb` (cells), `cells` (the shaft)                                  |
+| `kropkiDifference`, `kropkiRatio`         | `cells` (2 adjacent), `value` (optional; default 1, and 2 for ratio) |
+| `odd`, `even`                             | `cells` (or `cell`)                                                  |
+| `minimum`, `maximum`                      | `cell`                                                               |
+| `xv`                                      | `cells` (2 adjacent), `target` (10 for X, 5 for V)                   |
+| `palindrome`, `betweenline`               | `cells` (the path)                                                   |
+| `clone`                                   | `cells`, `cloneCells` (same size and order)                          |
+| `quadruple`                               | `cells`, `values` (list of numbers)                                  |
+| `sandwich`                                | `cells` (the full line), `sum`                                       |
+| `antiknight`, `antiking`, `nonconsecutive`, `disjointgroups` | none (they apply to the whole board)              |
+| `negativeRatio`, `negativeDifference`, `negativeXV` | none (a global "no dot of this kind elsewhere" rule)       |
 
 ## Interop
 
@@ -329,3 +346,78 @@ A `PointRef` is one of these: a cell id (its centre), `{ cell, corner }`, or
 reverse and validates again. Codec `1` is raw base64url JSON. `parsePuzzle` does
 a shallow structural check of untrusted input. `compilePuzzle` does the deep
 checks. It never throws. It returns an `Error` instead.
+
+## Using an AI tool to write the JSON
+
+The puzzle JSON format is esoteric and hard to understand in a short amount of time. We've done our best to provide
+examples and explanations, but the simplest way to get the result you want is to have an AI assistant help you with
+the format: structuring the JSON, fixing syntax errors, and translating your ideas into valid fields.
+
+It **should not** be used to invent the puzzle or the core logic of the solve. That is the creative part, and that
+should come from you.
+
+Give the AI this page, and ask it to follow these rules:
+
+1. Look for the rule in the table of definitions. If it is there, use `{ "use": … }`.
+2. If it is not there, write it as an expression with the operators in the reference table. Put it in
+   `{ "rule": <expression>, "name": "<rule name>" }`. A name is a good idea, because rules with one name group
+   together in the player.
+3. Never invent an operator, a definition, or a field. An unknown name is an error (see below).
+4. Cell ids start at 1: `r1c1` is the top-left cell. A row selector starts at 0: `row:0` is the top row.
+5. Fill in `solution` when you know it. Then a wrong rule or a wrong given shows as an error at once.
+
+### A whole puzzle
+
+This 4×4 puzzle has one solution:
+
+```json
+{
+  "version": 1,
+  "metadata": { "id": "mini-example", "title": "Mini example" },
+  "geometry": { "type": "grid", "width": 4, "height": 4 },
+  "domain": { "values": [1, 2, 3, 4] },
+  "givens": { "r1c1": 1, "r1c2": 2, "r2c3": 1, "r3c4": 3, "r4c1": 4, "r4c2": 3 },
+  "constraints": [{ "use": "sudoku" }],
+  "solution": {
+    "r1c1": 1, "r1c2": 2, "r1c3": 3, "r1c4": 4,
+    "r2c1": 3, "r2c2": 4, "r2c3": 1, "r2c4": 2,
+    "r3c1": 2, "r3c2": 1, "r3c3": 4, "r3c4": 3,
+    "r4c1": 4, "r4c2": 3, "r4c3": 2, "r4c4": 1
+  }
+}
+```
+
+### From a rule idea to JSON
+
+| The setter says                                   | The constraint                                                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| "Digits grow along the thermometer from r1c1 to r1c3." | `{ "use": "thermometer", "cells": ["r1c1", "r1c2", "r1c3"] }`                                   |
+| "The cage r2c1, r2c2 adds up to 5."               | `{ "use": "killer", "cells": ["r2c1", "r2c2"], "sum": 5 }`                                           |
+| "Row 1 adds up to 10."                            | `{ "name": "Row 1 sum", "rule": ["==", ["sum", ["cells", "row:0"]], 10] }`                           |
+| "r1c1 is less than r1c2."                         | `{ "rule": ["<", ["value", "r1c1"], ["value", "r1c2"]] }`                                            |
+| "Two cells next to each other differ by at least 3." (a whisper) | `{ "name": "Whispers", "rule": ["or", [">=", ["-", ["value", "r1c1"], ["value", "r1c2"]], 3], [">=", ["-", ["value", "r1c2"], ["value", "r1c1"]], 3]] }` |
+| "No digit repeats in these three cells."          | `{ "rule": ["allDifferent", ["cells", ["r1c1", "r2c2", "r3c3"]]] }`                                  |
+
+A rule that applies to a line must be written for each pair of cells. Make one entry for each pair, with the same
+`name`. Use `value` to read a cell, and `cells` to read a group of cells. A bare cell id is not a number.
+For example, `["==", "r1c1", 3]` compiles without an error, but it is never true. Write
+`["==", ["value", "r1c1"], 3]`.
+
+### Errors you can see
+
+`compilePuzzle` returns an `Error` with a message. It never throws. These are the messages for the usual mistakes:
+
+| Mistake                                | Message                                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Misspelled definition (`thermo`)       | `unknown definition "thermo" (available: sudoku, thermometer, killer, …)`                            |
+| Misspelled operator (`alldifferent`)   | `constraint from "primitive": unknown operator: "alldifferent"`                                      |
+| A cell that is not on the board        | `thermometer: "cells" contains an invalid cell id: "r5c1"` (a rule in an expression says `…is not part of the geometry`) |
+| A selector that does not exist         | `constraint from "primitive": unknown cell or region selector: "cage:x"`                             |
+| A required field is missing            | `thermometer: "cells" must be a non-empty array of cell ids`                                         |
+| A field has the wrong type             | `killer: "sum" must be a number`                                                                     |
+| A given that is not in the domain      | `given r1c1=9 is outside the puzzle domain`                                                          |
+| No `metadata.id`                       | `puzzle metadata.id is required`                                                                     |
+| The `solution` breaks a constraint     | `declared solution violates constraint(s): sudoku#1, sudoku#9`                                       |
+
+In the Author page, **Check uniqueness** tells you if the puzzle has no solution, one, or more than one.
+A puzzle with a wrong rule often has none.
