@@ -77,3 +77,21 @@
     color: var(--chrome-moss);
     text-transform: capitalize;
 }
+
+/* Test puzzles, shown in development only. Quiet, so they are not mistaken for the real list. */
+.puzzles-fixtures {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--line);
+}
+
+.puzzles-fixtures h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.puzzles-fixtures > p {
+    margin: 0.2rem 0 0.8rem;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+}

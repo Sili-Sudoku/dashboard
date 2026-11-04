@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { definitions } from "@/definitions/index.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
-import { listPuzzles } from "@/puzzles/index.ts";
+import { listAllPuzzles } from "@/puzzles/index.ts";
 import { renderThumbnailSvg } from "@/renderer/thumbnail.ts";
 
 const compiled = (def: Parameters<typeof compilePuzzle>[0]) => {
@@ -13,7 +13,7 @@ const compiled = (def: Parameters<typeof compilePuzzle>[0]) => {
 
 describe("renderThumbnailSvg", () => {
     it("resolves every theme token for every registry puzzle (a new --token needs adding to THUMBNAIL_PALETTE)", () => {
-        for (const def of listPuzzles()) {
+        for (const def of listAllPuzzles()) {
             const svg = renderThumbnailSvg(compiled(def));
             expect(svg, def.metadata.id).not.toContain("var(");
             expect(svg, def.metadata.id).toMatch(/^<svg [^>]*viewBox=/);
@@ -21,7 +21,7 @@ describe("renderThumbnailSvg", () => {
     });
 
     it("draws givens, never solution digits or anything the player would enter", () => {
-        const def = listPuzzles().find((p) => p.givens && p.solution);
+        const def = listAllPuzzles().find((p) => p.givens && p.solution);
         if (!def) throw new Error("no registry puzzle with givens and a solution");
         const svg = renderThumbnailSvg(compiled(def));
         const digitCount = (svg.match(/<text [^>]*font-weight="600"/g) ?? []).length;
@@ -29,7 +29,7 @@ describe("renderThumbnailSvg", () => {
     });
 
     it("covers fog-hidden cells instead of leaking their givens", () => {
-        const base = listPuzzles().find((p) => p.givens && Object.keys(p.givens).length > 0 && p.solution);
+        const base = listAllPuzzles().find((p) => p.givens && Object.keys(p.givens).length > 0 && p.solution);
         if (!base?.givens) throw new Error("no usable registry puzzle");
         const cell = Object.keys(base.givens)[0];
         const svg = renderThumbnailSvg(compiled({ ...base, fog: { hidden: [cell] } }));

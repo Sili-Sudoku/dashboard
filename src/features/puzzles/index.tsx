@@ -1,14 +1,40 @@
 import { describeGeometry } from "@/runtime/geometry.ts";
 import { Link } from "react-router-dom";
 
-import { listPuzzles } from "@/puzzles/index.ts";
+import { listFixtures, listPuzzles } from "@/puzzles/index.ts";
+import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { definitions } from "@/definitions/index.ts";
 
 import "./style.css";
 
+/** One card of the list. */
+function PuzzleCard({ puzzle: p }: { puzzle: PuzzleDefinition }) {
+    const compiled = compilePuzzle(p, definitions);
+    const sources = compiled instanceof Error ? [] : uniqueSources(compiled.constraints);
+    return (
+        <Link to={`/p/${p.metadata.id}`} className="puzzle-card">
+            <div className="pc-title">{p.metadata.title}</div>
+            <p className="pc-desc">{p.metadata.description}</p>
+            <div className="pc-meta">
+                <span>{describeGeometry(p.geometry)}</span>
+                <span>{p.metadata.difficulty}</span>
+            </div>
+            <div className="pc-sources">
+                {sources.map((s) => (
+                    <span key={s} className="pc-chip">
+                        {s}
+                    </span>
+                ))}
+            </div>
+        </Link>
+    );
+}
+
 export default function PuzzleList() {
     const puzzles = listPuzzles();
+    // Test puzzles (big boards, the rules demo) are for developers. A visitor of the built app never sees them.
+    const fixtures = import.meta.env.DEV ? listFixtures() : [];
 
     return (
         <div className="puzzles-page">
@@ -22,28 +48,22 @@ export default function PuzzleList() {
             </section>
 
             <section className="puzzles-list">
-                {puzzles.map((p) => {
-                    const compiled = compilePuzzle(p, definitions);
-                    const sources = compiled instanceof Error ? [] : uniqueSources(compiled.constraints);
-                    return (
-                        <Link key={p.metadata.id} to={`/p/${p.metadata.id}`} className="puzzle-card">
-                            <div className="pc-title">{p.metadata.title}</div>
-                            <p className="pc-desc">{p.metadata.description}</p>
-                            <div className="pc-meta">
-                                <span>{describeGeometry(p.geometry)}</span>
-                                <span>{p.metadata.difficulty}</span>
-                            </div>
-                            <div className="pc-sources">
-                                {sources.map((s) => (
-                                    <span key={s} className="pc-chip">
-                                        {s}
-                                    </span>
-                                ))}
-                            </div>
-                        </Link>
-                    );
-                })}
+                {puzzles.map((p) => (
+                    <PuzzleCard key={p.metadata.id} puzzle={p} />
+                ))}
             </section>
+
+            {fixtures.length > 0 && (
+                <section className="puzzles-fixtures" aria-label="Development fixtures">
+                    <h2>Test puzzles</h2>
+                    <p>Only in development. They exist to test and measure the app.</p>
+                    <div className="puzzles-list">
+                        {fixtures.map((p) => (
+                            <PuzzleCard key={p.metadata.id} puzzle={p} />
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

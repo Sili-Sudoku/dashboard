@@ -3,13 +3,13 @@ import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { parsePuzzle } from "@/runtime/serialization.ts";
 import { definitions } from "@/definitions/index.ts";
-import { listPuzzles } from "@/puzzles/index.ts";
+import { getPuzzle, listAllPuzzles, listFixtures, listPuzzles } from "@/puzzles/index.ts";
 import { firstPuzzle } from "@/puzzles/first_puzzle.ts";
 import { solve } from "@/runtime/solver.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 import { compilePuzzle as compile } from "@/runtime/compile.ts";
 
-describe.each(listPuzzles())("built-in puzzle: $metadata.id", (def) => {
+describe.each(listAllPuzzles())("built-in puzzle: $metadata.id", (def) => {
     it("passes structural validation", () => {
         expect(parsePuzzle(def)).not.toBeInstanceOf(Error);
     });
@@ -58,5 +58,32 @@ describe("first puzzle (linked from the landing page)", () => {
         const compiled = compilePuzzle(firstPuzzle, definitions);
         if (compiled instanceof Error) throw compiled;
         expect((await solve(compiled)).status).toBe("unique");
+    });
+});
+
+describe("public puzzles and test fixtures", () => {
+    it("splits the registry in two, with nothing lost and nothing in both", () => {
+        const publicIds = listPuzzles().map((p) => p.metadata.id);
+        const fixtureIds = listFixtures().map((p) => p.metadata.id);
+        expect(publicIds.filter((id) => fixtureIds.includes(id))).toEqual([]);
+        expect([...publicIds, ...fixtureIds].sort()).toEqual(
+            listAllPuzzles()
+                .map((p) => p.metadata.id)
+                .sort(),
+        );
+    });
+
+    it("keeps the test puzzles for the big boards, the rules demo and the primitive-only one", () => {
+        expect(listFixtures().map((p) => p.metadata.id)).toEqual(
+            expect.arrayContaining(["large-demo", "rules-demo", "mini-sudoku"]),
+        );
+    });
+
+    it("offers a first puzzle to play", () => {
+        expect(listPuzzles()[0].metadata.id).toBe("first-puzzle");
+    });
+
+    it("still opens every test puzzle by its id", () => {
+        for (const p of listFixtures()) expect(getPuzzle(p.metadata.id)).toBe(p);
     });
 });

@@ -9,7 +9,7 @@ import { parsePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { solve, type SolveResult } from "@/runtime/solver.ts";
 import { definitions } from "@/definitions/index.ts";
-import { demoMixed, listPuzzles } from "@/puzzles/index.ts";
+import { demoMixed, listAllPuzzles } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import VisualBuilder from "@/features/author/VisualBuilder.tsx";
 import DimInput from "@/features/author/dim_input.tsx";
@@ -147,7 +147,7 @@ export default function Author() {
     };
 
     const loadExample = (id: string) => {
-        const example = listPuzzles().find((p) => p.metadata.id === id);
+        const example = listAllPuzzles().find((p) => p.metadata.id === id);
         if (!example) return;
         const json = JSON.stringify(example, null, 2);
         applyText(json);
@@ -339,7 +339,7 @@ export default function Author() {
 
     const interop = useAuthorInterop("parsed" in result ? result.parsed : undefined, applyText);
 
-    const exampleItems: MenuItem[] = listPuzzles().map((p) => ({
+    const exampleItems: MenuItem[] = listAllPuzzles().map((p) => ({
         label: p.metadata.title,
         onSelect: () => loadExample(p.metadata.id),
     }));

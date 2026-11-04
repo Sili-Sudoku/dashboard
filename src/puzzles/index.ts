@@ -32,7 +32,26 @@ export const puzzleRegistry: Readonly<Record<string, PuzzleDefinition>> = {
     [rulesDemo.metadata.id]: rulesDemo,
 };
 
-export const listPuzzles = (): readonly PuzzleDefinition[] => Object.values(puzzleRegistry);
+/**
+ * Puzzles that exist to test and measure the app, not to be played for fun: the large boards (the size and density
+ * ones are for performance work), the rules demo, and the primitive-only puzzle (it proves that the runtime does not
+ * need the definitions, and it has more than one solution). They still open at `/p/<id>`, and the Author page
+ * offers them as examples. The public puzzle list leaves them out. In development the list shows them apart.
+ */
+const FIXTURE_IDS: ReadonlySet<string> = new Set(
+    [largeDemo, largeDemo0, largeDemo30, largeDemo50, largeDemo70, rulesDemo, miniSudoku].map((p) => p.metadata.id),
+);
+
+/** Every built-in puzzle, fixtures included. */
+export const listAllPuzzles = (): readonly PuzzleDefinition[] => Object.values(puzzleRegistry);
+
+/** The puzzles the public list shows. */
+export const listPuzzles = (): readonly PuzzleDefinition[] =>
+    listAllPuzzles().filter((p) => !FIXTURE_IDS.has(p.metadata.id));
+
+/** The puzzles that exist to test the app. */
+export const listFixtures = (): readonly PuzzleDefinition[] =>
+    listAllPuzzles().filter((p) => FIXTURE_IDS.has(p.metadata.id));
 
 export const getPuzzle = (id: string): PuzzleDefinition | undefined => puzzleRegistry[id];
 
