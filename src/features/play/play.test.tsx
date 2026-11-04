@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import Play from "@/features/play/index.tsx";
+import { clearToasts, getToasts } from "@/app/toast.ts";
 
 const openMenuItem = (name: RegExp) => {
     fireEvent.click(screen.getByRole("button", { name: "Puzzle actions" }));
@@ -73,5 +74,19 @@ describe("Play — keyboard access", () => {
     it("focuses the board on load, so digits work without a click", () => {
         const { container } = renderAt("/p/whisper-line");
         expect(document.activeElement).toBe(container.querySelector(".board"));
+    });
+});
+
+describe("Play — first-visit hint", () => {
+    afterEach(() => clearToasts());
+
+    it("shows the hint once, then never again on this device", () => {
+        renderAt("/p/whisper-line");
+        expect(getToasts().map((t) => t.key)).toContain("play-hint");
+
+        clearToasts();
+        cleanup();
+        renderAt("/p/whisper-line");
+        expect(getToasts().map((t) => t.key)).not.toContain("play-hint");
     });
 });

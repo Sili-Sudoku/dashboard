@@ -20,6 +20,7 @@ describe("useSettings", () => {
             dockControlsBottom: false,
             constraintPanelOpen: true,
             hotkeyLegendOpen: false,
+            playHintSeen: false,
             authorEditorMode: "visual",
             builderTools: [],
         });

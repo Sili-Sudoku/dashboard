@@ -11,6 +11,7 @@ import { getPuzzle } from "@/puzzles/index.ts";
 import PuzzlePlayer from "@/player/PuzzlePlayer.tsx";
 import { OverflowMenu } from "@/app/overflow_menu.tsx";
 import { toast } from "@/app/toast.ts";
+import { useSettings } from "@/app/use_settings.ts";
 import { usePageHeader, usePageActionsSlot } from "@/app/page_header.ts";
 
 import "@/app/error_boundary.css";
@@ -39,6 +40,7 @@ type JsonView = "off" | "artifact" | "compiled";
 
 export default function Play() {
     const { ref } = useParams();
+    const [settings, setSetting] = useSettings();
     const { definition, compiled, error } = useMemo(() => resolve(ref), [ref]);
     const [copied, setCopied] = useState(false);
     const [jsonView, setJsonView] = useState<JsonView>("off");
@@ -55,6 +57,17 @@ export default function Play() {
     useEffect(() => {
         if (hasBoard) document.querySelector<SVGElement>(".play .board")?.focus({ preventScroll: true });
     }, [hasBoard, ref]);
+
+    // A one-time hint on the first puzzle that this device opens.
+    const hintSeen = settings.playHintSeen;
+    useEffect(() => {
+        if (!hasBoard || hintSeen) return;
+        toast("Click a cell, then press a digit. Shortcuts are in the sidebar.", {
+            key: "play-hint",
+            duration: 12000,
+        });
+        setSetting("playHintSeen", true);
+    }, [hasBoard, hintSeen, setSetting]);
 
     const share = async () => {
         if (!definition) return;

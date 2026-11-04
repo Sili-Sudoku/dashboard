@@ -32,6 +32,8 @@ export interface Settings {
      * A note mode that carries over from the last puzzle would surprise the user. */
     constraintPanelOpen: boolean;
     hotkeyLegendOpen: boolean;
+    /** The one-time hint on the first puzzle has been shown. */
+    playHintSeen: boolean;
     authorEditorMode: EditorMode;
     /** Visual builder: names of the tools that the author pinned to quick access.
      *  The other tools are behind "Add tool". */
@@ -46,6 +48,7 @@ const DEFAULT_SETTINGS: Settings = {
     dockControlsBottom: false,
     constraintPanelOpen: true,
     hotkeyLegendOpen: false,
+    playHintSeen: false,
     authorEditorMode: "visual",
     builderTools: [],
 };
