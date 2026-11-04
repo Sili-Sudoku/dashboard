@@ -57,3 +57,14 @@ describe("Play — JSON viewer", () => {
         expect(container.querySelector(".play-json")).toBeNull();
     });
 });
+
+describe("Play — a puzzle that cannot be opened", () => {
+    it("shows a plain message, keeps the raw error behind Details, and links back", () => {
+        renderAt("/p/not-a-real-puzzle");
+        expect(screen.getByRole("heading", { name: /could not be opened/i })).toBeTruthy();
+        const details = screen.getByText("Details").closest("details") as HTMLDetailsElement;
+        expect(details.open).toBe(false);
+        expect(details.textContent).toMatch(/codec/i);
+        expect(screen.getByRole("link", { name: /browse puzzles/i }).getAttribute("href")).toBe("/puzzles");
+    });
+});

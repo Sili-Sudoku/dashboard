@@ -5,8 +5,14 @@
     text-align: center;
 }
 
+.error-page h1 {
+    text-wrap: balance;
+}
+
 .error-page-message {
     color: var(--ink-soft);
+    /* Spread the words evenly over the lines, so no short last line ("a new one.") is left alone. */
+    text-wrap: balance;
     overflow-wrap: anywhere;
 }
 
@@ -19,4 +25,26 @@
 
 .error-page-actions .btn {
     text-decoration: none;
+}
+
+/* The technical message sits behind a "Details" toggle, for a bug report. */
+.error-page-details {
+    margin-top: 1rem;
+    text-align: left;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+}
+
+.error-page-details summary {
+    cursor: pointer;
+    text-align: center;
+}
+
+.error-page-details p {
+    margin: 0.6rem 0 0;
+    padding: 0.6rem 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+    overflow-wrap: anywhere;
 }

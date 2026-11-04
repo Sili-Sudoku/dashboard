@@ -13,6 +13,7 @@ import { OverflowMenu } from "@/app/overflow_menu.tsx";
 import { toast } from "@/app/toast.ts";
 import { usePageHeader, usePageActionsSlot } from "@/app/page_header.ts";
 
+import "@/app/error_boundary.css";
 import "./style.css";
 
 interface Resolved {
@@ -56,10 +57,24 @@ export default function Play() {
 
     if (error && !compiled) {
         return (
-            <div className="play-error">
-                <h2>Could not load this puzzle</h2>
-                <p>{error}</p>
-                <Link to="/">Back to puzzles</Link>
+            <div className="error-page" role="alert">
+                <h1>This puzzle could not be opened</h1>
+                <p className="error-page-message">
+                    The link may be cut off or damaged, or a newer version of the app may have made the puzzle. Check
+                    the link, or ask the person who sent it for a new one.
+                </p>
+                <details className="error-page-details">
+                    <summary>Details</summary>
+                    <p>{error}</p>
+                </details>
+                <div className="error-page-actions">
+                    <Link to="/puzzles" className="btn btn-primary">
+                        Browse puzzles
+                    </Link>
+                    <Link to="/" className="btn">
+                        Home
+                    </Link>
+                </div>
             </div>
         );
     }
