@@ -1,0 +1,12 @@
+Third-party names and assets
+
+Constraint Puzzle Runtime is not affiliated with, endorsed by, or sponsored by
+SudokuPad, SudokuMaker, f-puzzles, or Penpa+. It can import from and export to
+their puzzle formats so that puzzles can move between tools.
+
+All names, logos, and trademarks belong to their owners. They appear only to
+identify the tool that an import or export action refers to:
+
+- src/features/author/sudokumaker-icon.png: SudokuMaker logo
+  (dev.sudokumaker.app).
+- src/features/author/sudokupad-icon.png: SudokuPad logo (sudokupad.app).

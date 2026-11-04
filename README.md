@@ -75,3 +75,6 @@ breaking change.
 
 [Business Source License 1.1](LICENSE). Each version converts to Apache-2.0
 four years after its first public release.
+
+Not affiliated with SudokuPad, SudokuMaker, f-puzzles, or Penpa+. See
+[`NOTICE`](NOTICE) for the third-party names and logos used.

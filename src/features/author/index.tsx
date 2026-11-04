@@ -375,6 +375,7 @@ export default function Author() {
     );
     const canExport = "parsed" in result && !!result.parsed;
     const interopItems: MenuItem[] = [
+        { label: "Other websites, not affiliated with us", info: true, onSelect: () => {} },
         { label: "Import from f-puzzles", icon: <FPuzzlesIcon />, onSelect: () => interop.openImport("fpuzzles") },
         {
             label: "Import from SudokuMaker",
