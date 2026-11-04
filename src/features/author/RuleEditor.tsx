@@ -6,6 +6,8 @@ import { OPERATOR_SIGNATURES, signatureOf, type SlotSpec } from "@/authoring/ope
 import { addArg, argSpec, bindsEachAt, getAt, leafFor, newOp, removeArg, type Path } from "@/authoring/rule_tree.ts";
 import type { RuleControls } from "@/features/author/use_visual_builder.ts";
 
+import "./rule_editor.css";
+
 /** The operators that a slot of this kind can hold, in groups for the picker. */
 const choicesFor = (spec: SlotSpec) => {
     const returns = spec.kind === "nums" ? ["nums"] : [spec.kind];

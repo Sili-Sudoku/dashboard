@@ -23,6 +23,16 @@ import {
 import { hiddenCells } from "@/runtime/fog.ts";
 import { ruleAbsentCells, visibleObjects } from "@/runtime/rules.ts";
 import { MARK_COLOR_COUNT, markIndexForDigit } from "@/runtime/mark_colors.ts";
+import { UndoStack } from "@/runtime/undo_stack.ts";
+import { EMPTY_CELL, boardToProgress, progressEntryToState, toggleSet } from "@/runtime/cell_state.ts";
+import type {
+    CellState,
+    CheckOutcome,
+    InputMode,
+    ProgressSnapshot,
+    SelectMode,
+    SessionOptions,
+} from "@/runtime/session_types.ts";
 import {
     EMPTY_PEN,
     cycleMark,
@@ -34,17 +44,8 @@ import {
     type PenState,
 } from "@/runtime/pen.ts";
 
-export interface CellState {
-    value: number | null;
-    /** Corner notes: shown as a fixed grid with one position for each digit. */
-    notes: readonly number[];
-    /** Centre (candidate) notes: shown as a compact list that grows. */
-    centerNotes: readonly number[];
-    /** Colour marks: palette indices, ascending. This layer is independent. Digits and notes never change it. */
-    colors: readonly number[];
-}
-
-const EMPTY_CELL: CellState = { value: null, notes: [], centerNotes: [], colors: [] };
+export type * from "@/runtime/session_types.ts";
+export { penStorageKey, progressStorageKey, statsStorageKey } from "@/runtime/session_types.ts";
 
 /**
  * One undo/redo step. Single-cell edits (typing, notes, erase) are frequent, so they are a `patch`:
@@ -59,53 +60,10 @@ type HistoryEntry =
     | { kind: "pen"; pen: PenState }
     | { kind: "full"; snapshot: string };
 
-const toggleSet = (notes: readonly number[], digit: number): number[] => {
-    const set = new Set(notes);
-    if (set.has(digit)) set.delete(digit);
-    else set.add(digit);
-    return [...set].sort((a, b) => a - b);
-};
-
-/** Compact, serialisable player progress (entered cells only). */
-export type ProgressSnapshot = Readonly<
-    Record<
-        CellId,
-        { value?: number; notes?: readonly number[]; centerNotes?: readonly number[]; colors?: readonly number[] }
-    >
->;
-
-export type SelectMode = "replace" | "add" | "toggle";
-
-export interface SessionOptions {
-    onChange?: () => void;
-    initialProgress?: ProgressSnapshot;
-    /** Sets the start value of `checkNotesOnLeave` (default false). The default for the player is in Settings. */
-    checkNotesOnLeave?: boolean;
-    /** The saved pen layer. It is separate from `initialProgress`, whose keys are cells. */
-    initialPen?: PenState;
-}
-
-/**
- * The effect of a plain digit press (number pad click or keyboard digit).
- * In "color" mode, the digit selects a palette colour (1-based). It does not set a value.
- */
 /** A layer of a cell that Erase can clear. */
 type EraseLayer = "value" | "centerNotes" | "notes" | "colors" | "pen";
 /** The order in which Erase goes down the layers, after the layer of the active mode. The pen layer is the last link. */
 const ERASE_CHAIN: readonly EraseLayer[] = ["value", "centerNotes", "notes", "colors", "pen"];
-
-export type InputMode = "digit" | "corner" | "center" | "color" | "pen";
-
-/**
- * Result of `PuzzleSession.checkAgainstSolution`:
- * - "clean": no mistakes.
- * - "mistake-value": a placed value does not match the solution. This is the first press since the board changed,
- *   so it does not say where. It has priority over "mistake-notes", because a wrong digit is the more useful problem.
- * - "mistake-notes": no placed value is wrong, but a centre note removed the correct digit somewhere.
- *   It does not say where either.
- * - "revealed": a second press in a row (no edit between). `incorrectCells` and `flaggedCells` now highlight them.
- */
-export type CheckOutcome = "clean" | "mistake-value" | "mistake-notes" | "revealed";
 
 export class PuzzleSession {
     readonly puzzle: CompiledPuzzle;
@@ -117,8 +75,7 @@ export class PuzzleSession {
     private board = new Map<CellId, CellState>();
     /** The pen layer: the lines and X/O marks of the player. It is outside the puzzle and its evaluation. */
     private pen: PenState = EMPTY_PEN;
-    private past: HistoryEntry[] = [];
-    private futureStack: HistoryEntry[] = [];
+    private history = new UndoStack<HistoryEntry>();
     private selection = new Set<CellId>();
     private cursor: CellId | null = null;
     /** The cell whose digit the player asked to see everywhere (double-click). Moving the cursor off it clears the highlight. */
@@ -288,11 +245,11 @@ export class PuzzleSession {
     }
 
     get canUndo(): boolean {
-        return this.past.length > 0;
+        return this.history.canUndo;
     }
 
     get canRedo(): boolean {
-        return this.futureStack.length > 0;
+        return this.history.canRedo;
     }
 
     // --- selection -------------------------------------------------------
@@ -707,9 +664,7 @@ export class PuzzleSession {
     }
 
     undo(): void {
-        const entry = this.past.pop();
-        if (!entry) return;
-        this.futureStack.push(this.applyEntry(entry));
+        if (!this.history.undo((entry) => this.applyEntry(entry))) return;
         this.flaggedCells.clear();
         this.incorrectCells.clear();
         this.checkArmed = false;
@@ -717,9 +672,7 @@ export class PuzzleSession {
     }
 
     redo(): void {
-        const entry = this.futureStack.pop();
-        if (!entry) return;
-        this.past.push(this.applyEntry(entry));
+        if (!this.history.redo((entry) => this.applyEntry(entry))) return;
         this.flaggedCells.clear();
         this.incorrectCells.clear();
         this.checkArmed = false;
@@ -741,23 +694,7 @@ export class PuzzleSession {
     // --- persistence ---------------------------------------------------
 
     toProgress(): ProgressSnapshot {
-        const out: Record<CellId, ProgressSnapshot[CellId]> = {};
-        for (const [cell, state] of this.board) {
-            const entry: {
-                value?: number;
-                notes?: readonly number[];
-                centerNotes?: readonly number[];
-                colors?: readonly number[];
-            } = {};
-            if (state.value !== null) entry.value = state.value;
-            else {
-                if (state.notes.length > 0) entry.notes = state.notes;
-                if (state.centerNotes.length > 0) entry.centerNotes = state.centerNotes;
-            }
-            if (state.colors.length > 0) entry.colors = state.colors;
-            if (Object.keys(entry).length > 0) out[cell] = entry;
-        }
-        return out;
+        return boardToProgress(this.board);
     }
 
     loadProgress(snapshot: ProgressSnapshot): void {
@@ -773,18 +710,8 @@ export class PuzzleSession {
     private applyProgress(snapshot: ProgressSnapshot): void {
         this.board.clear();
         const setEntry = (cell: CellId, entry: ProgressSnapshot[CellId]): void => {
-            const colors = [
-                ...new Set((entry.colors ?? []).filter((c) => Number.isInteger(c) && c >= 0 && c < MARK_COLOR_COUNT)),
-            ].sort((a, b) => a - b);
-            if (entry.value !== undefined && this.puzzle.domain.includes(entry.value)) {
-                this.board.set(cell, { value: entry.value, notes: [], centerNotes: [], colors });
-                return;
-            }
-            const notes = entry.notes ? [...entry.notes].sort((a, b) => a - b) : [];
-            const centerNotes = entry.centerNotes ? [...entry.centerNotes].sort((a, b) => a - b) : [];
-            if (notes.length > 0 || centerNotes.length > 0 || colors.length > 0) {
-                this.board.set(cell, { value: null, notes, centerNotes, colors });
-            }
+            const state = progressEntryToState(entry, this.puzzle.domain);
+            if (state) this.board.set(cell, state);
         };
 
         const entries = Object.entries(snapshot).filter(([cell]) => this.geometry.has(cell));
@@ -818,9 +745,7 @@ export class PuzzleSession {
     }
 
     private pushEntry(entry: HistoryEntry): void {
-        this.past.push(entry);
-        if (this.past.length > 200) this.past.shift();
-        this.futureStack = [];
+        this.history.push(entry);
     }
 
     /**
@@ -865,22 +790,5 @@ export class PuzzleSession {
         this.pen = pen;
     }
 }
-
-export const penStorageKey = (puzzleId: string): string => `cpr:pen:${puzzleId}`;
-
-export const progressStorageKey = (puzzleId: string): string => `cpr:progress:${puzzleId}`;
-
-/** Local solve-timer stats for each puzzle. They are not community
- *  leaderboards (those need accounts and a backend).
- *  They only show how long a solve took on this device. */
-export interface PuzzleStats {
-    /** The total active solve time of the current attempt, in ms. */
-    elapsedMs: number;
-    /** The fastest *completed* solve recorded for this puzzle, in ms.
-     *  It stays across resets and retries. It can only become lower. */
-    bestElapsedMs?: number;
-}
-
-export const statsStorageKey = (puzzleId: string): string => `cpr:stats:${puzzleId}`;
 
 export { lookupFromRecord };

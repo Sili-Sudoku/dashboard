@@ -4,6 +4,8 @@ import { OverflowMenu } from "@/app/overflow_menu.tsx";
 import { readOverride, withOverride } from "@/authoring/style_override.ts";
 import { PATTERNS, type PatternName } from "@/runtime/puzzle.ts";
 
+import "./style_editor.css";
+
 /** A neutral green as the start value. The colour input needs a real value to show after "Set colour" is pressed. */
 const STARTING_COLOR = "#3aa76d";
 
