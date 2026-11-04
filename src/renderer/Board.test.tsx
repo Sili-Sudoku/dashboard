@@ -3,7 +3,7 @@ import { act } from "react";
 import { afterEach, beforeAll, beforeEach, afterAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 
-import Board from "@/renderer/Board.tsx";
+import Board, { type ZoomControls } from "@/renderer/Board.tsx";
 import type { CellShape, Scene } from "@/renderer/scene.ts";
 
 afterEach(() => {
@@ -638,6 +638,78 @@ describe("Board — pen input", () => {
         expect(onStroke).not.toHaveBeenCalled();
     });
 
+    it("does nothing for a press with another button than the primary one", () => {
+        const { surface, onStroke, onMark } = penBoard();
+        fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, button: 2 });
+        fireEvent.pointerUp(surface, { clientX: 10, clientY: 10 });
+        expect(onStroke).not.toHaveBeenCalled();
+        expect(onMark).not.toHaveBeenCalled();
+    });
+
+    it("drops the draft when the pointer is cancelled, and commits nothing", () => {
+        const { surface, container, onStroke, onMark } = penBoard();
+        fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, button: 0 });
+        fireEvent.pointerMove(surface, { clientX: 50, clientY: 10 });
+        expect(container.querySelector(".pen-draft")).not.toBeNull();
+        fireEvent.pointerCancel(surface);
+        expect(container.querySelector(".pen-draft")).toBeNull();
+        fireEvent.pointerUp(surface, { clientX: 50, clientY: 10 });
+        expect(onStroke).not.toHaveBeenCalled();
+        expect(onMark).not.toHaveBeenCalled();
+    });
+
+    it("ignores moves and releases when no stroke was started", () => {
+        const { surface, container, onStroke, onMark } = penBoard();
+        fireEvent.pointerMove(surface, { clientX: 30, clientY: 10 });
+        fireEvent.pointerUp(surface, { clientX: 30, clientY: 10 });
+        expect(container.querySelector(".pen-draft")).toBeNull();
+        expect(onStroke).not.toHaveBeenCalled();
+        expect(onMark).not.toHaveBeenCalled();
+    });
+
+    it("does not start a stroke where the board has no measurable size", () => {
+        const { surface, container, onStroke } = penBoard();
+        (container.querySelector("svg.board") as SVGSVGElement).getBoundingClientRect = () =>
+            ({ left: 0, top: 0, width: 0, height: 0 }) as DOMRect;
+        fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, button: 0 });
+        fireEvent.pointerMove(surface, { clientX: 50, clientY: 10 });
+        fireEvent.pointerUp(surface, { clientX: 50, clientY: 10 });
+        expect(container.querySelector(".pen-draft")).toBeNull();
+        expect(onStroke).not.toHaveBeenCalled();
+    });
+
+    it("reads points through the screen matrix of the browser when there is one", () => {
+        const { surface, onStroke } = penBoard();
+        // A screen that shows the board at twice its size: one pixel is half a board unit.
+        (surface as unknown as { getScreenCTM: () => unknown }).getScreenCTM = () => ({
+            inverse: () => ({}),
+        });
+        vi.stubGlobal(
+            "DOMPoint",
+            class {
+                x: number;
+                y: number;
+                constructor(x: number, y: number) {
+                    this.x = x;
+                    this.y = y;
+                }
+                matrixTransform() {
+                    return { x: this.x / 2, y: this.y / 2 };
+                }
+            },
+        );
+        try {
+            fireEvent.pointerDown(surface, { clientX: 20, clientY: 20, button: 0 }); // board (10, 10)
+            fireEvent.pointerMove(surface, { clientX: 60, clientY: 20 }); // board (30, 10)
+            fireEvent.pointerUp(surface, { clientX: 60, clientY: 20 });
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        const points = onStroke.mock.calls[0][0] as { x: number; y: number }[];
+        expect(points[0]).toEqual({ x: 1, y: 1 });
+        expect(points[points.length - 1]).toEqual({ x: 3, y: 1 });
+    });
+
     it("has no pen surface when the pen isn't active", () => {
         const { container } = render(
             <Board
@@ -714,5 +786,61 @@ describe("Board — diagonal drag-selection", () => {
         fireEvent.pointerEnter(second.cells[1], { clientX: 21, clientY: 19 });
         fireEvent.pointerUp(second.cells[1].ownerSVGElement as SVGElement);
         expect(second.painted).toEqual(["r1c1", "r1c2"]);
+    });
+});
+
+describe("Board — zoom controls for a menu of the caller", () => {
+    // The zoom maths need a measured container (jsdom has no layout).
+    beforeAll(() => {
+        stubRects(() => ({ left: 0, top: 0, width: 100, height: 100 }));
+    });
+    afterAll(() => {
+        Reflect.deleteProperty(HTMLElement.prototype, "getBoundingClientRect");
+    });
+
+    const renderWithControls = (onZoomControls: (c: ZoomControls | null) => void) =>
+        render(
+            <Board
+                scene={bigScene(25, 20)}
+                hideFooter
+                onZoomControls={onZoomControls}
+                onPaintStart={noop}
+                onPaintMove={noop}
+                onPaintEnd={noop}
+                onClearSelection={noop}
+            />,
+        );
+
+    it("publishes the controls, with no footer row of its own, and withdraws them on unmount", () => {
+        const seen: (ZoomControls | null)[] = [];
+        const { container, unmount } = renderWithControls((c) => seen.push(c));
+        expect(container.querySelector(".board-footer")).toBeNull();
+        const first = seen[seen.length - 1]!;
+        expect(first).toMatchObject({ percent: 100, locked: false });
+        unmount();
+        expect(seen[seen.length - 1]).toBeNull();
+    });
+
+    it("zooms in and out through the published controls, and reports the new percent", () => {
+        let latest: ZoomControls | null = null;
+        renderWithControls((c) => (latest = c));
+        act(() => latest!.zoomIn());
+        const zoomedIn = (latest as ZoomControls | null)!.percent;
+        expect(zoomedIn).toBeGreaterThan(100);
+        act(() => latest!.zoomOut());
+        expect((latest as ZoomControls | null)!.percent).toBeLessThan(zoomedIn);
+    });
+
+    it("locks the zoom through the published controls, and the lock survives a remount", () => {
+        let latest: ZoomControls | null = null;
+        const first = renderWithControls((c) => (latest = c));
+        act(() => latest!.toggleLock());
+        expect((latest as ZoomControls | null)!.locked).toBe(true);
+        const before = (latest as ZoomControls | null)!.percent;
+        act(() => latest!.zoomIn());
+        expect((latest as ZoomControls | null)!.percent).toBe(before); // locked: no change
+        first.unmount();
+        renderWithControls((c) => (latest = c));
+        expect((latest as ZoomControls | null)!.locked).toBe(true);
     });
 });
