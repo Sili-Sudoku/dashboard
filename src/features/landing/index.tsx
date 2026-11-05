@@ -124,6 +124,8 @@ export default function Landing() {
                         {" · "}
                     </>
                 )}
+                <Link to="/ownership">Puzzle ownership</Link>
+                {" · "}
                 <Link to="/ai">AI disclaimer</Link>
                 {" · "}
                 <a href="/third-party-notices.txt">Third-party licences</a>

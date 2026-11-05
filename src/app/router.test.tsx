@@ -176,6 +176,19 @@ describe("AppRouter — AI disclaimer", () => {
     });
 });
 
+describe("AppRouter — puzzle ownership", () => {
+    it("links to the ownership page from the landing footer", async () => {
+        render(
+            <MemoryRouter initialEntries={["/"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        fireEvent.click(await screen.findByRole("link", { name: "Puzzle ownership" }));
+        expect(await screen.findByRole("heading", { name: "Puzzle ownership" })).toBeTruthy();
+        expect(screen.getByText(/Everything you make is yours/)).toBeTruthy();
+    });
+});
+
 describe("AppRouter — privacy", () => {
     it("tells people on the settings page that their data stays on the device", async () => {
         render(

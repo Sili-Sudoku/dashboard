@@ -117,6 +117,20 @@ artifact from the URL (`<codec><base64url(JSON)>`). It needs no server and no
 account. The codec byte lets a compressed encoding be added later without a
 breaking change.
 
+## Puzzle ownership
+
+Last updated 5 November 2026.
+
+**You own your puzzles.** Everything you make is yours, wherever it came from: made here, imported from another tool, or shared by a link. You keep all rights to it and can do what you like with it.
+
+**What the site may do.** When you publish a puzzle, you let the site show it and pass it on to other people on the site. That is all. The permission is not exclusive, and it ends when you delete the puzzle.
+
+**What the site will not do.** Use your puzzles for anything else. I will not sell them, license them to anyone, or use them to train AI.
+
+**Taking a puzzle down.** You can remove your puzzle at any time. I only remove one myself for safety reasons, or because it breaks the rule below.
+
+**Publish only your own.** Publish only puzzles you made, or have the maker's permission for. Passing off someone else's puzzle as yours is a violation. I will remove it and may stop you from publishing again. The owner keeps all their rights and can act on them directly.
+
 ## AI disclaimer
 
 Neither this project nor I am against AI development or AI tooling. What matters at the end of the day is the quality

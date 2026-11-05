@@ -5,3 +5,8 @@
 .ai-page p {
     color: var(--ink-soft);
 }
+
+.ai-page h2 {
+    margin: 1.6rem 0 0.3rem;
+    font-size: 1.1rem;
+}

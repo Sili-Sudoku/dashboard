@@ -20,6 +20,7 @@ const Play = lazy(() => import("@/features/play"));
 const Author = lazy(() => import("@/features/author"));
 const Settings = lazy(() => import("@/features/settings"));
 const AiDisclaimer = lazy(() => import("@/features/ai"));
+const PuzzleOwnership = lazy(() => import("@/features/ownership"));
 
 // Titles for routes that do not register their own title with usePageHeader.
 // Play and Author register their own, and their title has priority.
@@ -29,6 +30,7 @@ const ROUTE_TITLES: Record<string, string> = {
     "/new": "Author a puzzle",
     "/settings": "Settings",
     "/ai": "AI disclaimer",
+    "/ownership": "Puzzle ownership",
 };
 const KNOWN_PATHS = new Set(["/", ...Object.keys(ROUTE_TITLES)]);
 
@@ -162,6 +164,7 @@ export default function AppRouter() {
                                     <Route path="/new" element={<Author />} />
                                     <Route path="/settings" element={<Settings />} />
                                     <Route path="/ai" element={<AiDisclaimer />} />
+                                    <Route path="/ownership" element={<PuzzleOwnership />} />
                                     <Route path="*" element={<NotFound />} />
                                 </Routes>
                             </Suspense>
