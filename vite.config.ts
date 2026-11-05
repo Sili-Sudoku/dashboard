@@ -44,10 +44,40 @@ function thirdPartyNotices(): Plugin {
     };
 }
 
+/**
+ * GitHub Pages cannot send headers, so public/_headers has no effect there. This copies its policy into a meta tag
+ * of the built index.html, so there is one policy to maintain. `frame-ancestors` is dropped, because browsers ignore
+ * it in a meta tag. Build only: the dev server needs inline scripts for hot reload.
+ */
+function cspMeta(): Plugin {
+    return {
+        name: "csp-meta",
+        apply: "build",
+        transformIndexHtml() {
+            const headers = fs.readFileSync("public/_headers", "utf8");
+            const policy = /Content-Security-Policy:\s*(.+)/.exec(headers)?.[1];
+            if (!policy) throw new Error("public/_headers has no Content-Security-Policy");
+            const content = policy
+                .split(";")
+                .map((d) => d.trim())
+                .filter((d) => d && !d.startsWith("frame-ancestors"))
+                .join("; ");
+            return [
+                {
+                    tag: "meta",
+                    attrs: { "http-equiv": "Content-Security-Policy", content },
+                    injectTo: "head-prepend",
+                },
+            ];
+        },
+    };
+}
+
 export default defineConfig({
     plugins: [
         react(),
         thirdPartyNotices(),
+        cspMeta(),
         // Precaches the whole build, including lazy route chunks. The app opens offline, even for
         // routes the user did not visit. The manifest is the hand-written one in public/, so the
         // plugin does not generate its own.

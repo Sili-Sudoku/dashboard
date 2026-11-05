@@ -126,6 +126,8 @@ change one function in `src/features/play/` to fetch the puzzle.
 `public/_headers` sets a strict policy for hosts that read that file (Netlify, Cloudflare Pages):
 only the own origin, no inline script or style, images from the site or `data:` only, no framing.
 It limits the damage if a hostile puzzle ever reaches the page.
+GitHub Pages cannot send headers, so the build also copies the same policy into a `<meta>` tag of `index.html`
+(`cspMeta` in `vite.config.ts`, without `frame-ancestors`, which browsers ignore there). There is one policy to maintain.
 `index.html` loads `public/theme-init.js` as a file, so the policy needs no inline-script exception.
 
 The policy has no `'unsafe-eval'`: the app never runs code that comes from the author or from a link.

@@ -1,7 +1,8 @@
 # Sili Sudoku
 
 Play variant Sudoku in your browser, or make your own puzzles. No account, no install, and it works offline.
-The source is available under the [Business Source License](#licence).
+The source is available under the [Business Source License](#licence), at
+[github.com/Sili-Sudoku/dashboard](https://github.com/Sili-Sudoku/dashboard).
 
 ![A 6x6 variant puzzle with a thermometer, killer cages and kropki dots](docs/screenshot.png)
 

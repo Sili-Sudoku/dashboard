@@ -44,3 +44,16 @@ Check `/`, `/puzzles`, a puzzle such as `/p/demo-mixed`, and `/new`. The last re
 (from the official Node release schedule; skipped when offline). It fails if a package that ships to users has a known
 vulnerability. Then it lists packages with newer versions. Dev-only tools (tests, lint) can have advisories without
 affecting users, so the audit skips them. CI runs the Node check on every push. Run the full command before a release.
+
+## Deploying
+
+A push to `main` builds the site and publishes it to GitHub Pages (`.github/workflows/deploy.yml`). It needs no token
+and no second repository. One-time setup, in the repository settings:
+
+1. Settings → Pages → Source: **GitHub Actions**.
+2. Settings → Pages → Custom domain: `sudoku.silical.dev`, then **Enforce HTTPS** once the certificate is ready.
+3. At the DNS provider: a `CNAME` record for `sudoku` pointing to `<org>.github.io`.
+
+The workflow does not run the tests. `CI` does that on the same push, so a red CI after a deploy means the site is
+live with a failing check. Pages ignores `public/_redirects`, so the workflow copies `index.html` to `404.html` to make
+`/p/<puzzle>` and the other routes load the app.

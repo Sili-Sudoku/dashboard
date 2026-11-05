@@ -9,7 +9,7 @@ test("the landing page loads without console errors", async ({ page }) => {
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /every variant is/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /solve variant sudoku/i })).toBeVisible();
     expect(errors).toEqual([]);
 });
 
