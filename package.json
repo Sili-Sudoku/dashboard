@@ -1,5 +1,5 @@
 {
-  "name": "constraint-puzzle-runtime",
+  "name": "sili-sudoku",
   "version": "0.1.0",
   "license": "BUSL-1.1",
   "type": "module",

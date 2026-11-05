@@ -83,18 +83,18 @@ describe("AppRouter — document title", () => {
 
     it("uses the bare app title on the home route", () => {
         at("/");
-        expect(document.title).toBe("Constraint Puzzle Runtime");
+        expect(document.title).toBe("Sili Sudoku");
     });
 
     it("prefixes the route's name on pages without their own header", () => {
         at("/settings");
-        expect(document.title).toBe("Settings · Constraint Puzzle Runtime");
+        expect(document.title).toBe("Settings · Sili Sudoku");
     });
 
     it("lets the gear close the settings page", () => {
         at("/settings");
         fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
-        expect(document.title).toBe("Constraint Puzzle Runtime");
+        expect(document.title).toBe("Sili Sudoku");
         expect(screen.getByRole("link", { name: "Settings" })).toBeTruthy();
     });
 
@@ -105,12 +105,12 @@ describe("AppRouter — document title", () => {
 
     it("names the not-found page", () => {
         at("/nope");
-        expect(document.title).toBe("Page not found · Constraint Puzzle Runtime");
+        expect(document.title).toBe("Page not found · Sili Sudoku");
     });
 
     it("uses the title a page registers via usePageHeader (the author page's)", () => {
         at("/new");
-        expect(document.title).toBe("Author a puzzle · Constraint Puzzle Runtime");
+        expect(document.title).toBe("Author a puzzle · Sili Sudoku");
     });
 });
 

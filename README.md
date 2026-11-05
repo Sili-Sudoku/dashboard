@@ -1,4 +1,4 @@
-# Constraint Puzzle Runtime
+# Sili Sudoku
 
 A generic runtime for Sudoku and variant-Sudoku puzzles. The engine knows only
 generic primitives: cells, regions, values, sums, ordering, counting, logic, and
