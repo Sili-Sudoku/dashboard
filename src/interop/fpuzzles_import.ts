@@ -24,7 +24,7 @@ import {
     range,
 } from "@/interop/fpuzzles_format.ts";
 
-const KNOWN_TOP_LEVEL_KEYS = new Set([
+export const KNOWN_TOP_LEVEL_KEYS = new Set([
     "size",
     "grid",
     "title",

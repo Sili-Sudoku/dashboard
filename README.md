@@ -39,7 +39,8 @@ confirm.
   sharing beyond links that contain the whole puzzle.
 - Only a few puzzles are bundled.
 - Only Chromium has been tested. Firefox, Safari, iOS, and real touch devices are not checked yet.
-- Imports from other tools cover the common rules, but how faithfully has not been measured yet. Penpa+ is not supported.
+- Imports from other tools cover the common rules, not all of them. Anything skipped gets a warning. See
+  [`docs/IMPORT_FIDELITY.md`](docs/IMPORT_FIDELITY.md). Penpa+ is not supported.
 - The solver can be slow on very hard or very large puzzles.
 
 ## How it fits together
