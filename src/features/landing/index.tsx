@@ -1,3 +1,4 @@
+import { FEEDBACK_EMAIL, FEEDBACK_HREF } from "@/app/feedback.ts";
 import { Link } from "react-router-dom";
 
 import HeroSheet from "./hero_sheet.tsx";
@@ -105,6 +106,10 @@ export default function Landing() {
                 <Link to="/ai">AI disclaimer</Link>
                 {" · "}
                 <a href="/third-party-notices.txt">Third-party licences</a>
+                {" · "}
+                <a href={FEEDBACK_HREF} data-tip={FEEDBACK_EMAIL} data-tip-align="end">
+                    Feedback
+                </a>
             </footer>
         </div>
     );

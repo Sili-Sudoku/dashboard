@@ -1,3 +1,4 @@
+import { FEEDBACK_EMAIL, FEEDBACK_HREF } from "@/app/feedback.ts";
 import { useInstall } from "@/app/pwa.ts";
 import { PALETTES, usePalette } from "@/app/use_palette.ts";
 import { useSettings } from "@/app/use_settings.ts";
@@ -148,6 +149,19 @@ export default function Settings() {
                         </button>
                     </div>
                 )}
+
+                <div className="settings-row settings-row-static">
+                    <div>
+                        <div className="settings-row-title">Feedback</div>
+                        <div className="settings-row-desc">
+                            Found a bug, or have an idea? Tell me. This is an early version, and what people say decides
+                            what happens next.
+                        </div>
+                    </div>
+                    <a className="btn btn-sm" href={FEEDBACK_HREF} data-tip={FEEDBACK_EMAIL} data-tip-align="end">
+                        Send feedback
+                    </a>
+                </div>
 
                 <div className="settings-row settings-row-static">
                     <div>

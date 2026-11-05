@@ -187,3 +187,26 @@ describe("AppRouter — privacy", () => {
         expect(screen.getByText(/no analytics/)).toBeTruthy();
     });
 });
+
+describe("AppRouter — feedback", () => {
+    it("links to an email from the landing footer and from the settings page", async () => {
+        const { unmount } = render(
+            <MemoryRouter initialEntries={["/"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        const footer = await screen.findByRole("link", { name: "Feedback" });
+        expect(footer.getAttribute("href")).toMatch(/^mailto:/);
+        expect(footer.getAttribute("data-tip")).toBe("contact+sudoku@silical.dev");
+        unmount();
+
+        render(
+            <MemoryRouter initialEntries={["/settings"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        const row = await screen.findByRole("link", { name: "Send feedback" });
+        expect(row.getAttribute("href")).toMatch(/^mailto:/);
+        expect(row.getAttribute("data-tip")).toBe("contact+sudoku@silical.dev");
+    });
+});
