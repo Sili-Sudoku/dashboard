@@ -20,3 +20,6 @@ coverage
 *.sw?
 test-results
 playwright-report
+
+# Private puzzles (never committed or built)
+src/puzzles/private/

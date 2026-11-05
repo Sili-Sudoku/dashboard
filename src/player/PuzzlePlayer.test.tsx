@@ -464,9 +464,9 @@ describe("<PuzzlePlayer />", () => {
         expect(container.querySelectorAll("text.note-flagged")).toHaveLength(0);
     });
 
-    it("hides the Check button for puzzles with no declared solution", () => {
+    it("shows Check disabled for puzzles with no declared solution", () => {
         render(<PuzzlePlayer puzzle={compiledWithZeroInDomain()} />);
-        expect(screen.queryByRole("button", { name: /^check$/i })).toBeNull();
+        expect((screen.getByRole("button", { name: /^check$/i }) as HTMLButtonElement).disabled).toBe(true);
     });
 
     it("clicking Check first just reports a mistake, a second press reveals it, and fixing it clears the flag", () => {

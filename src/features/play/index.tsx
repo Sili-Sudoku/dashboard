@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router-dom";
 import { Braces, Copy, ExternalLink, Share2, X } from "lucide-react";
 
 import { compilePuzzle } from "@/runtime/compile.ts";
+import { solve } from "@/runtime/solver.ts";
 import { decodePuzzle, encodePuzzle } from "@/runtime/serialization.ts";
 import type { CompiledPuzzle, PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -43,7 +44,30 @@ type JsonView = "off" | "artifact" | "compiled";
 export default function Play() {
     const { ref } = useParams();
     const [settings, setSetting] = useSettings();
-    const { definition, compiled, error } = useMemo(() => resolve(ref), [ref]);
+    const resolved = useMemo(() => resolve(ref), [ref]);
+    const { definition, error } = resolved;
+    const [found, setFound] = useState<{ source: CompiledPuzzle; solution: NonNullable<CompiledPuzzle["solution"]> }>();
+
+    // A shared or imported puzzle may carry no solution, and Check needs one. Look for it here, and use it only
+    // when it is the single solution, as "correct" would mean nothing otherwise.
+    const unsolved = resolved.compiled && !resolved.compiled.solution ? resolved.compiled : undefined;
+    useEffect(() => {
+        if (!unsolved) return;
+        let stale = false;
+        void solve(unsolved).then((r) => {
+            if (!stale && r.status === "unique" && r.solution) setFound({ source: unsolved, solution: r.solution });
+        });
+        return () => {
+            stale = true;
+        };
+    }, [unsolved]);
+    const compiled = useMemo(
+        () =>
+            found && found.source === resolved.compiled
+                ? { ...found.source, solution: found.solution }
+                : resolved.compiled,
+        [found, resolved.compiled],
+    );
     const [copied, setCopied] = useState(false);
     const [leaving, setLeaving] = useState(false);
     const [jsonView, setJsonView] = useState<JsonView>("off");

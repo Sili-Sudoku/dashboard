@@ -10,7 +10,7 @@ interface Props {
     onUndo: () => void;
     onRedo: () => void;
     onReset: () => void;
-    /** Omitted when the puzzle has no declared solution to check against. */
+    /** Omitted when the puzzle has no solution to check against. Check is then shown disabled. */
     onCheck?: () => void;
     /** Items above Reset in the menu (on a phone: the timer and the zoom controls). */
     extraItems?: readonly MenuItem[];
@@ -27,15 +27,18 @@ export default function Controls({ canUndo, canRedo, onUndo, onRedo, onReset, on
             <button className="btn btn-flat" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
                 <Redo2 size={16} /> Redo
             </button>
-            {onCheck && (
-                <button
-                    className="btn"
-                    onClick={onCheck}
-                    title="Check against the solution (V). Press again with no edits to show what is wrong."
-                >
-                    <BadgeCheck size={16} /> Check
-                </button>
-            )}
+            <button
+                className="btn"
+                onClick={onCheck}
+                disabled={!onCheck}
+                title={
+                    onCheck
+                        ? "Check against the solution (V). Press again with no edits to show what is wrong."
+                        : "Check needs one known solution. This puzzle has none, or has more than one."
+                }
+            >
+                <BadgeCheck size={16} /> Check
+            </button>
             <OverflowMenu
                 label="More actions"
                 flat

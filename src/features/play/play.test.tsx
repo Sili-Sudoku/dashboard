@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import Play from "@/features/play/index.tsx";
 import { clearToasts, getToasts } from "@/app/toast.ts";
 import { encodePuzzle } from "@/runtime/serialization.ts";
+import type { PuzzleDefinition } from "@/runtime/puzzle.ts";
 import { miniSudoku } from "@/puzzles/mini_sudoku.ts";
 
 const openMenuItem = (name: RegExp) => {
@@ -153,5 +154,29 @@ describe("Play — source credit", () => {
         renderAt(withSource("http://example.com/p"));
         // such a puzzle does not load at all: the error page shows instead of a board
         expect(screen.queryByRole("button", { name: "Puzzle actions" })).toBeNull();
+    });
+});
+
+describe("Play — Check on a puzzle without a stored solution", () => {
+    const withoutSolution = (givens: PuzzleDefinition["givens"]) => {
+        const bare: PuzzleDefinition = { ...miniSudoku, givens };
+        delete bare.solution;
+        return bare;
+    };
+
+    it("finds the unique solution, so a shared link gets a working Check button", async () => {
+        const all = { ...miniSudoku.solution };
+        delete all[Object.keys(all)[0]];
+        renderAt(`/p/${encodePuzzle(withoutSolution(all))}`);
+        await waitFor(() =>
+            expect((screen.getByRole("button", { name: /check/i }) as HTMLButtonElement).disabled).toBe(false),
+        );
+    });
+
+    it("shows Check disabled when there is no single solution", async () => {
+        renderAt(`/p/${encodePuzzle(withoutSolution({}))}`);
+        const check = screen.getByRole("button", { name: /check/i }) as HTMLButtonElement;
+        await new Promise((r) => setTimeout(r, 50));
+        expect(check.disabled).toBe(true);
     });
 });
