@@ -76,13 +76,17 @@ notes, undo/redo    satisfied /          (polyline, circle, cage,
 
 ## Docs
 
+The [docs index](docs/README.md) says which one to read first.
+
 - [`docs/PUZZLE_FORMAT.md`](docs/PUZZLE_FORMAT.md): the artifact JSON and the
   constraint language reference.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): decisions and trade-offs.
 - [`docs/DESIGN.md`](docs/DESIGN.md): the visual identity. It lists which
   parts use the warm "ink & paper" look, which parts keep the original theme,
   and why.
-- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md): the rules for commits.
+- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md): the rules for commits and comments, and the checks to run.
+- [`docs/UI_PLACEMENT.md`](docs/UI_PLACEMENT.md): where a new control goes.
+- [`docs/IMPORT_FIDELITY.md`](docs/IMPORT_FIDELITY.md): which rules survive an import or export.
 
 ## URL sharing
 
