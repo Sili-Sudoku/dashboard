@@ -148,6 +148,17 @@ export default function Settings() {
                         </button>
                     </div>
                 )}
+
+                <div className="settings-row settings-row-static">
+                    <div>
+                        <div className="settings-row-title">Your data</div>
+                        <div className="settings-row-desc">
+                            Today the app has no accounts, no tracking, and no analytics. Your settings, saved progress,
+                            and solve times stay on this device, in your browser. If you clear your browser data, they
+                            are gone.
+                        </div>
+                    </div>
+                </div>
             </section>
         </div>
     );

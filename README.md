@@ -25,6 +25,14 @@ npm run lint
 Open the **"Four Systems, One Grid"** puzzle. It has a classic Sudoku, a killer
 cage, a thermometer, and an arrow on one board. The engine knows none of them.
 
+## Privacy
+
+Today the app has no server, no accounts, no cookies, and no analytics. Your settings, saved progress, and solve times
+are stored in your browser (localStorage) and stay on your device. The Content Security Policy only allows requests to
+the site itself, and a test checks that the app works with the network blocked. A puzzle link contains the whole puzzle
+in the URL, so anyone you send it to can read it. A source link on a puzzle opens another website only after you
+confirm.
+
 ## Known limitations
 
 - Everything is stored in your browser (localStorage). There are no accounts, no sync between devices, and no puzzle

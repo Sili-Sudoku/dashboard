@@ -175,3 +175,15 @@ describe("AppRouter — AI disclaimer", () => {
         expect(screen.getByText(/never generate puzzles or art/)).toBeTruthy();
     });
 });
+
+describe("AppRouter — privacy", () => {
+    it("tells people on the settings page that their data stays on the device", async () => {
+        render(
+            <MemoryRouter initialEntries={["/settings"]}>
+                <AppRouter />
+            </MemoryRouter>,
+        );
+        expect(await screen.findByText("Your data")).toBeTruthy();
+        expect(screen.getByText(/no analytics/)).toBeTruthy();
+    });
+});
