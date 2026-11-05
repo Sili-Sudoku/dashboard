@@ -30,7 +30,7 @@ export default function ZoomFooter({
     onActualSize,
     onToggleLock,
 }: Props) {
-    const zoomPanelId = `zoom-${useId().replace(/:/g, "")}`;
+    const zoomPanelId = `cpr-zq3m-zoom-${useId().replace(/:/g, "")}`;
     const [open, setOpen] = useState(false);
     return (
         <div className="board-footer" ref={footerRef}>

@@ -101,7 +101,7 @@ const hasLongerMatch = (domain: readonly number[], prefix: string): boolean =>
  * It is long enough for a deliberate second keystroke and short enough that the key does not feel stuck. */
 const DIGIT_COMMIT_DELAY_MS = 500;
 
-const CHECK_TOAST_KEY = "check";
+const CHECK_TOAST_KEY = "cpr-w2dh-check";
 
 /** A second history that Undo/Redo of the board uses when its own history (entered digits and notes) is empty.
  *  It holds the edits of the Author page to the puzzle definition.

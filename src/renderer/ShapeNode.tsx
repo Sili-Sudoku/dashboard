@@ -29,7 +29,7 @@ const patternTile = (name: NonNullable<ResolvedStyle["pattern"]>, color: string,
 
 /** The value for `fill`, and the `<defs>` that it uses, when the style has a pattern or picture. */
 function useFill(s: ResolvedStyle): { fill: string; defs: ReactNode } {
-    const id = useId().replace(/:/g, "");
+    const id = `cpr-xj8n-fill-${useId().replace(/:/g, "")}`;
     const unit = s.unit ?? 40;
     if (s.image && s.bounds) {
         const { x, y, w, h } = s.bounds;

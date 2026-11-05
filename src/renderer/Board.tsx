@@ -56,7 +56,7 @@ export default function Board({
     hideFooter,
     onZoomControls,
 }: Props) {
-    const hatchId = `hatch-${useId().replace(/:/g, "")}`;
+    const hatchId = `cpr-k7vq-hatch-${useId().replace(/:/g, "")}`;
     const painting = useCellPainting({ onPaintStart, onPaintMove, onPaintEnd });
     const {
         view,

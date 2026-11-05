@@ -86,7 +86,7 @@ describe("Board — cell layers", () => {
 
     it("lays a hatch over cells that are not normal, and only those", () => {
         const { container } = renderBoard(scene2({ r1c2: { tone: "violated" } }));
-        const hatches = container.querySelectorAll('rect[fill^="url(#hatch-"]');
+        const hatches = container.querySelectorAll('rect[fill*="hatch-"]');
         expect(hatches).toHaveLength(1);
         expect(hatches[0].getAttribute("x")).toBe("40");
         // the fill points at a pattern that exists
