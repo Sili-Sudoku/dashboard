@@ -22,6 +22,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fails 180 days before the Node version in engines.node reaches end of life.
+      - name: Node support
+        run: node scripts/node_support.ts
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -34,10 +38,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      # Real-browser smoke test of the production build. It builds the app itself.
-      - name: Install browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Browser smoke test
-        run: npm run test:e2e

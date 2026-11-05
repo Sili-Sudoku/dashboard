@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "coverage": "vitest run --coverage",
     "bench": "vitest bench --run",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "deps": "node scripts/node_support.ts && npm audit --omit=dev && (npm outdated || true)"
   },
   "dependencies": {
     "lucide-react": "^0.563.0",

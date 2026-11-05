@@ -71,7 +71,7 @@ export default defineConfig({
         // the top of the file.
         environment: "node",
         globals: true,
-        include: ["src/**/*.test.{ts,tsx}"],
+        include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts"],
         coverage: {
             provider: "v8",
             include: ["src/**/*.{ts,tsx}"],

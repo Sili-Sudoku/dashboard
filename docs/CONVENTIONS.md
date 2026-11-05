@@ -22,9 +22,9 @@ Short rules for everyone who changes this project.
 
 ## Browser smoke test
 
-`npm run test:e2e` builds the app and runs a few tests in a real Chromium (`e2e/`). CI runs it. Run `npx playwright install chromium`
-once on a new machine. The tests cover what jsdom cannot: real layout, a phone-sized screen, and offline use through the service
-worker.
+`npm run test:e2e` builds the app and runs a few tests in a real Chromium (`e2e/`). CI does not run it, to keep CI
+light, so run it before a release. Run `npx playwright install chromium` once on a new machine. The tests cover what
+jsdom cannot: real layout, a phone-sized screen, and offline use through the service worker.
 
 ## Manual checks
 
@@ -39,3 +39,8 @@ npx lighthouse http://localhost:4199/ --chrome-flags="--headless" --view
 Check `/`, `/puzzles`, a puzzle such as `/p/demo-mixed`, and `/new`. The last result was 95-100 for performance and
 100 for accessibility. Ignore the audits `valid-source-maps` (the build has no source maps on purpose), `llms-txt` and
 `agentic-browsing`.
+
+`npm run deps` runs three checks. It fails if the Node version in `engines.node` is within 180 days of its end of life
+(from the official Node release schedule; skipped when offline). It fails if a package that ships to users has a known
+vulnerability. Then it lists packages with newer versions. Dev-only tools (tests, lint) can have advisories without
+affecting users, so the audit skips them. CI runs the Node check on every push. Run the full command before a release.
