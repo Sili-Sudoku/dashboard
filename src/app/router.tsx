@@ -110,9 +110,7 @@ export default function AppRouter() {
                                         ))}
                                 </span>
                             ) : (
-                                <span className="tagline">
-                                    Puzzle types are definitions. They are not engine features.
-                                </span>
+                                <span className="tagline">Variant sudoku, in your browser.</span>
                             )}
                         </div>
                         {/* Play portals its View JSON/Share buttons in here (see page_header.ts).

@@ -10,14 +10,13 @@ export default function Landing() {
         <div className="landing">
             <section className="lp-hero">
                 <div className="lp-hero-copy">
-                    <p className="lp-kicker">a constraint runtime, not a single Sudoku app</p>
+                    <p className="lp-kicker">sudoku variants, in your browser</p>
                     <h1>
-                        Every variant is <em>data.</em>
+                        Solve variant sudoku. <em>Make your own.</em>
                     </h1>
                     <p className="lp-lede">
-                        Thermometers, killer cages, arrows, and kropki dots are common puzzle constraints. This engine
-                        does not build any of them in directly. Instead, each one exists as a small, swappable
-                        definition. That definition runs on the same solver and board as every other constraint.
+                        Thermometers, killer cages, arrows, kropki dots and more. Play puzzles on a clean board that
+                        works on a phone, or build one yourself and let the solver check that it has exactly one answer.
                     </p>
                     <div className="lp-ctas">
                         <Link to="/puzzles" className="btn btn-primary lp-btn">
@@ -42,30 +41,37 @@ export default function Landing() {
             <section className="lp-manifesto">
                 <article>
                     <span className="lp-num">01</span>
-                    <h2>Variants are not hardcoded</h2>
+                    <h2>Solve</h2>
                     <p>
-                        A thermometer is not a hardcoded feature. It is a constraint, defined the same way as any other
-                        variant. Because each constraint is a plain definition, you can customize one or create a new
-                        one yourself. That same definition is easy to share with other puzzle makers.
+                        Pencil marks, colours, undo and a check against the solution. Everything runs in your browser,
+                        with no account and no install.
                     </p>
                 </article>
                 <article>
                     <span className="lp-num">02</span>
-                    <h2>Import your puzzle</h2>
+                    <h2>Make your own</h2>
                     <p>
-                        You can import a puzzle that you made in f-puzzles or SudokuMaker, and share it with the
-                        community here. The same path works in reverse: you can create a puzzle here and export it to
-                        SudokuPad. Because both directions are open, you control when to import or export your puzzle.
+                        Use the visual editor or edit the JSON directly. Both give the same puzzle, and the solver tells
+                        you whether it has one solution, several, or none.
                     </p>
                 </article>
                 <article>
                     <span className="lp-num">03</span>
-                    <h2>Authoring options</h2>
+                    <h2>Bring your puzzles</h2>
                     <p>
-                        You can create a puzzle in two ways: edit a JSON file, or use the visual drag-and-drop editor.
-                        Both produce the same definition, so you can choose whichever fits your workflow.
+                        Import from f-puzzles or SudokuMaker, and export to SudokuPad. Anything that cannot carry over
+                        is reported rather than silently dropped.
                     </p>
                 </article>
+            </section>
+
+            <section className="lp-roadmap lp-thesis">
+                <h2>How it works</h2>
+                <p>
+                    No variant is built into the board. A thermometer is a small definition, the same kind as every
+                    other constraint, and they all run on one solver. That is why you can change a rule or add a new
+                    one, and share it as plain data.
+                </p>
             </section>
 
             <section className="lp-roadmap">
