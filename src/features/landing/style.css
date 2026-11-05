@@ -59,6 +59,17 @@
     color: var(--lp-moss);
 }
 
+.lp-source {
+    margin: 0 0 1.4rem;
+    font-size: 0.9rem;
+    color: var(--lp-ink-soft);
+}
+
+.lp-source a {
+    color: inherit;
+    font-weight: 700;
+}
+
 .lp-hero h1 {
     margin: 0 0 1.1rem;
     font-size: clamp(2.6rem, 5vw, 4.2rem);

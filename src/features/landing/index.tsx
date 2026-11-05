@@ -1,4 +1,4 @@
-import { FEEDBACK_EMAIL, FEEDBACK_HREF } from "@/app/feedback.ts";
+import { FEEDBACK_EMAIL, FEEDBACK_HREF, SOURCE_HREF } from "@/app/feedback.ts";
 import { Link } from "react-router-dom";
 
 import HeroSheet from "./hero_sheet.tsx";
@@ -17,6 +17,15 @@ export default function Landing() {
                     <p className="lp-lede">
                         Thermometers, killer cages, arrows, kropki dots and more. Play puzzles on a clean board that
                         works on a phone, or build one yourself and let the solver check that it has exactly one answer.
+                    </p>
+                    <p className="lp-source">
+                        Source-available under the Business Source License.
+                        {SOURCE_HREF && (
+                            <>
+                                {" "}
+                                <a href={SOURCE_HREF}>Read the code</a>
+                            </>
+                        )}
                     </p>
                     <div className="lp-ctas">
                         <Link to="/puzzles" className="btn btn-primary lp-btn">
@@ -109,6 +118,12 @@ export default function Landing() {
             </section>
 
             <footer className="lp-footer">
+                {SOURCE_HREF && (
+                    <>
+                        <a href={SOURCE_HREF}>Source code</a>
+                        {" · "}
+                    </>
+                )}
                 <Link to="/ai">AI disclaimer</Link>
                 {" · "}
                 <a href="/third-party-notices.txt">Third-party licences</a>

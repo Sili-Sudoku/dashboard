@@ -1,29 +1,46 @@
 # Sili Sudoku
 
-A generic runtime for Sudoku and variant-Sudoku puzzles. The engine knows only
-generic primitives: cells, regions, values, sums, ordering, counting, logic, and
-adjacency. **Puzzle types are definitions built from these primitives. They are
-not features of the engine.**
+Play variant Sudoku in your browser, or make your own puzzles. No account, no install, and it works offline.
+The source is available under the [Business Source License](#licence).
 
-A thermometer is not a runtime concept. It is a five-line function. It compiles
-to `["strictIncreasing", ["cells", [...]]]` plus a few visual objects.
-Delete `src/definitions/` and the runtime still works. Puzzles written with
-primitive constraints still load, evaluate, render, and play.
+![A 6x6 variant puzzle with a thermometer, killer cages and kropki dots](docs/screenshot.png)
 
-## Quickstart
+**Status: alpha.** It works and is tested, but only a few puzzles are bundled and the app has had little testing
+outside Chromium. See [Known limitations](#known-limitations).
+
+## What you can do
+
+- **Solve.** Digits, corner and centre notes, colours, undo and redo, a timer, and a check against the solution.
+- **Make puzzles.** Use the visual editor or write the JSON directly. The solver tells you whether the puzzle has one
+  solution, several, or none.
+- **Share.** A puzzle link contains the whole puzzle, so it needs no server.
+- **Bring puzzles over.** Import from f-puzzles and SudokuMaker, export to SudokuPad. What cannot carry over is
+  reported, not dropped silently. See [`docs/IMPORT_FIDELITY.md`](docs/IMPORT_FIDELITY.md).
+
+### Supported variants
+
+Classic Sudoku, killer cages, thermometers, arrows, kropki dots, XV, whisper lines, between lines, palindromes,
+sandwich sums, quadruples, parity, min/max, anti-king, anti-knight, non-consecutive, disjoint groups, clones and
+negative constraints. Grids can be any size, including Samurai, and there is a fog mode.
+
+## Running it
 
 You need Node.js 24 or newer.
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # unit tests, mostly for the runtime
-npm run build      # tsc -b && vite build
-npm run lint
+npm test
+npm run build
 ```
 
-Open the **"Four Systems, One Grid"** puzzle. It has a classic Sudoku, a killer
-cage, a thermometer, and an arrow on one board. The engine knows none of them.
+Open the **"Four Systems, One Grid"** puzzle for a first look. It has a classic Sudoku, a killer cage, a
+thermometer, and an arrow on one board.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). For the checks to run before a change, see
+[`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 
 ## Privacy
 
@@ -43,7 +60,12 @@ confirm.
   [`docs/IMPORT_FIDELITY.md`](docs/IMPORT_FIDELITY.md). Penpa+ is not supported.
 - The solver can be slow on very hard or very large puzzles.
 
-## How it fits together
+## How it works
+
+No variant is built into the engine. It knows only generic primitives: cells, regions, values, sums, ordering,
+counting, logic, and adjacency. A thermometer is a five-line definition that compiles to
+`["strictIncreasing", ["cells", [...]]]` plus a few visual objects. Delete `src/definitions/` and the runtime still
+works, and puzzles written with primitive constraints still load, evaluate, render, and play.
 
 ```
 PuzzleDefinition (JSON artifact: metadata, geometry, domain, givens,
