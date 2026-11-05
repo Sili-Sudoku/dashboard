@@ -6,6 +6,7 @@ import {
     importSudokuMaker,
     type SudokuMakerExport,
 } from "@/interop/sudokumaker.ts";
+import { LIMITS } from "@/runtime/serialization.ts";
 import { compilePuzzle } from "@/runtime/compile.ts";
 import { evaluate, lookupFromRecord } from "@/runtime/evaluate.ts";
 import { definitions } from "@/definitions/index.ts";
@@ -260,8 +261,9 @@ describe("limits on outside data", () => {
             .replace(/=+$/, "");
 
     it("stops a deflate bomb at the output limit", () => {
-        // 50 MB of one character is about 50 KB when compressed.
-        const bomb = toBase64Url(deflateRaw(new Uint8Array(50_000_000).fill(97)));
+        // Twice the limit of one repeated character compresses to a few KB. The size follows the limit, because
+        // compressing a bigger bomb made this test time out on the CI runner.
+        const bomb = toBase64Url(deflateRaw(new Uint8Array(LIMITS.inflatedBytes * 2).fill(97)));
         const result = importSudokuMaker("D" + bomb);
         expect(result).toBeInstanceOf(Error);
         expect((result as Error).message).toMatch(/too large when unpacked/);
